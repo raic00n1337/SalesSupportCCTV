@@ -48,6 +48,7 @@ App läuft auf: **http://localhost:3000**
 
 #### 🎨 Moderne UI mit CI-Farben
 - **Primary**: #8D5FFF (Lila/Violett)
+- **Accent**: #C2B4FC (Helles Lila)
 - **Light**: #D7D8D6 (Helles Grau)
 - TailwindCSS Design
 - Dark Mode Support

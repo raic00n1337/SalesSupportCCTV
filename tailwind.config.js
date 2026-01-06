@@ -22,6 +22,7 @@ module.exports = {
           900: '#41196f',
         },
         'ci-light': '#D7D8D6',
+        'ci-accent': '#C2B4FC',
       },
     },
   },

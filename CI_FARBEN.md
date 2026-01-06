@@ -29,6 +29,17 @@ Die Anwendung verwendet ein modernes CI-Farbschema:
 - Panels und Container
 - Step-Icons (Inaktiv)
 
+### Accent Color (Abgeschlossene Elemente)
+- **HEX**: `#C2B4FC`
+- **RGB**: `194, 180, 252`
+- **Beschreibung**: Helles Lila für abgeschlossene Steps und sekundäre Aktionen
+
+**Verwendung:**
+- Abgeschlossene Steps im Wizard
+- Zurück-Button
+- Excel-Export Button
+- Erfolgs-Indikatoren
+
 ---
 
 ## Tailwind-Konfiguration
@@ -50,6 +61,7 @@ colors: {
     900: '#41196f',
   },
   'ci-light': '#D7D8D6',
+  'ci-accent': '#C2B4FC',
 }
 ```
 
@@ -80,6 +92,15 @@ colors: {
 - `bg-ci-light` (Standard für Cards, Inputs)
 - Im Dark Mode: `dark:bg-slate-800` (automatischer Wechsel)
 
+### Accent-Farbe (Helles Lila)
+
+**Hintergründe:**
+- `bg-ci-accent` (Abgeschlossene Steps, Zurück-Button)
+- `hover:bg-primary-400` (Hover-Effekt)
+
+**Text:**
+- `text-ci-accent` (Check-Marks, Erfolgs-Indikatoren)
+
 ---
 
 ## Dark Mode
@@ -108,6 +129,13 @@ className="bg-ci-light dark:bg-slate-800"
 ```jsx
 <button className="bg-primary-500 text-white shadow-lg">
   <div className="bg-ci-light text-primary-600">1</div>
+</button>
+```
+
+### Step-Indicator (Abgeschlossen)
+```jsx
+<button className="bg-ci-accent text-white shadow-md hover:bg-primary-400">
+  <div className="bg-ci-light text-ci-accent">✓</div>
 </button>
 ```
 

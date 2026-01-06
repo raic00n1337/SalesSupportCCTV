@@ -99,7 +99,7 @@ export default function Home() {
                   step.num === currentStep
                     ? 'bg-primary-500 text-white shadow-lg scale-105'
                     : step.num < currentStep
-                    ? 'bg-green-500 text-white shadow-md hover:bg-green-600'
+                    ? 'bg-ci-accent text-white shadow-md hover:bg-primary-400'
                     : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-600'
                 }`}
                 aria-label={`Zu Schritt ${step.num}: ${step.label} wechseln`}
@@ -110,7 +110,7 @@ export default function Home() {
                     step.num === currentStep
                       ? 'bg-ci-light dark:bg-slate-200 text-primary-600'
                       : step.num < currentStep
-                      ? 'bg-ci-light dark:bg-slate-200 text-green-500'
+                      ? 'bg-ci-light dark:bg-slate-200 text-ci-accent'
                       : 'bg-ci-light dark:bg-slate-600 text-gray-600 dark:text-gray-300'
                   }`}>
                     {step.num < currentStep ? (
@@ -128,7 +128,7 @@ export default function Home() {
                 {/* Connection Arrow */}
                 {index < 5 && (
                   <div className={`absolute top-1/2 -right-2 transform -translate-y-1/2 z-10 pointer-events-none ${
-                    step.num < currentStep ? 'text-green-500' : 'text-gray-300 dark:text-slate-600'
+                    step.num < currentStep ? 'text-ci-accent' : 'text-gray-300 dark:text-slate-600'
                   }`}>
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -166,7 +166,7 @@ export default function Home() {
         ) : (
           <button
             onClick={() => alert('Export-Funktion wird in Kürze implementiert')}
-            className="px-6 py-3 rounded-lg font-semibold transition-colors bg-green-600 text-white hover:bg-green-700"
+            className="px-6 py-3 rounded-lg font-semibold transition-colors bg-ci-accent text-white hover:bg-primary-400"
           >
             Stückliste exportieren
           </button>
@@ -2095,7 +2095,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
             </h3>
             <button
               onClick={exportToExcel}
-              className="px-6 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors flex items-center gap-2"
+              className="px-6 py-3 rounded-lg bg-ci-accent text-white font-semibold hover:bg-primary-400 transition-colors flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
