@@ -24,5 +24,21 @@ body {
     rgb(var(--background-start-rgb));
 }
 
+/* Placeholder-Texte dunkler machen für bessere Lesbarkeit */
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: #1f2937 !important;
+  opacity: 0.8 !important;
+}
+
+/* Dark Mode Placeholder */
+.dark input::placeholder,
+.dark textarea::placeholder,
+.dark select::placeholder {
+  color: #d1d5db !important;
+  opacity: 0.9 !important;
+}
+
 
 
