@@ -1,15 +1,12 @@
-<svg width="200" height="120" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Securitas Technology Text (White for Dark Mode) -->
-  <text x="10" y="35" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff">
+<svg width="160" height="80" viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Three Red Circles (Securitas Logo) -->
+  <circle cx="20" cy="20" r="16" fill="#E31E24"/>
+  <circle cx="55" cy="20" r="16" fill="#E31E24"/>
+  <circle cx="90" cy="20" r="16" fill="#E31E24"/>
+  
+  <!-- Securitas Text (White for Dark Mode) -->
+  <text x="5" y="65" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="bold" fill="#ffffff" letter-spacing="-0.5">
     Securitas
   </text>
-  <text x="10" y="60" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ffffff">
-    Technology
-  </text>
-  
-  <!-- Three Red Dots -->
-  <circle cx="30" cy="85" r="8" fill="#E31E24"/>
-  <circle cx="55" cy="85" r="8" fill="#E31E24"/>
-  <circle cx="80" cy="85" r="8" fill="#E31E24"/>
 </svg>
 
