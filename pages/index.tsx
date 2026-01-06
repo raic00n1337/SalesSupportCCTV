@@ -3,6 +3,7 @@ import type { Project, Site, TierType, ManufacturerType, VideoManagementType, Ha
 import { validateIPv4, isValidHostIP, assignIPsToDevices, generateAllNetworkDevices, type NetworkDevice } from '../ipHelper'
 import * as XLSX from 'xlsx'
 import { generateMountingAccessories } from '../mountAccessories'
+import { generatePDF } from '../pdfExport'
 
 export default function Home() {
   const [currentStep, setCurrentStep] = useState(1)
@@ -1596,6 +1597,47 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     const fileName = `IP-Dokumentation_${project.name?.replace(/\s+/g, '_') || 'Projekt'}_${new Date().toISOString().split('T')[0]}.xlsx`
     XLSX.writeFile(wb, fileName)
   }
+
+  const exportToPDF = () => {
+    // Prepare BOM
+    const bom = calculateBOM()
+    
+    // Prepare IP Documentation (if enabled)
+    let ipDocumentation: any[] | undefined = undefined
+    
+    if (project.sites && project.sites.some(site => site.ipDocEnabled)) {
+      ipDocumentation = []
+      
+      project.sites.filter(site => site.ipDocEnabled).forEach(site => {
+        // Generate all devices for this site in correct order
+        let devices = generateAllNetworkDevices(site, project, site.ipVideoDevicePrefix, site.ipNetworkDevicePrefix)
+        
+        // Assign IPs
+        const { devices: devicesWithIP } = assignIPsToDevices(devices, site.ipStart || '')
+        
+        // Apply editable labels
+        const finalDevices = devicesWithIP.map(device => ({
+          ...device,
+          label: editableDevices[site.id]?.[device.id] || device.label
+        }))
+        
+        ipDocumentation!.push({
+          siteId: site.id,
+          siteName: site.name,
+          devices: finalDevices,
+          gateway: site.ipGateway,
+          cidr: site.ipCidr
+        })
+      })
+    }
+    
+    // Generate PDF
+    generatePDF({
+      project: project as Project,
+      bom,
+      ipDocumentation
+    })
+  }
   
   // Calculate BOM based on project configuration
   const calculateBOM = () => {
@@ -2081,6 +2123,17 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
             </div>
           </div>
         </div>
+        <div className="flex justify-center pt-4 border-t border-gray-300 dark:border-slate-600">
+          <button
+            onClick={exportToPDF}
+            className="px-8 py-3 rounded-lg bg-primary-500 text-white font-semibold hover:bg-primary-600 transition-colors flex items-center gap-2 shadow-lg"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            Angebot als PDF exportieren
+          </button>
+        </div>
         <div className="mt-4 pt-4 border-t border-gray-300 dark:border-slate-600 text-xs text-gray-500 dark:text-gray-400">
           * Alle Preise sind unverbindliche Verkaufspreise (UVP) zzgl. MwSt. | Die Stückliste dient als Grundlage für die Angebotserstellung.
         </div>
@@ -2093,15 +2146,26 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
               IP-Dokumentation
             </h3>
-            <button
-              onClick={exportToExcel}
-              className="px-6 py-3 rounded-lg bg-ci-accent text-white font-semibold hover:bg-primary-400 transition-colors flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Excel Export (.xlsx)
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={exportToExcel}
+                className="px-6 py-3 rounded-lg bg-ci-accent text-white font-semibold hover:bg-primary-400 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Excel Export
+              </button>
+              <button
+                onClick={exportToPDF}
+                className="px-6 py-3 rounded-lg bg-primary-500 text-white font-semibold hover:bg-primary-600 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                PDF Export
+              </button>
+            </div>
           </div>
           
           {project.sites.filter(site => site.ipDocEnabled).map((site) => {
