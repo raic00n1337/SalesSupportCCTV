@@ -44,9 +44,9 @@ export default function App({ Component, pageProps }: AppProps) {
               <img 
                 src={darkMode ? "/logo-dark.svg" : "/logo.svg"}
                 alt="Securitas Technology Logo" 
-                className="h-12 w-auto"
+                className="h-16 w-auto"
               />
-              <div className="hidden sm:block border-l border-gray-300 dark:border-slate-600 h-12"></div>
+              <div className="hidden sm:block border-l border-gray-300 dark:border-slate-600 h-16"></div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 Video-System-Konfigurator
               </h1>
