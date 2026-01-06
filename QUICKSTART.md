@@ -125,3 +125,5 @@ Dort findest du:
 **Version**: 2.0.0 (Montagevarianten Release)  
 **Stand**: 02.01.2026, 23:50 Uhr
 
+
+

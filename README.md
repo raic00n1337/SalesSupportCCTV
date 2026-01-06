@@ -46,7 +46,9 @@ App läuft auf: **http://localhost:3000**
 - Editierbare Geräte-Bezeichnungen
 - **Excel-Export (.xlsx)** mit Formatierung
 
-#### 🎨 Moderne UI
+#### 🎨 Moderne UI mit CI-Farben
+- **Primary**: #8D5FFF (Lila/Violett)
+- **Light**: #D7D8D6 (Helles Grau)
 - TailwindCSS Design
 - Dark Mode Support
 - Responsive Layout

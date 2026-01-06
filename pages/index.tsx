@@ -97,7 +97,7 @@ export default function Home() {
                 onClick={() => setCurrentStep(step.num)}
                 className={`relative rounded-lg p-4 transition-all w-full cursor-pointer ${
                   step.num === currentStep
-                    ? 'bg-primary-600 text-white shadow-lg scale-105'
+                    ? 'bg-primary-500 text-white shadow-lg scale-105'
                     : step.num < currentStep
                     ? 'bg-green-500 text-white shadow-md hover:bg-green-600'
                     : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-600'
@@ -108,10 +108,10 @@ export default function Home() {
                 <div className="flex flex-col items-center gap-2">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
                     step.num === currentStep
-                      ? 'bg-white text-primary-600'
+                      ? 'bg-ci-light dark:bg-slate-200 text-primary-600'
                       : step.num < currentStep
-                      ? 'bg-white text-green-500'
-                      : 'bg-white dark:bg-slate-600 text-gray-600 dark:text-gray-300'
+                      ? 'bg-ci-light dark:bg-slate-200 text-green-500'
+                      : 'bg-ci-light dark:bg-slate-600 text-gray-600 dark:text-gray-300'
                   }`}>
                     {step.num < currentStep ? (
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,7 +142,7 @@ export default function Home() {
       </div>
 
       {/* Step Content */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg p-8 min-h-[500px]">
+      <div className="bg-ci-light dark:bg-slate-800 rounded-lg shadow-lg p-8 min-h-[500px]">
         {renderStep()}
       </div>
 
@@ -159,7 +159,7 @@ export default function Home() {
           <button
             onClick={handleNext}
             disabled={!canProceed()}
-            className="px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-primary-600 text-white hover:bg-primary-700"
+            className="px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-primary-500 text-white hover:bg-primary-500"
           >
             Weiter
           </button>
@@ -197,7 +197,7 @@ const Step1ProjectSetup = ({ project, updateProject }: { project: Partial<Projec
           value={project.name || ''}
           onChange={(e) => updateProject({ name: e.target.value })}
           placeholder="z.B. Firmengelände München Nord"
-          className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+          className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
         />
       </div>
 
@@ -224,11 +224,11 @@ const Step1ProjectSetup = ({ project, updateProject }: { project: Partial<Projec
         </label>
       </div>
 
-      <div className="mt-8 p-4 bg-blue-50 dark:bg-slate-700/50 rounded-lg">
-        <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">
+      <div className="mt-8 p-4 bg-primary-50 dark:bg-slate-700/50 rounded-lg">
+        <h3 className="font-semibold text-primary-900 dark:text-primary-300 mb-2">
           ℹ️ Hinweis
         </h3>
-        <p className="text-blue-800 dark:text-blue-200 text-sm">
+        <p className="text-primary-800 dark:text-primary-200 text-sm">
           Im nächsten Schritt können Sie einen oder mehrere Standorte für dieses Projekt definieren.
         </p>
       </div>
@@ -296,11 +296,11 @@ const Step2Sites = ({ project, updateProject }: { project: Partial<Project>; upd
             onChange={(e) => setNewSiteName(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleAddSite()}
             placeholder="z.B. Haupteingang, Parkplatz, Lager"
-            className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+            className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
           />
           <button
             onClick={handleAddSite}
-            className="px-6 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-colors"
+            className="px-6 py-3 rounded-lg bg-primary-500 text-white font-semibold hover:bg-primary-500 transition-colors"
           >
             Hinzufügen
           </button>
@@ -383,8 +383,8 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
               })}
               className={`p-6 rounded-lg border-2 text-left transition-all ${
                 project.tier === tier.value
-                  ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
-                  : 'border-gray-200 dark:border-slate-600 hover:border-primary-300 dark:hover:border-primary-700'
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-200 dark:border-slate-600 hover:border-primary-300 dark:hover:border-primary-600'
               }`}
             >
               <div className="font-bold text-lg text-gray-900 dark:text-white mb-2">
@@ -420,8 +420,8 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
               }}
               className={`p-6 rounded-lg border-2 text-center font-bold text-lg transition-all ${
                 project.manufacturer === manufacturer.value
-                  ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                  : 'border-gray-200 dark:border-slate-600 text-gray-900 dark:text-white hover:border-primary-300 dark:hover:border-primary-700'
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                  : 'border-gray-200 dark:border-slate-600 text-gray-900 dark:text-white hover:border-primary-300 dark:hover:border-primary-500'
               }`}
             >
               {manufacturer.label}
@@ -445,8 +445,8 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                   onClick={() => updateProject({ hanwhaSeries: series.value })}
                   className={`p-4 rounded-lg border-2 text-left transition-all ${
                     project.hanwhaSeries === series.value
-                      ? 'border-primary-600 bg-white dark:bg-slate-600'
-                      : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-primary-400'
+                      ? 'border-primary-500 bg-ci-light dark:bg-slate-600'
+                      : 'border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 hover:border-primary-400'
                   }`}
                 >
                   <div className="font-semibold text-gray-900 dark:text-white">
@@ -477,8 +477,8 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                   onClick={() => updateProject({ ajaxSeries: series.value })}
                   className={`p-4 rounded-lg border-2 text-left transition-all ${
                     project.ajaxSeries === series.value
-                      ? 'border-primary-600 bg-white dark:bg-slate-600'
-                      : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-primary-400'
+                      ? 'border-primary-500 bg-ci-light dark:bg-slate-600'
+                      : 'border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 hover:border-primary-400'
                   }`}
                 >
                   <div className="font-semibold text-gray-900 dark:text-white">
@@ -506,8 +506,8 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
               onClick={() => updateProject({ videoManagement: option.value })}
               className={`p-6 rounded-lg border-2 text-left transition-all ${
                 project.videoManagement === option.value
-                  ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
-                  : 'border-gray-200 dark:border-slate-600 hover:border-primary-300 dark:hover:border-primary-700'
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-200 dark:border-slate-600 hover:border-primary-300 dark:hover:border-primary-600'
               }`}
             >
               <div className="font-bold text-lg text-gray-900 dark:text-white mb-2">
@@ -540,8 +540,8 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                       onClick={() => updateProject({ storageHddSize: size })}
                       className={`px-4 py-3 rounded-lg border-2 font-semibold transition-all ${
                         project.storageHddSize === size
-                          ? 'border-primary-600 bg-white dark:bg-slate-600 text-primary-600 dark:text-primary-400'
-                          : 'border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white hover:border-primary-400'
+                          ? 'border-primary-500 bg-ci-light dark:bg-slate-600 text-primary-600 dark:text-primary-400'
+                          : 'border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white hover:border-primary-400'
                       }`}
                     >
                       {size} TB
@@ -563,7 +563,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                     max="16"
                     value={project.storageHddQuantity || 1}
                     onChange={(e) => updateProject({ storageHddQuantity: parseInt(e.target.value) || 1 })}
-                    className="w-32 px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="w-32 px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   />
                   <span className="text-gray-600 dark:text-gray-400">Stück</span>
                   {project.storageHddSize && project.storageHddQuantity && (
@@ -574,8 +574,8 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                 </div>
               </div>
 
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-xs text-blue-800 dark:text-blue-200">
+              <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
+                <p className="text-xs text-primary-800 dark:text-primary-200">
                   <strong>💡 Hinweis:</strong> Surveillance-Grade Festplatten sind für den 24/7-Dauerbetrieb optimiert. 
                   Bei Bedarf können mehrere Platten für RAID-Konfigurationen verwendet werden.
                 </p>
@@ -637,8 +637,8 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                   onClick={() => updateProject({ storageDays: option.days })}
                   className={`px-6 py-3 rounded-lg border-2 font-semibold transition-all ${
                     project.storageDays === option.days
-                      ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                      : 'border-gray-200 dark:border-slate-600 text-gray-900 dark:text-white hover:border-primary-300 dark:hover:border-primary-700'
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                      : 'border-gray-200 dark:border-slate-600 text-gray-900 dark:text-white hover:border-primary-300 dark:hover:border-primary-500'
                   }`}
                 >
                   {option.label}
@@ -661,7 +661,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                   updateProject({ storageDays: value })
                 }}
                 placeholder="z.B. 7"
-                className="w-32 px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-32 px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
               <span className="text-gray-600 dark:text-gray-400">Tage</span>
               {project.storageDays && project.storageDays > 3 && (
@@ -792,8 +792,8 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                 onClick={() => setSelectedSiteIndex(index)}
                 className={`px-6 py-3 rounded-lg border-2 font-semibold transition-all ${
                   selectedSiteIndex === index
-                    ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                    : 'border-gray-200 dark:border-slate-600 text-gray-900 dark:text-white hover:border-primary-300 dark:hover:border-primary-700'
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                    : 'border-gray-200 dark:border-slate-600 text-gray-900 dark:text-white hover:border-primary-300 dark:hover:border-primary-600'
                 }`}
               >
                 {site.name}
@@ -833,7 +833,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                   max="999"
                   value={selectedSite.cameras.domeFixed.quantity}
                   onChange={(e) => updateSiteCamera('domeFixed', { quantity: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 />
               </div>
               <div>
@@ -844,7 +844,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                   value={selectedSite.cameras.domeFixed.mount}
                   onChange={(e) => updateSiteCamera('domeFixed', { mount: e.target.value as MountType })}
                   disabled={selectedSite.cameras.domeFixed.quantity === 0}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="wall">Wandmontage</option>
                   <option value="ceiling">Deckenmontage</option>
@@ -865,7 +865,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                   max="999"
                   value={selectedSite.cameras.domeVario.quantity}
                   onChange={(e) => updateSiteCamera('domeVario', { quantity: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 />
               </div>
               <div>
@@ -876,7 +876,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                   value={selectedSite.cameras.domeVario.mount}
                   onChange={(e) => updateSiteCamera('domeVario', { mount: e.target.value as MountType })}
                   disabled={selectedSite.cameras.domeVario.quantity === 0}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="wall">Wandmontage</option>
                   <option value="ceiling">Deckenmontage</option>
@@ -905,7 +905,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                   max="999"
                   value={selectedSite.cameras.bulletFixed.quantity}
                   onChange={(e) => updateSiteCamera('bulletFixed', { quantity: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 />
               </div>
               <div>
@@ -916,7 +916,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                   value={selectedSite.cameras.bulletFixed.mount}
                   onChange={(e) => updateSiteCamera('bulletFixed', { mount: e.target.value as MountType })}
                   disabled={selectedSite.cameras.bulletFixed.quantity === 0}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="wall">Wandmontage</option>
                   <option value="ceiling">Deckenmontage</option>
@@ -937,7 +937,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                   max="999"
                   value={selectedSite.cameras.bulletVario.quantity}
                   onChange={(e) => updateSiteCamera('bulletVario', { quantity: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 />
               </div>
               <div>
@@ -948,7 +948,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                   value={selectedSite.cameras.bulletVario.mount}
                   onChange={(e) => updateSiteCamera('bulletVario', { mount: e.target.value as MountType })}
                   disabled={selectedSite.cameras.bulletVario.quantity === 0}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="wall">Wandmontage</option>
                   <option value="ceiling">Deckenmontage</option>
@@ -978,7 +978,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                 max="999"
                 value={selectedSite.cameras.ptz.quantity}
                 onChange={(e) => updateSiteCamera('ptz', { quantity: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
             <div>
@@ -989,7 +989,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                 value={selectedSite.cameras.ptz.mount}
                 onChange={(e) => updateSiteCamera('ptz', { mount: e.target.value as MountType })}
                 disabled={selectedSite.cameras.ptz.quantity === 0}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="wall">Wandmontage</option>
                 <option value="ceiling">Deckenmontage</option>
@@ -1024,7 +1024,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                 value={selectedSite.cameras.thermal.quantity}
                 onChange={(e) => updateSiteCamera('thermal', { quantity: parseInt(e.target.value) || 0 })}
                 disabled={!isThermalAvailable}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
             <div>
@@ -1035,7 +1035,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                 value={selectedSite.cameras.thermal.mount}
                 onChange={(e) => updateSiteCamera('thermal', { mount: e.target.value as MountType })}
                 disabled={!isThermalAvailable || selectedSite.cameras.thermal.quantity === 0}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="wall">Wandmontage</option>
                 <option value="ceiling">Deckenmontage</option>
@@ -1063,7 +1063,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
               max="999"
               value={selectedSite.cameras.ipSpeakers}
               onChange={(e) => updateIPSpeakers(parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
             />
           </div>
         </div>
@@ -1189,8 +1189,8 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                 onClick={() => setSelectedSiteIndex(index)}
                 className={`px-6 py-3 rounded-lg border-2 font-semibold transition-all ${
                   selectedSiteIndex === index
-                    ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                    : 'border-gray-200 dark:border-slate-600 text-gray-900 dark:text-white hover:border-primary-300 dark:hover:border-primary-700'
+                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                    : 'border-gray-200 dark:border-slate-600 text-gray-900 dark:text-white hover:border-primary-300 dark:hover:border-primary-600'
                 }`}
               >
                 {site.name}
@@ -1219,8 +1219,8 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
               onClick={() => updateSiteCabling(option.value)}
               className={`p-6 rounded-lg border-2 text-left transition-all ${
                 selectedSite.cabling === option.value
-                  ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
-                  : 'border-gray-200 dark:border-slate-600 hover:border-primary-300 dark:hover:border-primary-700'
+                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                  : 'border-gray-200 dark:border-slate-600 hover:border-primary-300 dark:hover:border-primary-600'
               }`}
             >
               <div className="text-3xl mb-3">{option.icon}</div>
@@ -1236,15 +1236,15 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
 
         {/* Cabling Info Boxes */}
         {selectedSite.cabling === 'fiber' && (
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
+          <div className="mt-4 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
+            <p className="text-sm text-primary-800 dark:text-primary-200">
               <strong>ℹ️ Automatisch hinzugefügt:</strong> Medienkonverter, SFP-Module, LWL-Patchkabel
             </p>
           </div>
         )}
         {selectedSite.cabling === 'wlan-bridge' && (
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
+          <div className="mt-4 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
+            <p className="text-sm text-primary-800 dark:text-primary-200">
               <strong>ℹ️ Automatisch hinzugefügt:</strong> WLAN-Bridge Set (2 Stück), Outdoor-Gehäuse, PoE-Injektoren
             </p>
           </div>
@@ -1378,7 +1378,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   onChange={(e) => updateSiteIPDoc('ipVideoDevicePrefix', e.target.value.toUpperCase())}
                   placeholder="z.B. CAM, VIDEO"
                   maxLength={10}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none uppercase"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none uppercase"
                 />
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Für Kameras & IP-Lautsprecher (z.B. "CAM-DOME-01")
@@ -1397,7 +1397,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   onChange={(e) => updateSiteIPDoc('ipNetworkDevicePrefix', e.target.value.toUpperCase())}
                   placeholder="z.B. NET, INFRA"
                   maxLength={10}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none uppercase"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none uppercase"
                 />
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Für Switches, NVR/VMS, Router (z.B. "NET-SW-01")
@@ -1415,7 +1415,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   value={selectedSite.ipStart || ''}
                   onChange={(e) => updateSiteIPDoc('ipStart', e.target.value)}
                   placeholder="z.B. 192.168.10.50"
-                  className={`w-full px-4 py-3 rounded-lg border bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none ${
+                  className={`w-full px-4 py-3 rounded-lg border bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none ${
                     selectedSite.ipStart && !validateIPv4(selectedSite.ipStart)
                       ? 'border-red-500 dark:border-red-400'
                       : selectedSite.ipStart && !isValidHostIP(selectedSite.ipStart)
@@ -1444,7 +1444,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   id={`ipCidr-${selectedSiteIndex}`}
                   value={selectedSite.ipCidr || '24'}
                   onChange={(e) => updateSiteIPDoc('ipCidr', e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
                 >
                   <option value="24">/24 (255.255.255.0)</option>
                   <option value="16">/16 (255.255.0.0)</option>
@@ -1463,7 +1463,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   value={selectedSite.ipGateway || ''}
                   onChange={(e) => updateSiteIPDoc('ipGateway', e.target.value)}
                   placeholder="z.B. 192.168.10.1"
-                  className={`w-full px-4 py-3 rounded-lg border bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none ${
+                  className={`w-full px-4 py-3 rounded-lg border bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none ${
                     selectedSite.ipGateway && selectedSite.ipGateway.length > 0 && !validateIPv4(selectedSite.ipGateway)
                       ? 'border-red-500 dark:border-red-400'
                       : 'border-gray-300 dark:border-slate-600'
@@ -1477,8 +1477,8 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
               </div>
             </div>
 
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <p className="text-xs text-blue-800 dark:text-blue-200">
+            <div className="mt-4 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
+              <p className="text-xs text-primary-800 dark:text-primary-200">
                 <strong>💡 Hinweis:</strong> Die IP-Adressen werden automatisch fortlaufend an alle Netzwerkgeräte vergeben.
                 Die Reihenfolge ist: <strong>Router → Switches → WLAN-Bridge → NVR/VMS → Kameras</strong>. In Schritt 6 können Sie die Bezeichnungen vor dem Export anpassen.
               </p>
@@ -2030,7 +2030,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
                   </span>
                 </div>
               </div>
-              <div className="bg-white dark:bg-slate-800 rounded-b-lg overflow-hidden">
+              <div className="bg-ci-light dark:bg-slate-800 rounded-b-lg overflow-hidden">
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-slate-700/50">
                     <tr className="text-left text-xs text-gray-600 dark:text-gray-400 uppercase">
@@ -2135,7 +2135,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
                     </p>
                   </div>
                 ) : (
-                  <div className="bg-white dark:bg-slate-800 rounded-b-lg overflow-hidden">
+                  <div className="bg-ci-light dark:bg-slate-800 rounded-b-lg overflow-hidden">
                     <table className="w-full">
                       <thead className="bg-gray-50 dark:bg-slate-700/50">
                         <tr className="text-left text-xs text-gray-600 dark:text-gray-400 uppercase">
@@ -2158,7 +2158,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
                                 type="text"
                                 value={editableDevices[site.id]?.[device.id] || device.label}
                                 onChange={(e) => updateDeviceLabel(site.id, device.id, e.target.value)}
-                                className="w-full px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-1 focus:ring-primary-500 outline-none"
+                                className="w-full px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-1 focus:ring-primary-500 outline-none"
                               />
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 capitalize">
