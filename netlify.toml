@@ -5,22 +5,17 @@
   # Build Command
   command = "npm run build"
   
-  # Publish Directory (für Next.js mit Netlify Plugin)
-  publish = ".next"
+  # Publish Directory - Next.js Static Export
+  publish = "out"
   
   # Node Version
   environment = { NODE_VERSION = "20" }
 
-# Next.js Runtime Plugin (automatisch aktiviert)
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
-# Redirects und Rewrites für Next.js Routing
+# Redirects für SPA (Single Page Application) Routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Role = ["admin", "user"]}
 
 # Headers für bessere Performance
 [[headers]]
