@@ -156,20 +156,13 @@ export default function Home() {
         >
           Zurück
         </button>
-        {currentStep < totalSteps ? (
+        {currentStep < totalSteps && (
           <button
             onClick={handleNext}
             disabled={!canProceed()}
             className="px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-primary-500 text-white hover:bg-primary-500"
           >
             Weiter
-          </button>
-        ) : (
-          <button
-            onClick={() => alert('Export-Funktion wird in Kürze implementiert')}
-            className="px-6 py-3 rounded-lg font-semibold transition-colors bg-ci-accent text-white hover:bg-primary-400"
-          >
-            Stückliste exportieren
           </button>
         )}
       </div>
