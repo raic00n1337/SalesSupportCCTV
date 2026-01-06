@@ -82,9 +82,11 @@ colors: {
 - `text-primary-200` (Dark Mode)
 
 **Rahmen:**
-- `border-primary-500` (Hauptrahmen)
-- `border-primary-200` (Subtile Rahmen)
-- `hover:border-primary-600`
+- `border-primary-500` (Hauptrahmen - alle Input-Felder)
+- `border-2` (2px breite Umrandung für bessere Sichtbarkeit)
+- `dark:border-primary-400` (Dark Mode - etwas heller)
+- `hover:border-primary-600` (Hover-Effekt)
+- `focus:ring-primary-600` (Fokus-Ring)
 
 ### Light-Farbe (Helles Grau)
 
@@ -148,8 +150,9 @@ className="bg-ci-light dark:bg-slate-800"
 
 ### Input-Feld
 ```jsx
-<input className="bg-ci-light dark:bg-slate-700 border-gray-300 
-                   focus:ring-primary-500" />
+<input className="bg-ci-light dark:bg-slate-700 
+                   border-2 border-primary-500 dark:border-primary-400
+                   focus:ring-2 focus:ring-primary-600" />
 ```
 
 ### Info-Box
