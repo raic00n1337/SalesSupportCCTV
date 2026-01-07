@@ -246,7 +246,7 @@ const Step2Sites = ({ project, updateProject }: { project: Partial<Project>; upd
           bulletVario: { quantity: 0, mount: 'wall' as MountType },
           ptz: { quantity: 0, mount: 'wall' as MountType },
           thermal: { quantity: 0, mount: 'pole' as MountType },
-          ipSpeakers: 0
+          ipSpeakers: { quantity: 0 }
         },
         cabling: 'copper',
         isStandalone: false,
@@ -867,11 +867,62 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
 
   const updateIPSpeakers = (value: number) => {
     const updatedSites = [...project.sites!]
+    const currentSpeakers = selectedSite.cameras.ipSpeakers
+    
+    // Generate default names for new speakers
+    if (value !== currentSpeakers.quantity) {
+      const existingNames = currentSpeakers.customNames || []
+      const newNames: string[] = []
+      const manufacturer = project.manufacturer || 'IP'
+      
+      for (let i = 0; i < value; i++) {
+        if (i < existingNames.length && existingNames[i]) {
+          newNames.push(existingNames[i])
+        } else {
+          newNames.push(`${manufacturer} Lautsprecher ${i + 1}`)
+        }
+      }
+      
+      updatedSites[selectedSiteIndex] = {
+        ...selectedSite,
+        cameras: {
+          ...selectedSite.cameras,
+          ipSpeakers: {
+            quantity: value,
+            customNames: newNames
+          }
+        }
+      }
+    } else {
+      updatedSites[selectedSiteIndex] = {
+        ...selectedSite,
+        cameras: {
+          ...selectedSite.cameras,
+          ipSpeakers: {
+            ...currentSpeakers,
+            quantity: value
+          }
+        }
+      }
+    }
+    
+    updateProject({ sites: updatedSites })
+  }
+
+  const updateIPSpeakerName = (index: number, name: string) => {
+    const updatedSites = [...project.sites!]
+    const currentSpeakers = selectedSite.cameras.ipSpeakers
+    const names = currentSpeakers.customNames || []
+    names[index] = name
+    
     updatedSites[selectedSiteIndex] = {
       ...selectedSite,
       cameras: {
         ...selectedSite.cameras,
-        ipSpeakers: value
+        ipSpeakers: {
+          ...currentSpeakers,
+          customNames: [...names]
+        }
       }
     }
     updateProject({ sites: updatedSites })
@@ -894,7 +945,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
       selectedSite.cameras.bulletVario.quantity +
       selectedSite.cameras.ptz.quantity +
       selectedSite.cameras.thermal.quantity +
-      selectedSite.cameras.ipSpeakers
+      selectedSite.cameras.ipSpeakers.quantity
     )
   }
 
@@ -1352,11 +1403,36 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
               type="number"
               min="0"
               max="999"
-              value={selectedSite.cameras.ipSpeakers}
+              value={selectedSite.cameras.ipSpeakers.quantity}
               onChange={(e) => updateIPSpeakers(parseInt(e.target.value) || 0)}
               className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
             />
           </div>
+
+          {/* Speaker Names */}
+          {selectedSite.cameras.ipSpeakers.quantity > 0 && (
+            <div className="mt-4 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
+              <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                📝 Lautsprechernamen (optional anpassbar)
+              </h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {Array.from({ length: selectedSite.cameras.ipSpeakers.quantity }).map((_, i) => (
+                  <div key={i}>
+                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      Lautsprecher {i + 1}
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedSite.cameras.ipSpeakers.customNames?.[i] || ''}
+                      onChange={(e) => updateIPSpeakerName(i, e.target.value)}
+                      placeholder={`z.B. Durchsage Empfang ${i + 1}`}
+                      className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2022,12 +2098,12 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
         bom.push(...generateMountingAccessories('thermal', site.cameras.thermal.mount, site.cameras.thermal.quantity, project.manufacturer!, sitePrefix))
       }
 
-      if (site.cameras.ipSpeakers > 0) {
+      if (site.cameras.ipSpeakers.quantity > 0) {
         bom.push({
           articleName: `${sitePrefix} IP-Lautsprecher`,
           manufacturer: project.manufacturer!,
           esoArticleNumber: `${project.manufacturer}-SPEAK-001`,
-          quantity: site.cameras.ipSpeakers,
+          quantity: site.cameras.ipSpeakers.quantity,
           unitPrice: 249,
           category: 'Audio'
         })
@@ -2102,7 +2178,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
           site.cameras.bulletVario.quantity +
           site.cameras.ptz.quantity +
           site.cameras.thermal.quantity +
-          site.cameras.ipSpeakers
+          site.cameras.ipSpeakers.quantity
         const switchPorts = Math.max(8, Math.ceil(totalDevices / 8) * 8)
         
         bom.push({
@@ -2145,7 +2221,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
       site.cameras.bulletVario.quantity +
       site.cameras.ptz.quantity +
       site.cameras.thermal.quantity +
-      site.cameras.ipSpeakers,
+      site.cameras.ipSpeakers.quantity,
     0)
 
     if (project.videoManagement === 'nvr') {
@@ -2381,7 +2457,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
       site.cameras.bulletVario.quantity +
       site.cameras.ptz.quantity +
       site.cameras.thermal.quantity +
-      site.cameras.ipSpeakers,
+      site.cameras.ipSpeakers.quantity,
     0)
   }
 

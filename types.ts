@@ -39,6 +39,11 @@ export interface CameraLensConfig {
   ipSpeakers: number;
 }
 
+export interface IPSpeakerConfig {
+  quantity: number;
+  customNames?: string[];
+}
+
 export interface CameraWithMountConfig {
   domeFixed: CameraConfig;
   domeVario: CameraConfig;
@@ -46,7 +51,7 @@ export interface CameraWithMountConfig {
   bulletVario: CameraConfig;
   ptz: CameraConfig;
   thermal: CameraConfig;
-  ipSpeakers: number;
+  ipSpeakers: IPSpeakerConfig;
 }
 
 export interface Site {
