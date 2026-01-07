@@ -2317,6 +2317,32 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
         category: 'Lizenzen'
       })
       
+      // VMS Server Hardware (dimensioniert nach Kamera-Anzahl)
+      let serverSpec = ''
+      let serverPrice = 0
+      if (totalCameras <= 16) {
+        serverSpec = 'Entry (bis 16 Kameras)'
+        serverPrice = 1899
+      } else if (totalCameras <= 32) {
+        serverSpec = 'Standard (bis 32 Kameras)'
+        serverPrice = 2899
+      } else if (totalCameras <= 64) {
+        serverSpec = 'Professional (bis 64 Kameras)'
+        serverPrice = 4499
+      } else {
+        serverSpec = 'Enterprise (64+ Kameras)'
+        serverPrice = 6999
+      }
+      
+      bom.push({
+        articleName: `VMS Server ${serverSpec}`,
+        manufacturer: 'Universal',
+        esoArticleNumber: `VMS-SERVER-${totalCameras <= 16 ? 'E' : totalCameras <= 32 ? 'S' : totalCameras <= 64 ? 'P' : 'ENT'}`,
+        quantity: 1,
+        unitPrice: serverPrice,
+        category: 'Hardware'
+      })
+      
       // VMS: Automatisch Client-Workstation, Display, Maus+Tastatur
       const isMultiMonitor = project.vmsMultiMonitor || false
       
