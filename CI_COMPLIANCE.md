@@ -191,3 +191,4 @@ Falls weitere Anpassungen am Logo gewünscht sind, müssen diese **erst von der 
 **Datum**: Januar 2025  
 **Status**: ✅ CI-konform
 
+

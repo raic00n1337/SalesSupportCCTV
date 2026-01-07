@@ -19,6 +19,7 @@ export type MountType = 'wall' | 'ceiling' | 'pole';
 export interface CameraConfig {
   quantity: number;
   mount: MountType;
+  customNames?: string[]; // Optional: Custom names for each camera
 }
 
 export interface Camera {
@@ -77,6 +78,10 @@ export interface Project {
   storageHddQuantity?: number;
   upsRequired: boolean;
   remoteCapable: boolean;
+  // Sales Logic Features
+  vmsMultiMonitor?: boolean; // Multibild-Option für VMS
+  networkCabinet9HE?: boolean; // 9 HE Netzwerkschrank
+  liftPlatform?: boolean; // Hubsteiger
 }
 
 export interface BOMItem {

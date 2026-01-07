@@ -128,3 +128,4 @@ Die App funktioniert jetzt korrekt auf Netlify!
 
 **Stand**: Januar 2025
 
+

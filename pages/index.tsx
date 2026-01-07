@@ -568,10 +568,25 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                 </div>
               </div>
 
+              {/* Storage Recommendation */}
+              {project.storageDays && project.storageDays > 0 && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    <strong>💡 Speicher-Empfehlung:</strong> Bei {project.storageDays} Tagen Speicherdauer wird empfohlen:
+                    {project.storageDays <= 3 ? ' 4–8 TB' : project.storageDays <= 7 ? ' 8–12 TB' : ' 12+ TB'}
+                    {project.storageDays > 14 && (
+                      <span className="block mt-1">
+                        <strong>⚠️ Warnung:</strong> Lange Speicherdauern können DSGVO-relevant sein und erfordern große Speicherkapazität.
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+
               <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
                 <p className="text-xs text-primary-800 dark:text-primary-200">
                   <strong>💡 Hinweis:</strong> Surveillance-Grade Festplatten sind für den 24/7-Dauerbetrieb optimiert. 
-                  Bei Bedarf können mehrere Platten für RAID-Konfigurationen verwendet werden.
+                  Die tatsächlich benötigte Speichergröße hängt von der Anzahl der Kameras ab.
                 </p>
               </div>
             </div>
@@ -672,6 +687,70 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
             <strong>⚠️ DSGVO-Hinweis:</strong> Die Speicherdauer von Videoaufzeichnungen ist auf maximal 3 Tage (72 Stunden) begrenzt, 
             es sei denn, es liegt ein berechtigtes Interesse vor oder eine längere Speicherung ist gesetzlich vorgeschrieben.
           </p>
+        </div>
+      </div>
+
+      {/* Additional Options */}
+      <div className="mt-8 border-t border-gray-200 dark:border-slate-600 pt-8">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Zusatzoptionen
+        </h3>
+        <div className="space-y-4">
+          {/* Multibild Option (only for VMS) */}
+          {project.videoManagement === 'vms' && (
+            <label className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors">
+              <input
+                type="checkbox"
+                checked={project.vmsMultiMonitor || false}
+                onChange={(e) => updateProject({ vmsMultiMonitor: e.target.checked })}
+                className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <div>
+                <div className="font-medium text-gray-900 dark:text-white">
+                  Multibild-Darstellung (RTX-Grafikkarte)
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Hochleistungs-Workstation mit RTX-Grafikkarte für mehrere Monitore
+                </div>
+              </div>
+            </label>
+          )}
+
+          {/* 9 HE Network Cabinet */}
+          <label className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors">
+            <input
+              type="checkbox"
+              checked={project.networkCabinet9HE || false}
+              onChange={(e) => updateProject({ networkCabinet9HE: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <div>
+              <div className="font-medium text-gray-900 dark:text-white">
+                9 HE Netzwerkschrank
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Inklusive Steckdosenleiste, Lüfter und Zubehör (Pauschalposition)
+              </div>
+            </div>
+          </label>
+
+          {/* Lift Platform */}
+          <label className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors">
+            <input
+              type="checkbox"
+              checked={project.liftPlatform || false}
+              onChange={(e) => updateProject({ liftPlatform: e.target.checked })}
+              className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <div>
+              <div className="font-medium text-gray-900 dark:text-white">
+                Hubsteiger (max. 12 m)
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Inklusive Anlieferung (Pauschalposition)
+              </div>
+            </div>
+          </label>
         </div>
       </div>
     </div>
@@ -1852,16 +1931,31 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     0)
 
     if (project.videoManagement === 'nvr') {
-      const channels = totalCameras <= 8 ? 8 : totalCameras <= 16 ? 16 : 32
+      // Automatische Reserve: Immer nächstgrößere Gerätegröße
+      let channels = 8
+      if (totalCameras > 16) {
+        channels = 32
+      } else if (totalCameras > 8) {
+        channels = 16
+      } else if (totalCameras > 4) {
+        channels = 8
+      } else {
+        channels = 8 // Minimum
+      }
+      
+      // For ECO tier with PoE, use NVR with integrated PoE
+      const isEcoWithPoE = project.tier === 'eco'
+      
       bom.push({
-        articleName: `NVR ${channels}-Kanal`,
+        articleName: `NVR ${channels}-Kanal${isEcoWithPoE ? ' mit PoE' : ''}`,
         manufacturer: project.manufacturer!,
-        esoArticleNumber: `${project.manufacturer}-NVR-${channels}CH`,
+        esoArticleNumber: `${project.manufacturer}-NVR-${channels}CH${isEcoWithPoE ? '-POE' : ''}`,
         quantity: 1,
-        unitPrice: channels === 8 ? 899 : channels === 16 ? 1499 : 2499,
+        unitPrice: channels === 8 ? (isEcoWithPoE ? 999 : 899) : channels === 16 ? 1499 : 2499,
         category: 'Recorder/VMS'
       })
     } else {
+      // VMS
       bom.push({
         articleName: 'VMS Server-Lizenz',
         manufacturer: project.manufacturer!,
@@ -1877,6 +1971,36 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
         quantity: totalCameras,
         unitPrice: 49,
         category: 'Lizenzen'
+      })
+      
+      // VMS: Automatisch Client-Workstation, Display, Maus+Tastatur
+      const isMultiMonitor = project.vmsMultiMonitor || false
+      
+      bom.push({
+        articleName: `VMS Client-Workstation${isMultiMonitor ? ' (RTX-Grafikkarte)' : ''}`,
+        manufacturer: 'Universal',
+        esoArticleNumber: isMultiMonitor ? 'VMS-WS-RTX-001' : 'VMS-WS-STD-001',
+        quantity: 1,
+        unitPrice: isMultiMonitor ? 1899 : 1299,
+        category: 'Hardware'
+      })
+      
+      bom.push({
+        articleName: 'Display 27" (Full HD)',
+        manufacturer: 'Universal',
+        esoArticleNumber: 'VMS-MON-27-001',
+        quantity: isMultiMonitor ? 2 : 1,
+        unitPrice: 299,
+        category: 'Hardware'
+      })
+      
+      bom.push({
+        articleName: 'Maus + Tastatur Set',
+        manufacturer: 'Universal',
+        esoArticleNumber: 'VMS-INPUT-001',
+        quantity: 1,
+        unitPrice: 49,
+        category: 'Hardware'
       })
     }
 
@@ -1930,6 +2054,87 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
       })
     }
 
+    // 9 HE Network Cabinet (Optional)
+    if (project.networkCabinet9HE) {
+      bom.push({
+        articleName: '9 HE Netzwerkschrank (Komplettset)',
+        manufacturer: 'Universal',
+        esoArticleNumber: 'INFRA-RACK-9HE-001',
+        quantity: 1,
+        unitPrice: 749,
+        category: 'Infrastruktur'
+      })
+    }
+
+    // Lift Platform / Hubsteiger (Optional)
+    if (project.liftPlatform) {
+      bom.push({
+        articleName: 'Hubsteiger max. 12m inkl. Anlieferung',
+        manufacturer: 'Universal',
+        esoArticleNumber: 'SERVICE-LIFT-001',
+        quantity: 1,
+        unitPrice: 850,
+        category: 'Dienstleistung'
+      })
+    }
+
+    // ====== SERVICE POSITIONS / DIENSTLEISTUNGEN ======
+    
+    // Calculate material subtotal (before services)
+    const materialSubtotal = bom.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
+    
+    // BHE-Zeiten (Installation times based on component count)
+    // Simplified calculation: 120€/hour
+    const totalComponents = totalCameras + 
+      (project.videoManagement === 'nvr' ? 1 : 2) + // NVR or VMS+Workstation
+      (project.remoteCapable ? 1 : 0) + // VPN Router
+      (project.upsRequired ? 1 : 0) + // UPS
+      project.sites.filter(s => s.isStandalone).length // Switches for standalone sites
+    
+    // Installation: ~30 min per camera, ~60 min per infrastructure component
+    const installationMinutes = (totalCameras * 30) + ((totalComponents - totalCameras) * 60)
+    const installationHours = Math.ceil(installationMinutes / 60)
+    const installationCost = installationHours * 120
+    
+    if (installationHours > 0) {
+      bom.push({
+        articleName: `Installation & Inbetriebnahme (${installationHours}h à 120€)`,
+        manufacturer: 'Securitas Technology',
+        esoArticleNumber: 'SERVICE-INST-001',
+        quantity: installationHours,
+        unitPrice: 120,
+        category: 'Dienstleistung'
+      })
+    }
+    
+    // Anfahrtspauschale (135€ je 4 Kameras, aufgerundet)
+    const tripCount = Math.ceil(totalCameras / 4)
+    if (tripCount > 0) {
+      bom.push({
+        articleName: `Anfahrtspauschale (${tripCount}× à 135€)`,
+        manufacturer: 'Securitas Technology',
+        esoArticleNumber: 'SERVICE-TRIP-001',
+        quantity: tripCount,
+        unitPrice: 135,
+        category: 'Dienstleistung'
+      })
+    }
+    
+    // Dokumentationskosten (5% der Gesamtsumme aller bisherigen Positionen)
+    const subtotalBeforeDocs = bom.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
+    const documentationCost = Math.round(subtotalBeforeDocs * 0.05)
+    
+    if (documentationCost > 0) {
+      bom.push({
+        articleName: 'Dokumentation (5% der Gesamtsumme)',
+        manufacturer: 'Securitas Technology',
+        esoArticleNumber: 'SERVICE-DOC-001',
+        quantity: 1,
+        unitPrice: documentationCost,
+        category: 'Dienstleistung'
+      })
+    }
+
     return bom
   }
 
@@ -1944,7 +2149,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     return acc
   }, {} as Record<string, BOMItem[]>)
 
-  const categories = ['Kameras', 'Netzwerk', 'Recorder/VMS', 'Lizenzen', 'Speicher', 'Audio', 'Zubehör', 'Infrastruktur']
+  const categories = ['Kameras', 'Netzwerk', 'Recorder/VMS', 'Lizenzen', 'Speicher', 'Hardware', 'Audio', 'Zubehör', 'Infrastruktur', 'Dienstleistung']
   
   const totalPrice = bom.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
 
@@ -2036,6 +2241,24 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
             </div>
           </div>
         </div>
+
+        {/* Remote Access Bandwidth Recommendation */}
+        {project.remoteCapable && getTotalCameras() > 0 && (
+          <div className="mt-4 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
+            <h4 className="font-semibold text-primary-900 dark:text-primary-300 mb-2">
+              📡 Empfohlene Upload-Bandbreite
+            </h4>
+            <p className="text-sm text-primary-800 dark:text-primary-200">
+              Für {getTotalCameras()} Kamera{getTotalCameras() > 1 ? 's' : ''} wird empfohlen:
+              <strong className="ml-2">
+                ≥ {Math.max(10, Math.ceil(getTotalCameras() * 2))} Mbit/s Upload
+              </strong>
+            </p>
+            <p className="text-xs text-primary-700 dark:text-primary-300 mt-2">
+              💡 Tipp: Für bessere Performance empfehlen wir die Verwendung von Substreams für Remote-Zugriff.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* BOM Table */}
