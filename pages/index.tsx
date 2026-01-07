@@ -371,10 +371,23 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
           {tiers.map((tier) => (
             <button
               key={tier.value}
-              onClick={() => updateProject({ 
-                tier: tier.value, 
-                upsRequired: tier.value === 'high-risk' ? true : project.upsRequired 
-              })}
+              onClick={() => {
+                const updates: Partial<Project> = {
+                  tier: tier.value,
+                  upsRequired: tier.value === 'high-risk' ? true : project.upsRequired
+                }
+                
+                // Bei Wechsel zu ECO: Automatisch günstigste Serie setzen
+                if (tier.value === 'eco') {
+                  if (project.manufacturer === 'Hanwha') {
+                    updates.hanwhaSeries = 'A-Series'
+                  } else if (project.manufacturer === 'AJAX') {
+                    updates.ajaxSeries = 'Baseline'
+                  }
+                }
+                
+                updateProject(updates)
+              }}
               className={`p-6 rounded-lg border-2 text-left transition-all ${
                 project.tier === tier.value
                   ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
@@ -403,6 +416,16 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
               key={manufacturer.value}
               onClick={() => {
                 const updates: Partial<Project> = { manufacturer: manufacturer.value }
+                
+                // Bei ECO: Automatisch günstigste Serie setzen
+                if (project.tier === 'eco') {
+                  if (manufacturer.value === 'Hanwha') {
+                    updates.hanwhaSeries = 'A-Series'
+                  } else if (manufacturer.value === 'AJAX') {
+                    updates.ajaxSeries = 'Baseline'
+                  }
+                }
+                
                 // Reset series when switching manufacturers
                 if (manufacturer.value !== 'Hanwha') {
                   updates.hanwhaSeries = undefined
@@ -410,6 +433,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                 if (manufacturer.value !== 'AJAX') {
                   updates.ajaxSeries = undefined
                 }
+                
                 updateProject(updates)
               }}
               className={`p-6 rounded-lg border-2 text-center font-bold text-lg transition-all ${
@@ -427,31 +451,44 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
         {project.manufacturer === 'Hanwha' && (
           <div className="mt-6 p-6 bg-gray-50 dark:bg-slate-700 rounded-lg border-2 border-primary-200 dark:border-primary-800">
             <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">
-              Hanwha Serie wählen *
+              Hanwha Serie {project.tier === 'eco' ? '(automatisch ausgewählt)' : 'wählen *'}
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
-                { value: 'A-Series' as HanwhaSeriesType, label: 'A-Series', description: 'Standard-Serie' },
-                { value: 'Q/X-Series' as HanwhaSeriesType, label: 'Q/X-Series', description: 'Premium-Serie' }
-              ].map((series) => (
-                <button
-                  key={series.value}
-                  onClick={() => updateProject({ hanwhaSeries: series.value })}
-                  className={`p-4 rounded-lg border-2 text-left transition-all ${
-                    project.hanwhaSeries === series.value
-                      ? 'border-primary-500 bg-ci-light dark:bg-slate-600'
-                      : 'border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-800 hover:border-primary-600'
-                  }`}
-                >
-                  <div className="font-semibold text-gray-900 dark:text-white">
-                    {series.label}
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {series.description}
-                  </div>
-                </button>
-              ))}
-            </div>
+            {project.tier === 'eco' ? (
+              // ECO: Nur A-Series, nicht änderbar
+              <div className="p-4 rounded-lg border-2 border-primary-500 bg-primary-50 dark:bg-primary-900/20">
+                <div className="font-semibold text-primary-600 dark:text-primary-400">
+                  A-Series
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Standard-Serie (ECO-Paket)
+                </div>
+              </div>
+            ) : (
+              // Premium/High-Risk: Beide Serien wählbar
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[
+                  { value: 'A-Series' as HanwhaSeriesType, label: 'A-Series', description: 'Standard-Serie' },
+                  { value: 'Q/X-Series' as HanwhaSeriesType, label: 'Q/X-Series', description: 'Premium-Serie' }
+                ].map((series) => (
+                  <button
+                    key={series.value}
+                    onClick={() => updateProject({ hanwhaSeries: series.value })}
+                    className={`p-4 rounded-lg border-2 text-left transition-all cursor-pointer ${
+                      project.hanwhaSeries === series.value
+                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                        : 'border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white hover:border-primary-500 dark:hover:border-primary-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <div className="font-semibold">
+                      {series.label}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {series.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -459,31 +496,44 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
         {project.manufacturer === 'AJAX' && (
           <div className="mt-6 p-6 bg-gray-50 dark:bg-slate-700 rounded-lg border-2 border-primary-200 dark:border-primary-800">
             <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">
-              AJAX Serie wählen *
+              AJAX Serie {project.tier === 'eco' ? '(automatisch ausgewählt)' : 'wählen *'}
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
-                { value: 'Baseline' as AjaxSeriesType, label: 'Baseline', description: 'Basis-Ausstattung' },
-                { value: 'Superior' as AjaxSeriesType, label: 'Superior', description: 'Premium-Ausstattung' }
-              ].map((series) => (
-                <button
-                  key={series.value}
-                  onClick={() => updateProject({ ajaxSeries: series.value })}
-                  className={`p-4 rounded-lg border-2 text-left transition-all ${
-                    project.ajaxSeries === series.value
-                      ? 'border-primary-500 bg-ci-light dark:bg-slate-600'
-                      : 'border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-800 hover:border-primary-600'
-                  }`}
-                >
-                  <div className="font-semibold text-gray-900 dark:text-white">
-                    {series.label}
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {series.description}
-                  </div>
-                </button>
-              ))}
-            </div>
+            {project.tier === 'eco' ? (
+              // ECO: Nur Baseline, nicht änderbar
+              <div className="p-4 rounded-lg border-2 border-primary-500 bg-primary-50 dark:bg-primary-900/20">
+                <div className="font-semibold text-primary-600 dark:text-primary-400">
+                  Baseline
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Basis-Ausstattung (ECO-Paket)
+                </div>
+              </div>
+            ) : (
+              // Premium/High-Risk: Beide Serien wählbar
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[
+                  { value: 'Baseline' as AjaxSeriesType, label: 'Baseline', description: 'Basis-Ausstattung' },
+                  { value: 'Superior' as AjaxSeriesType, label: 'Superior', description: 'Premium-Ausstattung' }
+                ].map((series) => (
+                  <button
+                    key={series.value}
+                    onClick={() => updateProject({ ajaxSeries: series.value })}
+                    className={`p-4 rounded-lg border-2 text-left transition-all cursor-pointer ${
+                      project.ajaxSeries === series.value
+                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                        : 'border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white hover:border-primary-500 dark:hover:border-primary-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    <div className="font-semibold">
+                      {series.label}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {series.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
