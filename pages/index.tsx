@@ -784,13 +784,81 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
     updates: { quantity?: number; mount?: MountType }
   ) => {
     const updatedSites = [...project.sites!]
+    const currentCamera = selectedSite.cameras[field]
+    
+    // If quantity changes, generate default names for new cameras
+    if (updates.quantity !== undefined && updates.quantity !== currentCamera.quantity) {
+      const newQuantity = updates.quantity
+      const existingNames = currentCamera.customNames || []
+      const newNames: string[] = []
+      
+      // Generate default names based on type
+      const getCameraTypeName = () => {
+        const manufacturer = project.manufacturer || 'Camera'
+        switch (field) {
+          case 'domeFixed': return `${manufacturer} Dome 8MP Fixed`
+          case 'domeVario': return `${manufacturer} Dome 8MP Vario`
+          case 'bulletFixed': return `${manufacturer} Bullet 8MP Fixed`
+          case 'bulletVario': return `${manufacturer} Bullet 8MP Vario`
+          case 'ptz': return `${manufacturer} PTZ`
+          case 'thermal': return `${manufacturer} Thermal`
+          default: return `${manufacturer} Camera`
+        }
+      }
+      
+      for (let i = 0; i < newQuantity; i++) {
+        // Keep existing names or generate new ones
+        if (i < existingNames.length && existingNames[i]) {
+          newNames.push(existingNames[i])
+        } else {
+          newNames.push(`${getCameraTypeName()} ${i + 1}`)
+        }
+      }
+      
+      updatedSites[selectedSiteIndex] = {
+        ...selectedSite,
+        cameras: {
+          ...selectedSite.cameras,
+          [field]: {
+            ...currentCamera,
+            ...updates,
+            customNames: newNames
+          }
+        }
+      }
+    } else {
+      updatedSites[selectedSiteIndex] = {
+        ...selectedSite,
+        cameras: {
+          ...selectedSite.cameras,
+          [field]: {
+            ...currentCamera,
+            ...updates
+          }
+        }
+      }
+    }
+    
+    updateProject({ sites: updatedSites })
+  }
+
+  const updateCameraName = (
+    field: 'domeFixed' | 'domeVario' | 'bulletFixed' | 'bulletVario' | 'ptz' | 'thermal',
+    index: number,
+    name: string
+  ) => {
+    const updatedSites = [...project.sites!]
+    const currentCamera = selectedSite.cameras[field]
+    const names = currentCamera.customNames || []
+    names[index] = name
+    
     updatedSites[selectedSiteIndex] = {
       ...selectedSite,
       cameras: {
         ...selectedSite.cameras,
         [field]: {
-          ...selectedSite.cameras[field],
-          ...updates
+          ...currentCamera,
+          customNames: [...names]
         }
       }
     }
@@ -925,6 +993,31 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                 </select>
               </div>
             </div>
+
+            {/* Camera Names for Dome Fixed */}
+            {selectedSite.cameras.domeFixed.quantity > 0 && (
+              <div className="mt-3 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
+                <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                  📝 Kameranamen (optional anpassbar)
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {Array.from({ length: selectedSite.cameras.domeFixed.quantity }).map((_, i) => (
+                    <div key={i}>
+                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        Kamera {i + 1}
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedSite.cameras.domeFixed.customNames?.[i] || ''}
+                        onChange={(e) => updateCameraName('domeFixed', i, e.target.value)}
+                        placeholder={`z.B. Eingang Haupttor ${i + 1}`}
+                        className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             {/* Dome Vario */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -957,6 +1050,31 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                 </select>
               </div>
             </div>
+
+            {/* Camera Names for Dome Vario */}
+            {selectedSite.cameras.domeVario.quantity > 0 && (
+              <div className="mt-3 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
+                <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                  📝 Kameranamen (optional anpassbar)
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {Array.from({ length: selectedSite.cameras.domeVario.quantity }).map((_, i) => (
+                    <div key={i}>
+                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        Kamera {i + 1}
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedSite.cameras.domeVario.customNames?.[i] || ''}
+                        onChange={(e) => updateCameraName('domeVario', i, e.target.value)}
+                        placeholder={`z.B. Parkplatz ${i + 1}`}
+                        className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -997,6 +1115,31 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                 </select>
               </div>
             </div>
+
+            {/* Camera Names for Bullet Fixed */}
+            {selectedSite.cameras.bulletFixed.quantity > 0 && (
+              <div className="mt-3 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
+                <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                  📝 Kameranamen (optional anpassbar)
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {Array.from({ length: selectedSite.cameras.bulletFixed.quantity }).map((_, i) => (
+                    <div key={i}>
+                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        Kamera {i + 1}
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedSite.cameras.bulletFixed.customNames?.[i] || ''}
+                        onChange={(e) => updateCameraName('bulletFixed', i, e.target.value)}
+                        placeholder={`z.B. Außenbereich ${i + 1}`}
+                        className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             {/* Bullet Vario */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1029,6 +1172,31 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                 </select>
               </div>
             </div>
+
+            {/* Camera Names for Bullet Vario */}
+            {selectedSite.cameras.bulletVario.quantity > 0 && (
+              <div className="mt-3 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
+                <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                  📝 Kameranamen (optional anpassbar)
+                </h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {Array.from({ length: selectedSite.cameras.bulletVario.quantity }).map((_, i) => (
+                    <div key={i}>
+                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        Kamera {i + 1}
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedSite.cameras.bulletVario.customNames?.[i] || ''}
+                        onChange={(e) => updateCameraName('bulletVario', i, e.target.value)}
+                        placeholder={`z.B. Zufahrt ${i + 1}`}
+                        className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1070,6 +1238,31 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
               </select>
             </div>
           </div>
+
+          {/* Camera Names for PTZ */}
+          {selectedSite.cameras.ptz.quantity > 0 && (
+            <div className="mt-4 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
+              <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                📝 Kameranamen (optional anpassbar)
+              </h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {Array.from({ length: selectedSite.cameras.ptz.quantity }).map((_, i) => (
+                  <div key={i}>
+                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      Kamera {i + 1}
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedSite.cameras.ptz.customNames?.[i] || ''}
+                      onChange={(e) => updateCameraName('ptz', i, e.target.value)}
+                      placeholder={`z.B. Überwachungsbereich ${i + 1}`}
+                      className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Thermal Cameras */}
@@ -1116,6 +1309,31 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
               </select>
             </div>
           </div>
+
+          {/* Camera Names for Thermal */}
+          {selectedSite.cameras.thermal.quantity > 0 && isThermalAvailable && (
+            <div className="mt-4 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
+              <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                📝 Kameranamen (optional anpassbar)
+              </h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {Array.from({ length: selectedSite.cameras.thermal.quantity }).map((_, i) => (
+                  <div key={i}>
+                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      Kamera {i + 1}
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedSite.cameras.thermal.customNames?.[i] || ''}
+                      onChange={(e) => updateCameraName('thermal', i, e.target.value)}
+                      placeholder={`z.B. Perimeter ${i + 1}`}
+                      className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* IP Speakers */}
