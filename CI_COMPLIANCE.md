@@ -192,3 +192,4 @@ Falls weitere Anpassungen am Logo gewünscht sind, müssen diese **erst von der 
 **Status**: ✅ CI-konform
 
 
+

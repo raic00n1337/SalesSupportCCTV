@@ -12,6 +12,8 @@
     "export": "next build"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.90.1",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
     "next": "^14.1.0",
