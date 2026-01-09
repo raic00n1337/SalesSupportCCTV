@@ -341,12 +341,17 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
     { value: 'high-risk', label: 'High Risk', description: 'Maximale Sicherheit mit Redundanzen und USV' }
   ]
 
-  const manufacturers: { value: ManufacturerType; label: string }[] = [
+  const allManufacturers: { value: ManufacturerType; label: string }[] = [
     { value: 'AXIS', label: 'AXIS' },
     { value: 'Hanwha', label: 'Hanwha' },
     { value: 'AJAX', label: 'AJAX' },
     { value: 'Keenfinity', label: 'Keenfinity' }
   ]
+
+  // Filter manufacturers: For ECO tier, only show Hanwha and AJAX
+  const manufacturers = project.tier === 'eco'
+    ? allManufacturers.filter(m => m.value === 'Hanwha' || m.value === 'AJAX')
+    : allManufacturers
 
   const videoManagementOptions: { value: VideoManagementType; label: string; description: string }[] = [
     { value: 'nvr', label: 'NVR-basiert', description: 'Network Video Recorder' },
@@ -578,19 +583,47 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                   Festplattengröße *
                 </label>
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                  {[2, 4, 6, 8, 10, 12].map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => updateProject({ storageHddSize: size })}
-                      className={`px-4 py-3 rounded-lg border-2 font-semibold transition-all ${
-                        project.storageHddSize === size
-                          ? 'border-primary-500 bg-ci-light dark:bg-slate-600 text-primary-600 dark:text-primary-400'
-                          : 'border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white hover:border-primary-400'
-                      }`}
-                    >
-                      {size} TB
-                    </button>
-                  ))}
+                  {(() => {
+                    // Filter HDD sizes based on storage days recommendation
+                    const allSizes = [2, 4, 6, 8, 10, 12]
+                    const storageDays = project.storageDays || 0
+                    
+                    // Determine recommended range
+                    let minSize = 2
+                    let maxSize = 12
+                    
+                    if (storageDays > 0) {
+                      if (storageDays <= 3) {
+                        minSize = 4
+                        maxSize = 8
+                      } else if (storageDays <= 7) {
+                        minSize = 8
+                        maxSize = 12
+                      } else {
+                        minSize = 12
+                        maxSize = 12
+                      }
+                    }
+                    
+                    // Filter sizes within recommendation
+                    const filteredSizes = storageDays > 0
+                      ? allSizes.filter(size => size >= minSize && size <= maxSize)
+                      : allSizes // Show all if no storage days set
+                    
+                    return filteredSizes.map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => updateProject({ storageHddSize: size })}
+                        className={`px-4 py-3 rounded-lg border-2 font-semibold transition-all ${
+                          project.storageHddSize === size
+                            ? 'border-primary-500 bg-ci-light dark:bg-slate-600 text-primary-600 dark:text-primary-400'
+                            : 'border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white hover:border-primary-400'
+                        }`}
+                      >
+                        {size} TB
+                      </button>
+                    ))
+                  })()}
                 </div>
               </div>
 
