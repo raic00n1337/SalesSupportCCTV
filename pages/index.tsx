@@ -2453,22 +2453,117 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     // Calculate material subtotal (before services)
     const materialSubtotal = bom.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
     
-    // BHE-Zeiten (Installation times based on component count)
-    // Simplified calculation: 120€/hour
-    const totalComponents = totalCameras + 
-      (project.videoManagement === 'nvr' ? 1 : 2) + // NVR or VMS+Workstation
-      (project.remoteCapable ? 1 : 0) + // VPN Router
-      (project.upsRequired ? 1 : 0) + // UPS
-      project.sites.filter(s => s.isStandalone).length // Switches for standalone sites
+    // BHE-Zeiten (Installation times based on BHE_TIME_MODEL_VIDEO.md)
+    // All times in minutes, rate: 120€/hour
+    let totalBHEMinutes = 0
     
-    // Installation: ~30 min per camera, ~60 min per infrastructure component
-    const installationMinutes = (totalCameras * 30) + ((totalComponents - totalCameras) * 60)
-    const installationHours = Math.ceil(installationMinutes / 60)
+    // 1. CAMERAS - Base installation time per camera
+    // IP Netzwerkkamera montieren, einstellen, programmieren: 75 min
+    // Grundeinrichtung IP Netzwerkkamera: 10 min
+    // Einstellung Bildausschnitt nach Kundenvorgaben: 20 min
+    // Einstellung IP-Security & DSGVO je Kanal: 30 min
+    // TOTAL: 135 min per camera
+    const baseCameraTime = 135
+    totalBHEMinutes += totalCameras * baseCameraTime
+    
+    // 2. CAMERAS - Additional mounting time per camera type & mount
+    project.sites.forEach(site => {
+      // Dome cameras
+      if (site.selection.domeFixed.quantity > 0) {
+        const mountTime = site.selection.domeFixed.mount === 'ceiling' ? 30 : 
+                          site.selection.domeFixed.mount === 'wall' ? 20 : 20 // pole
+        totalBHEMinutes += site.selection.domeFixed.quantity * mountTime
+      }
+      if (site.selection.domeVario.quantity > 0) {
+        const mountTime = site.selection.domeVario.mount === 'ceiling' ? 30 : 
+                          site.selection.domeVario.mount === 'wall' ? 20 : 20
+        totalBHEMinutes += site.selection.domeVario.quantity * mountTime
+      }
+      
+      // Bullet cameras (using similar times as Dome)
+      if (site.selection.bulletFixed.quantity > 0) {
+        const mountTime = site.selection.bulletFixed.mount === 'ceiling' ? 20 : 
+                          site.selection.bulletFixed.mount === 'wall' ? 20 : 20
+        totalBHEMinutes += site.selection.bulletFixed.quantity * mountTime
+      }
+      if (site.selection.bulletVario.quantity > 0) {
+        const mountTime = site.selection.bulletVario.mount === 'ceiling' ? 20 : 
+                          site.selection.bulletVario.mount === 'wall' ? 20 : 20
+        totalBHEMinutes += site.selection.bulletVario.quantity * mountTime
+      }
+      
+      // PTZ cameras
+      if (site.selection.ptz.quantity > 0) {
+        const mountTime = site.selection.ptz.mount === 'ceiling' ? 30 : 
+                          site.selection.ptz.mount === 'wall' ? 20 : 20
+        totalBHEMinutes += site.selection.ptz.quantity * mountTime
+      }
+      
+      // Thermal cameras (High-Risk only)
+      if (site.selection.thermal?.quantity > 0) {
+        const mountTime = site.selection.thermal.mount === 'ceiling' ? 30 : 
+                          site.selection.thermal.mount === 'wall' ? 20 : 20
+        totalBHEMinutes += site.selection.thermal.quantity * mountTime
+      }
+    })
+    
+    // 3. IP SPEAKERS
+    // Treating similar to cameras but simpler installation
+    const totalIPSpeakers = project.sites.reduce((sum, site) => 
+      sum + (site.selection.ipSpeakers?.quantity || 0), 0)
+    totalBHEMinutes += totalIPSpeakers * 60 // Simplified: 60 min per speaker
+    
+    // 4. SWITCHES
+    // Switch 4-Port: 15 min, 8-Port: 20 min, 16-Port: 25 min, 24-Port: 30 min
+    const switchTime = totalCameras <= 4 ? 15 : 
+                       totalCameras <= 8 ? 20 : 
+                       totalCameras <= 16 ? 25 : 30
+    const switchCount = project.sites.filter(s => s.isStandalone).length + 
+                        (project.videoManagement === 'vms' ? 1 : 0) // Core switch for VMS
+    totalBHEMinutes += switchCount * switchTime
+    
+    // 5. NVR
+    // Digitalrecorder einstellen / programmieren: 15 min pro Kanal
+    // Kundenspezifische Programmierung NVR: 15 min pro Kanal
+    // Aufschaltung je Videokanal: 10 min
+    // TOTAL: 40 min per channel
+    if (project.videoManagement === 'nvr') {
+      totalBHEMinutes += totalCameras * 40
+    }
+    
+    // 6. VMS
+    // Grundeinrichtung IP-Server: 240 min
+    // Workstation Videomanagement einrichten: 90 min
+    // Einrichtung Remoteservice je System: 30 min (if remote)
+    if (project.videoManagement === 'vms') {
+      totalBHEMinutes += 240 // VMS Server setup
+      totalBHEMinutes += 90  // Workstation setup
+      if (project.remoteCapable) {
+        totalBHEMinutes += 30 // Remote service setup
+      }
+    }
+    
+    // 7. MONITORS
+    // Desktop-Monitor aufstellen / einstellen: 10 min
+    // Zusätzlicher Monitor (Multibild): 15 min
+    if (project.videoManagement === 'vms') {
+      totalBHEMinutes += 10 // Main monitor
+      if (project.vmsMultiMonitor) {
+        totalBHEMinutes += 15 // Additional monitor
+      }
+    }
+    
+    // 8. DOCUMENTATION
+    // Erstellung Anlagendokumentation: 15 min pro Kanal
+    totalBHEMinutes += totalCameras * 15
+    
+    // Convert to hours and add to BOM
+    const installationHours = Math.ceil(totalBHEMinutes / 60)
     const installationCost = installationHours * 120
     
     if (installationHours > 0) {
       bom.push({
-        articleName: `Installation & Inbetriebnahme (${installationHours}h à 120€)`,
+        articleName: `Montage & Inbetriebnahme (${totalBHEMinutes} min = ${installationHours}h à 120€)`,
         manufacturer: 'Securitas Technology',
         esoArticleNumber: 'SERVICE-INST-001',
         quantity: installationHours,
