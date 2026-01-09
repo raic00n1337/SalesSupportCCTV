@@ -2469,48 +2469,48 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     // 2. CAMERAS - Additional mounting time per camera type & mount
     project.sites.forEach(site => {
       // Dome cameras
-      if (site.selection.domeFixed.quantity > 0) {
-        const mountTime = site.selection.domeFixed.mount === 'ceiling' ? 30 : 
-                          site.selection.domeFixed.mount === 'wall' ? 20 : 20 // pole
-        totalBHEMinutes += site.selection.domeFixed.quantity * mountTime
+      if (site.cameras.domeFixed.quantity > 0) {
+        const mountTime = site.cameras.domeFixed.mount === 'ceiling' ? 30 : 
+                          site.cameras.domeFixed.mount === 'wall' ? 20 : 20 // pole
+        totalBHEMinutes += site.cameras.domeFixed.quantity * mountTime
       }
-      if (site.selection.domeVario.quantity > 0) {
-        const mountTime = site.selection.domeVario.mount === 'ceiling' ? 30 : 
-                          site.selection.domeVario.mount === 'wall' ? 20 : 20
-        totalBHEMinutes += site.selection.domeVario.quantity * mountTime
+      if (site.cameras.domeVario.quantity > 0) {
+        const mountTime = site.cameras.domeVario.mount === 'ceiling' ? 30 : 
+                          site.cameras.domeVario.mount === 'wall' ? 20 : 20
+        totalBHEMinutes += site.cameras.domeVario.quantity * mountTime
       }
       
       // Bullet cameras (using similar times as Dome)
-      if (site.selection.bulletFixed.quantity > 0) {
-        const mountTime = site.selection.bulletFixed.mount === 'ceiling' ? 20 : 
-                          site.selection.bulletFixed.mount === 'wall' ? 20 : 20
-        totalBHEMinutes += site.selection.bulletFixed.quantity * mountTime
+      if (site.cameras.bulletFixed.quantity > 0) {
+        const mountTime = site.cameras.bulletFixed.mount === 'ceiling' ? 20 : 
+                          site.cameras.bulletFixed.mount === 'wall' ? 20 : 20
+        totalBHEMinutes += site.cameras.bulletFixed.quantity * mountTime
       }
-      if (site.selection.bulletVario.quantity > 0) {
-        const mountTime = site.selection.bulletVario.mount === 'ceiling' ? 20 : 
-                          site.selection.bulletVario.mount === 'wall' ? 20 : 20
-        totalBHEMinutes += site.selection.bulletVario.quantity * mountTime
+      if (site.cameras.bulletVario.quantity > 0) {
+        const mountTime = site.cameras.bulletVario.mount === 'ceiling' ? 20 : 
+                          site.cameras.bulletVario.mount === 'wall' ? 20 : 20
+        totalBHEMinutes += site.cameras.bulletVario.quantity * mountTime
       }
       
       // PTZ cameras
-      if (site.selection.ptz.quantity > 0) {
-        const mountTime = site.selection.ptz.mount === 'ceiling' ? 30 : 
-                          site.selection.ptz.mount === 'wall' ? 20 : 20
-        totalBHEMinutes += site.selection.ptz.quantity * mountTime
+      if (site.cameras.ptz.quantity > 0) {
+        const mountTime = site.cameras.ptz.mount === 'ceiling' ? 30 : 
+                          site.cameras.ptz.mount === 'wall' ? 20 : 20
+        totalBHEMinutes += site.cameras.ptz.quantity * mountTime
       }
       
       // Thermal cameras (High-Risk only)
-      if (site.selection.thermal?.quantity > 0) {
-        const mountTime = site.selection.thermal.mount === 'ceiling' ? 30 : 
-                          site.selection.thermal.mount === 'wall' ? 20 : 20
-        totalBHEMinutes += site.selection.thermal.quantity * mountTime
+      if (site.cameras.thermal?.quantity > 0) {
+        const mountTime = site.cameras.thermal.mount === 'ceiling' ? 30 : 
+                          site.cameras.thermal.mount === 'wall' ? 20 : 20
+        totalBHEMinutes += site.cameras.thermal.quantity * mountTime
       }
     })
     
     // 3. IP SPEAKERS
     // Treating similar to cameras but simpler installation
     const totalIPSpeakers = project.sites.reduce((sum, site) => 
-      sum + (site.selection.ipSpeakers?.quantity || 0), 0)
+      sum + (site.cameras.ipSpeakers?.quantity || 0), 0)
     totalBHEMinutes += totalIPSpeakers * 60 // Simplified: 60 min per speaker
     
     // 4. SWITCHES
