@@ -1,7 +1,9 @@
 // UTF-8 Encoding Fix - Build v3
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useAuth } from '../lib/AuthContext'
+import { supabase } from '../lib/supabaseClient'
 import type { Project, Site, TierType, ManufacturerType, VideoManagementType, HanwhaSeriesType, AjaxSeriesType, CablingType, BOMItem, MountType } from '../types'
 import { validateIPv4, isValidHostIP, assignIPsToDevices, generateAllNetworkDevices, type NetworkDevice } from '../ipHelper'
 import * as XLSX from 'xlsx'
@@ -10,8 +12,11 @@ import { generatePDF } from '../pdfExport'
 
 export default function Configurator() {
   const { user } = useAuth()
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [projectId, setProjectId] = useState<string | null>(null)
   const [project, setProject] = useState<Partial<Project>>({
     name: '',
     tier: undefined,
@@ -27,6 +32,121 @@ export default function Configurator() {
 
   const totalSteps = 6
 
+  // Restore project from localStorage on mount (for guest mode)
+  useEffect(() => {
+    const savedProject = localStorage.getItem('configurator_project')
+    if (savedProject && !router.query.projectId) {
+      try {
+        const parsed = JSON.parse(savedProject)
+        setProject(parsed)
+        console.log('✅ Project restored from localStorage')
+      } catch (err) {
+        console.error('Error parsing localStorage project:', err)
+        localStorage.removeItem('configurator_project')
+      }
+    }
+  }, []) // Only run once on mount
+
+  // Save project to localStorage on changes (for guest mode)
+  useEffect(() => {
+    // Only save to localStorage if not logged in or no projectId
+    if (!user || !projectId) {
+      localStorage.setItem('configurator_project', JSON.stringify(project))
+    }
+  }, [project, user, projectId])
+
+  // Load project from URL parameter (if provided)
+  useEffect(() => {
+    const loadProjectFromURL = async () => {
+      const { projectId: urlProjectId } = router.query
+      
+      if (!urlProjectId || typeof urlProjectId !== 'string') return
+      if (projectId === urlProjectId) return // Already loaded
+      if (!user) return // Need to be logged in
+
+      console.log(`Loading project from URL: ${urlProjectId}`)
+
+      try {
+        // Load project data
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', urlProjectId)
+          .eq('owner_id', user.id)
+          .single()
+
+        if (projectError) throw projectError
+        if (!projectData) throw new Error('Projekt nicht gefunden')
+
+        // Load sites data
+        const { data: sitesData, error: sitesError } = await supabase
+          .from('sites')
+          .select('*')
+          .eq('project_id', urlProjectId)
+
+        if (sitesError && sitesError.code !== 'PGRST116') throw sitesError
+
+        // Map database format to app format
+        const dbProject = projectData as any
+        const loadedProject: Partial<Project> = {
+          id: dbProject.id,
+          name: dbProject.name,
+          tier: dbProject.tier as TierType,
+          manufacturer: dbProject.manufacturer as ManufacturerType,
+          hanwhaSeries: dbProject.hanwha_series as HanwhaSeriesType,
+          ajaxSeries: dbProject.ajax_series as AjaxSeriesType,
+          videoManagement: dbProject.video_management as VideoManagementType,
+          storageDays: dbProject.storage_days,
+          storageHddSize: dbProject.storage_hdd_size || undefined,
+          storageHddQuantity: dbProject.storage_hdd_quantity || undefined,
+          upsRequired: dbProject.ups_required,
+          remoteCapable: dbProject.remote_capable,
+          vmsMultiMonitor: dbProject.vms_multi_monitor || undefined,
+          networkCabinet9HE: dbProject.network_cabinet_9he || undefined,
+          liftPlatform: dbProject.lift_platform || undefined,
+          sites: (sitesData || []).map((site: any) => ({
+            id: site.id,
+            name: site.name,
+            cabling: site.cabling as CablingType,
+            isStandalone: site.is_standalone,
+            outdoor: site.outdoor,
+            cameras: site.cameras_config || {
+              domeFixed: { quantity: 0, mount: 'wall' as const, customNames: [] },
+              domeVario: { quantity: 0, mount: 'wall' as const, customNames: [] },
+              bulletFixed: { quantity: 0, mount: 'wall' as const, customNames: [] },
+              bulletVario: { quantity: 0, mount: 'wall' as const, customNames: [] },
+              ptz: { quantity: 0, mount: 'wall' as const, customNames: [] },
+              thermal: { quantity: 0, mount: 'wall' as const, customNames: [] },
+              ipSpeakers: { quantity: 0, customNames: [] }
+            },
+            ipDocEnabled: site.ip_doc_enabled,
+            ipStart: site.ip_start,
+            ipGateway: site.ip_gateway,
+            ipCidr: site.ip_cidr,
+            ipVideoDevicePrefix: site.ip_video_device_prefix,
+            ipNetworkDevicePrefix: site.ip_network_device_prefix,
+          }))
+        }
+
+        setProject(loadedProject)
+        setProjectId(urlProjectId)
+        console.log(`✅ Project loaded: ${loadedProject.name}`)
+      } catch (err: any) {
+        console.error('Error loading project:', err)
+        setSaveError(`Fehler beim Laden: ${err.message}`)
+        setSaveStatus('error')
+        setTimeout(() => {
+          setSaveStatus('idle')
+          setSaveError(null)
+        }, 5000)
+      }
+    }
+
+    if (router.isReady) {
+      loadProjectFromURL()
+    }
+  }, [router.isReady, router.query.projectId, user, projectId])
+
   const handleNext = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
@@ -41,6 +161,143 @@ export default function Configurator() {
 
   const updateProject = (updates: Partial<Project>) => {
     setProject({ ...project, ...updates })
+  }
+
+  const handleSave = async () => {
+    if (!user) {
+      setSaveError('Sie müssen angemeldet sein, um zu speichern.')
+      setSaveStatus('error')
+      return
+    }
+
+    if (!project.name || project.name.trim() === '') {
+      setSaveError('Bitte geben Sie einen Projektnamen ein.')
+      setSaveStatus('error')
+      return
+    }
+
+    setSaveStatus('saving')
+    setSaveError(null)
+
+    try {
+      // Check if we're updating an existing project or creating a new one
+      if (projectId) {
+        // Update existing project
+        const { error: projectError } = await (supabase
+          .from('projects') as any)
+          .update({
+            name: project.name,
+            tier: project.tier,
+            manufacturer: project.manufacturer,
+            hanwha_series: project.hanwhaSeries,
+            ajax_series: project.ajaxSeries,
+            video_management: project.videoManagement,
+            storage_days: project.storageDays,
+            storage_hdd_size: project.storageHddSize,
+            storage_hdd_quantity: project.storageHddQuantity,
+            ups_required: project.upsRequired,
+            remote_capable: project.remoteCapable,
+            vms_multi_monitor: project.vmsMultiMonitor,
+            network_cabinet_9he: project.networkCabinet9HE,
+            lift_platform: project.liftPlatform,
+          } as any)
+          .eq('id', projectId)
+          .eq('owner_id', user.id)
+
+        if (projectError) throw projectError
+
+        // Update sites
+        if (project.sites && project.sites.length > 0) {
+          for (const site of project.sites) {
+            const { error: siteError } = await (supabase
+              .from('sites') as any)
+              .upsert({
+                id: site.id,
+                project_id: projectId,
+                name: site.name,
+                cabling: site.cabling,
+                is_standalone: site.isStandalone,
+                outdoor: site.outdoor,
+                cameras_config: site.cameras,
+                ip_doc_enabled: site.ipDocEnabled,
+                ip_start: site.ipStart,
+                ip_gateway: site.ipGateway,
+                ip_cidr: site.ipCidr,
+                ip_video_device_prefix: site.ipVideoDevicePrefix,
+                ip_network_device_prefix: site.ipNetworkDevicePrefix,
+              }, { onConflict: 'id' })
+
+            if (siteError) throw siteError
+          }
+        }
+
+        setSaveStatus('saved')
+        setTimeout(() => setSaveStatus('idle'), 3000)
+      } else {
+        // Create new project
+        const { data: newProject, error: projectError } = await (supabase
+          .from('projects') as any)
+          .insert({
+            owner_id: user.id,
+            name: project.name,
+            tier: project.tier || 'eco',
+            manufacturer: project.manufacturer || 'Hanwha',
+            hanwha_series: project.hanwhaSeries,
+            ajax_series: project.ajaxSeries,
+            video_management: project.videoManagement || 'nvr',
+            storage_days: project.storageDays || 2,
+            storage_hdd_size: project.storageHddSize,
+            storage_hdd_quantity: project.storageHddQuantity,
+            ups_required: project.upsRequired || false,
+            remote_capable: project.remoteCapable || false,
+            vms_multi_monitor: project.vmsMultiMonitor,
+            network_cabinet_9he: project.networkCabinet9HE,
+            lift_platform: project.liftPlatform,
+          } as any)
+          .select()
+          .single()
+
+        if (projectError) throw projectError
+        if (!newProject) throw new Error('Projekt konnte nicht erstellt werden')
+
+        setProjectId(newProject.id)
+
+        // Insert sites
+        if (project.sites && project.sites.length > 0) {
+          for (const site of project.sites) {
+            const { error: siteError } = await (supabase
+              .from('sites') as any)
+              .insert({
+                project_id: newProject.id,
+                name: site.name,
+                cabling: site.cabling,
+                is_standalone: site.isStandalone,
+                outdoor: site.outdoor,
+                cameras_config: site.cameras,
+                ip_doc_enabled: site.ipDocEnabled,
+                ip_start: site.ipStart,
+                ip_gateway: site.ipGateway,
+                ip_cidr: site.ipCidr,
+                ip_video_device_prefix: site.ipVideoDevicePrefix,
+                ip_network_device_prefix: site.ipNetworkDevicePrefix,
+              } as any)
+
+            if (siteError) throw siteError
+          }
+        }
+
+        setSaveStatus('saved')
+        setTimeout(() => setSaveStatus('idle'), 3000)
+
+        // Update URL with project ID (shallow routing, no page reload)
+        router.replace(`/configurator?projectId=${newProject.id}`, undefined, { shallow: true })
+      }
+    } catch (err: any) {
+      console.error('Save error:', err)
+      setSaveError(err.message || 'Fehler beim Speichern')
+      setSaveStatus('error')
+      setTimeout(() => setSaveStatus('idle'), 5000)
+    }
   }
 
   const renderStep = () => {
@@ -112,8 +369,13 @@ export default function Configurator() {
                 ✓ Gespeichert
               </span>
             )}
+            {saveStatus === 'error' && saveError && (
+              <span className="text-red-600 dark:text-red-400 text-sm font-medium" title={saveError}>
+                ❌ {saveError.substring(0, 30)}...
+              </span>
+            )}
             <button
-              onClick={() => alert('Speichern-Funktion folgt in Kürze')}
+              onClick={handleSave}
               disabled={saveStatus === 'saving'}
               className="px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
             >
