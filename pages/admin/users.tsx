@@ -36,6 +36,7 @@ export default function AdminUsers() {
     userId: '',
     email: '',
     password: '',
+    originalEmail: '', // Store original email to detect changes
   });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
@@ -100,12 +101,16 @@ export default function AdminUsers() {
     setEditError('');
 
     try {
-      // Validate form - at least one field must be provided
-      if (!editForm.email && !editForm.password) {
-        throw new Error('Bitte Email oder Passwort eingeben');
+      // Check if email was actually changed
+      const emailChanged = editForm.email && editForm.email !== editForm.originalEmail;
+      const passwordProvided = editForm.password && editForm.password.trim() !== '';
+
+      // Validate form - at least one field must be changed/provided
+      if (!emailChanged && !passwordProvided) {
+        throw new Error('Bitte Email ändern oder Passwort eingeben');
       }
 
-      if (editForm.password && editForm.password.length < 6) {
+      if (passwordProvided && editForm.password.length < 6) {
         throw new Error('Passwort muss mindestens 6 Zeichen lang sein');
       }
 
@@ -124,8 +129,8 @@ export default function AdminUsers() {
         },
         body: JSON.stringify({
           userId: editForm.userId,
-          email: editForm.email || undefined,
-          password: editForm.password || undefined,
+          email: emailChanged ? editForm.email : undefined,
+          password: passwordProvided ? editForm.password : undefined,
         }),
       });
 
@@ -136,7 +141,7 @@ export default function AdminUsers() {
       }
 
       // Reset form and close modal
-      setEditForm({ userId: '', email: '', password: '' });
+      setEditForm({ userId: '', email: '', password: '', originalEmail: '' });
       setShowEditModal(false);
 
       // Reload users
@@ -372,7 +377,12 @@ export default function AdminUsers() {
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => {
-                                setEditForm({ userId: user.id, email: user.email, password: '' });
+                                setEditForm({ 
+                                  userId: user.id, 
+                                  email: user.email, 
+                                  password: '', 
+                                  originalEmail: user.email 
+                                });
                                 setShowEditModal(true);
                               }}
                               className="px-3 py-1 rounded-lg font-semibold transition-colors bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800"
@@ -535,7 +545,7 @@ export default function AdminUsers() {
                     onClick={() => {
                       setShowEditModal(false);
                       setEditError('');
-                      setEditForm({ userId: '', email: '', password: '' });
+                      setEditForm({ userId: '', email: '', password: '', originalEmail: '' });
                     }}
                     className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   >
@@ -595,7 +605,7 @@ export default function AdminUsers() {
                       onClick={() => {
                         setShowEditModal(false);
                         setEditError('');
-                        setEditForm({ userId: '', email: '', password: '' });
+                        setEditForm({ userId: '', email: '', password: '', originalEmail: '' });
                       }}
                       className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                     >

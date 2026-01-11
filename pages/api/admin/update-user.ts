@@ -72,6 +72,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: 'User update failed' });
     }
 
+    // Also update the profiles table if email was changed
+    if (email) {
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .update({ email })
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error('Error updating profile email:', profileError);
+        // Don't fail the whole operation, auth email is already updated
+      }
+    }
+
     return res.status(200).json({
       success: true,
       user: {
