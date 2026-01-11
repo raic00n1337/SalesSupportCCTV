@@ -1,4 +1,4 @@
-﻿// UTF-8 Encoding Fix - Build v2
+// UTF-8 Encoding Fix - Build v3
 import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '../lib/AuthContext'
@@ -195,7 +195,7 @@ export default function Configurator() {
           disabled={currentStep === 1}
           className="px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-slate-600"
         >
-          Zur├╝ck
+          Zurück
         </button>
         {currentStep < totalSteps && (
           <button
@@ -219,7 +219,7 @@ const Step1ProjectSetup = ({ project, updateProject }: { project: Partial<Projec
         Projekt anlegen
       </h2>
       <p className="text-gray-600 dark:text-gray-400 mb-8">
-        Geben Sie einen Namen f├╝r Ihr Video-System-Projekt ein und w├ñhlen Sie die Grundoptionen.
+        Geben Sie einen Namen für Ihr Video-System-Projekt ein und wählen Sie die Grundoptionen.
       </p>
 
       <div className="max-w-xl">
@@ -231,7 +231,7 @@ const Step1ProjectSetup = ({ project, updateProject }: { project: Partial<Projec
           type="text"
           value={project.name || ''}
           onChange={(e) => updateProject({ name: e.target.value })}
-          placeholder="z.B. Firmengel├ñnde M├╝nchen Nord"
+          placeholder="z.B. Firmengelände München Nord"
           className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-all"
         />
       </div>
@@ -250,10 +250,10 @@ const Step1ProjectSetup = ({ project, updateProject }: { project: Partial<Projec
           />
           <div>
             <div className="font-medium text-gray-900 dark:text-white">
-              Remote-F├ñhigkeit f├╝r gesamtes Projekt
+              Remote-Fähigkeit für gesamtes Projekt
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Fernzugriff auf alle Standorte (VPN-Router wird automatisch hinzugef├╝gt)
+              Fernzugriff auf alle Standorte (VPN-Router wird automatisch hinzugefügt)
             </div>
           </div>
         </label>
@@ -261,10 +261,10 @@ const Step1ProjectSetup = ({ project, updateProject }: { project: Partial<Projec
 
       <div className="mt-8 p-4 bg-primary-50 dark:bg-slate-700/50 rounded-lg">
         <h3 className="font-semibold text-primary-900 dark:text-primary-300 mb-2">
-          Ôä╣´©Å Hinweis
+          ℹ️ Hinweis
         </h3>
         <p className="text-primary-800 dark:text-primary-200 text-sm">
-          Im n├ñchsten Schritt k├Ânnen Sie einen oder mehrere Standorte f├╝r dieses Projekt definieren.
+          Im nächsten Schritt können Sie einen oder mehrere Standorte für dieses Projekt definieren.
         </p>
       </div>
     </div>
@@ -316,7 +316,7 @@ const Step2Sites = ({ project, updateProject }: { project: Partial<Project>; upd
         Standorte definieren
       </h2>
       <p className="text-gray-600 dark:text-gray-400 mb-8">
-        F├╝gen Sie die Standorte hinzu, an denen Kameras installiert werden sollen.
+        Fügen Sie die Standorte hinzu, an denen Kameras installiert werden sollen.
       </p>
 
       <div className="max-w-xl mb-6">
@@ -337,7 +337,7 @@ const Step2Sites = ({ project, updateProject }: { project: Partial<Project>; upd
             onClick={handleAddSite}
             className="px-6 py-3 rounded-lg bg-primary-500 text-white font-semibold hover:bg-primary-500 transition-colors"
           >
-            Hinzuf├╝gen
+            Hinzufügen
           </button>
         </div>
       </div>
@@ -367,7 +367,7 @@ const Step2Sites = ({ project, updateProject }: { project: Partial<Project>; upd
 
       {(!project.sites || project.sites.length === 0) && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          Noch keine Standorte hinzugef├╝gt
+          Noch keine Standorte hinzugefügt
         </div>
       )}
     </div>
@@ -377,8 +377,8 @@ const Step2Sites = ({ project, updateProject }: { project: Partial<Project>; upd
 // Step 3: Tier and Manufacturer
 const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial<Project>; updateProject: (updates: Partial<Project>) => void }) => {
   const tiers: { value: TierType; label: string; description: string }[] = [
-    { value: 'eco', label: 'Eco / Low Budget', description: 'Kosteng├╝nstige Standardl├Âsung f├╝r einfache Anwendungen' },
-    { value: 'premium', label: 'Premium', description: 'Hochwertige L├Âsung mit erweiterten Funktionen' },
+    { value: 'eco', label: 'Eco / Low Budget', description: 'Kostengünstige Standardlösung für einfache Anwendungen' },
+    { value: 'premium', label: 'Premium', description: 'Hochwertige Lösung mit erweiterten Funktionen' },
     { value: 'high-risk', label: 'High Risk', description: 'Maximale Sicherheit mit Redundanzen und USV' }
   ]
 
@@ -402,10 +402,10 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
   return (
     <div>
       <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-        Paket & Hersteller w├ñhlen
+        Paket & Hersteller wählen
       </h2>
       <p className="text-gray-600 dark:text-gray-400 mb-8">
-        W├ñhlen Sie das Qualit├ñtsniveau und den Hersteller f├╝r Ihr Projekt.
+        Wählen Sie das Qualitätsniveau und den Hersteller für Ihr Projekt.
       </p>
 
       {/* Tier Selection */}
@@ -423,7 +423,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                   upsRequired: tier.value === 'high-risk' ? true : project.upsRequired
                 }
                 
-                // Bei Wechsel zu ECO: Automatisch g├╝nstigste Serie setzen
+                // Bei Wechsel zu ECO: Automatisch günstigste Serie setzen
                 if (tier.value === 'eco') {
                   if (project.manufacturer === 'Hanwha') {
                     updates.hanwhaSeries = 'A-Series'
@@ -463,7 +463,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
               onClick={() => {
                 const updates: Partial<Project> = { manufacturer: manufacturer.value }
                 
-                // Bei ECO: Automatisch g├╝nstigste Serie setzen
+                // Bei ECO: Automatisch günstigste Serie setzen
                 if (project.tier === 'eco') {
                   if (manufacturer.value === 'Hanwha') {
                     updates.hanwhaSeries = 'A-Series'
@@ -497,10 +497,10 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
         {project.manufacturer === 'Hanwha' && (
           <div className="mt-6 p-6 bg-gray-50 dark:bg-slate-700 rounded-lg border-2 border-primary-200 dark:border-primary-800">
             <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">
-              Hanwha Serie {project.tier === 'eco' ? '(automatisch ausgew├ñhlt)' : 'w├ñhlen *'}
+              Hanwha Serie {project.tier === 'eco' ? '(automatisch ausgewählt)' : 'wählen *'}
             </h4>
             {project.tier === 'eco' ? (
-              // ECO: Nur A-Series, nicht ├ñnderbar
+              // ECO: Nur A-Series, nicht änderbar
               <div className="p-4 rounded-lg border-2 border-primary-500 bg-primary-50 dark:bg-primary-900/20">
                 <div className="font-semibold text-primary-600 dark:text-primary-400">
                   A-Series
@@ -510,7 +510,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                 </div>
               </div>
             ) : (
-              // Premium/High-Risk: Beide Serien w├ñhlbar
+              // Premium/High-Risk: Beide Serien wählbar
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {[
                   { value: 'A-Series' as HanwhaSeriesType, label: 'A-Series', description: 'Standard-Serie' },
@@ -542,10 +542,10 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
         {project.manufacturer === 'AJAX' && (
           <div className="mt-6 p-6 bg-gray-50 dark:bg-slate-700 rounded-lg border-2 border-primary-200 dark:border-primary-800">
             <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">
-              AJAX Serie {project.tier === 'eco' ? '(automatisch ausgew├ñhlt)' : 'w├ñhlen *'}
+              AJAX Serie {project.tier === 'eco' ? '(automatisch ausgewählt)' : 'wählen *'}
             </h4>
             {project.tier === 'eco' ? (
-              // ECO: Nur Baseline, nicht ├ñnderbar
+              // ECO: Nur Baseline, nicht änderbar
               <div className="p-4 rounded-lg border-2 border-primary-500 bg-primary-50 dark:bg-primary-900/20">
                 <div className="font-semibold text-primary-600 dark:text-primary-400">
                   Baseline
@@ -555,7 +555,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                 </div>
               </div>
             ) : (
-              // Premium/High-Risk: Beide Serien w├ñhlbar
+              // Premium/High-Risk: Beide Serien wählbar
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {[
                   { value: 'Baseline' as AjaxSeriesType, label: 'Baseline', description: 'Basis-Ausstattung' },
@@ -621,7 +621,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
               {/* HDD Size Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Festplattengr├Â├ƒe *
+                  Festplattengröße *
                 </label>
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                   {(() => {
@@ -683,7 +683,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                     onChange={(e) => updateProject({ storageHddQuantity: parseInt(e.target.value) || 1 })}
                     className="w-32 px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
                   />
-                  <span className="text-gray-600 dark:text-gray-400">St├╝ck</span>
+                  <span className="text-gray-600 dark:text-gray-400">Stück</span>
                   {project.storageHddSize && project.storageHddQuantity && (
                     <span className="text-sm font-medium text-primary-600 dark:text-primary-400">
                       = {project.storageHddSize * project.storageHddQuantity} TB Gesamt
@@ -696,11 +696,11 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
               {project.storageDays && project.storageDays > 0 && (
                 <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                   <p className="text-sm text-amber-800 dark:text-amber-200">
-                    <strong>­ƒÆí Speicher-Empfehlung:</strong> Bei {project.storageDays} Tagen Speicherdauer wird empfohlen:
-                    {project.storageDays <= 3 ? ' 4ÔÇô8 TB' : project.storageDays <= 7 ? ' 8ÔÇô12 TB' : ' 12+ TB'}
+                    <strong>💡 Speicher-Empfehlung:</strong> Bei {project.storageDays} Tagen Speicherdauer wird empfohlen:
+                    {project.storageDays <= 3 ? ' 4–8 TB' : project.storageDays <= 7 ? ' 8–12 TB' : ' 12+ TB'}
                     {project.storageDays > 14 && (
                       <span className="block mt-1">
-                        <strong>ÔÜá´©Å Warnung:</strong> Lange Speicherdauern k├Ânnen DSGVO-relevant sein und erfordern gro├ƒe Speicherkapazit├ñt.
+                        <strong>⚠️ Warnung:</strong> Lange Speicherdauern können DSGVO-relevant sein und erfordern große Speicherkapazität.
                       </span>
                     )}
                   </p>
@@ -709,8 +709,8 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
 
               <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
                 <p className="text-xs text-primary-800 dark:text-primary-200">
-                  <strong>­ƒÆí Hinweis:</strong> Surveillance-Grade Festplatten sind f├╝r den 24/7-Dauerbetrieb optimiert. 
-                  Die tats├ñchlich ben├Âtigte Speichergr├Â├ƒe h├ñngt von der Anzahl der Kameras ab.
+                  <strong>💡 Hinweis:</strong> Surveillance-Grade Festplatten sind für den 24/7-Dauerbetrieb optimiert. 
+                  Die tatsächlich benötigte Speichergröße hängt von der Anzahl der Kameras ab.
                 </p>
               </div>
             </div>
@@ -732,10 +732,10 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
           />
           <div>
             <div className="font-medium text-gray-900 dark:text-white">
-              USV gew├╝nscht
+              USV gewünscht
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Notstromversorgung f├╝r unterbrechungsfreien Betrieb
+              Notstromversorgung für unterbrechungsfreien Betrieb
               {project.tier === 'high-risk' && (
                 <span className="ml-2 text-amber-600 dark:text-amber-400 font-medium">
                   (Bei High Risk empfohlen)
@@ -752,7 +752,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
           Speicherdauer (DSGVO-konform)
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-          Nach DSGVO sind maximal 3 Tage (72 Stunden) zul├ñssig
+          Nach DSGVO sind maximal 3 Tage (72 Stunden) zulässig
         </p>
         
         <div className="space-y-4">
@@ -799,7 +799,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
               <span className="text-gray-600 dark:text-gray-400">Tage</span>
               {project.storageDays && project.storageDays > 3 && (
                 <span className="text-sm text-amber-600 dark:text-amber-400 font-medium">
-                  ÔÜá´©Å ├£ber DSGVO-Standard (3 Tage)
+                  ⚠️ Über DSGVO-Standard (3 Tage)
                 </span>
               )}
             </div>
@@ -808,8 +808,8 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
 
         <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
           <p className="text-sm text-amber-800 dark:text-amber-200">
-            <strong>ÔÜá´©Å DSGVO-Hinweis:</strong> Die Speicherdauer von Videoaufzeichnungen ist auf maximal 3 Tage (72 Stunden) begrenzt, 
-            es sei denn, es liegt ein berechtigtes Interesse vor oder eine l├ñngere Speicherung ist gesetzlich vorgeschrieben.
+            <strong>⚠️ DSGVO-Hinweis:</strong> Die Speicherdauer von Videoaufzeichnungen ist auf maximal 3 Tage (72 Stunden) begrenzt, 
+            es sei denn, es liegt ein berechtigtes Interesse vor oder eine längere Speicherung ist gesetzlich vorgeschrieben.
           </p>
         </div>
       </div>
@@ -834,7 +834,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                   Multibild-Darstellung (RTX-Grafikkarte)
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Hochleistungs-Workstation mit RTX-Grafikkarte f├╝r mehrere Monitore
+                  Hochleistungs-Workstation mit RTX-Grafikkarte für mehrere Monitore
                 </div>
               </div>
             </label>
@@ -853,7 +853,7 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                 9 HE Netzwerkschrank
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Inklusive Steckdosenleiste, L├╝fter und Zubeh├Âr (Pauschalposition)
+                Inklusive Steckdosenleiste, Lüfter und Zubehör (Pauschalposition)
               </div>
             </div>
           </label>
@@ -893,7 +893,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
         </h2>
         <div className="text-center py-12">
           <p className="text-gray-500 dark:text-gray-400">
-            Keine Standorte vorhanden. Bitte gehen Sie zur├╝ck und f├╝gen Sie Standorte hinzu.
+            Keine Standorte vorhanden. Bitte gehen Sie zurück und fügen Sie Standorte hinzu.
           </p>
         </div>
       </div>
@@ -1092,14 +1092,14 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
         Kamera-Konfiguration
       </h2>
       <p className="text-gray-600 dark:text-gray-400 mb-8">
-        Konfigurieren Sie die Kameras und Montagevarianten f├╝r jeden Standort.
+        Konfigurieren Sie die Kameras und Montagevarianten für jeden Standort.
       </p>
 
       {/* Site Selector */}
       {project.sites.length > 1 && (
         <div className="mb-8">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Standort ausw├ñhlen:
+            Standort auswählen:
           </label>
           <div className="flex gap-2 flex-wrap">
             {project.sites.map((site, index) => (
@@ -1173,7 +1173,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
             {selectedSite.cameras.domeFixed.quantity > 0 && (
               <div className="mt-3 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
                 <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                  ­ƒôØ Kameranamen (optional anpassbar)
+                  📝 Kameranamen (optional anpassbar)
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {Array.from({ length: selectedSite.cameras.domeFixed.quantity }).map((_, i) => (
@@ -1230,7 +1230,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
             {selectedSite.cameras.domeVario.quantity > 0 && (
               <div className="mt-3 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
                 <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                  ­ƒôØ Kameranamen (optional anpassbar)
+                  📝 Kameranamen (optional anpassbar)
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {Array.from({ length: selectedSite.cameras.domeVario.quantity }).map((_, i) => (
@@ -1295,7 +1295,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
             {selectedSite.cameras.bulletFixed.quantity > 0 && (
               <div className="mt-3 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
                 <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                  ­ƒôØ Kameranamen (optional anpassbar)
+                  📝 Kameranamen (optional anpassbar)
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {Array.from({ length: selectedSite.cameras.bulletFixed.quantity }).map((_, i) => (
@@ -1307,7 +1307,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                         type="text"
                         value={selectedSite.cameras.bulletFixed.customNames?.[i] || ''}
                         onChange={(e) => updateCameraName('bulletFixed', i, e.target.value)}
-                        placeholder={`z.B. Au├ƒenbereich ${i + 1}`}
+                        placeholder={`z.B. Außenbereich ${i + 1}`}
                         className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
                       />
                     </div>
@@ -1352,7 +1352,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
             {selectedSite.cameras.bulletVario.quantity > 0 && (
               <div className="mt-3 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
                 <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                  ­ƒôØ Kameranamen (optional anpassbar)
+                  📝 Kameranamen (optional anpassbar)
                 </h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {Array.from({ length: selectedSite.cameras.bulletVario.quantity }).map((_, i) => (
@@ -1381,7 +1381,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
             PTZ-Kameras
           </h4>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            Pan-Tilt-Zoom Kameras f├╝r flexible ├£berwachung
+            Pan-Tilt-Zoom Kameras für flexible Überwachung
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
@@ -1418,7 +1418,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
           {selectedSite.cameras.ptz.quantity > 0 && (
             <div className="mt-4 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
               <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                ­ƒôØ Kameranamen (optional anpassbar)
+                📝 Kameranamen (optional anpassbar)
               </h5>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {Array.from({ length: selectedSite.cameras.ptz.quantity }).map((_, i) => (
@@ -1430,7 +1430,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                       type="text"
                       value={selectedSite.cameras.ptz.customNames?.[i] || ''}
                       onChange={(e) => updateCameraName('ptz', i, e.target.value)}
-                      placeholder={`z.B. ├£berwachungsbereich ${i + 1}`}
+                      placeholder={`z.B. Überwachungsbereich ${i + 1}`}
                       className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
                     />
                   </div>
@@ -1451,7 +1451,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
             )}
           </h4>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            W├ñrmebildkameras f├╝r erweiterte Erkennung
+            Wärmebildkameras für erweiterte Erkennung
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
@@ -1489,7 +1489,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
           {selectedSite.cameras.thermal.quantity > 0 && isThermalAvailable && (
             <div className="mt-4 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
               <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                ­ƒôØ Kameranamen (optional anpassbar)
+                📝 Kameranamen (optional anpassbar)
               </h5>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {Array.from({ length: selectedSite.cameras.thermal.quantity }).map((_, i) => (
@@ -1517,7 +1517,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
             IP-Lautsprecher
           </h4>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-            Netzwerk-Lautsprecher f├╝r Audio-Ausgabe und Durchsagen
+            Netzwerk-Lautsprecher für Audio-Ausgabe und Durchsagen
           </p>
           <div className="max-w-xs">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1537,7 +1537,7 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
           {selectedSite.cameras.ipSpeakers.quantity > 0 && (
             <div className="mt-4 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
               <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                ­ƒôØ Lautsprechernamen (optional anpassbar)
+                📝 Lautsprechernamen (optional anpassbar)
               </h5>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {Array.from({ length: selectedSite.cameras.ipSpeakers.quantity }).map((_, i) => (
@@ -1576,10 +1576,10 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
             />
             <div>
               <div className="font-medium text-gray-900 dark:text-white">
-                Outdoor / Au├ƒenbereich
+                Outdoor / Außenbereich
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Kameras sind dem Wetter ausgesetzt (Junction Boxes werden automatisch hinzugef├╝gt)
+                Kameras sind dem Wetter ausgesetzt (Junction Boxes werden automatisch hinzugefügt)
               </div>
             </div>
           </label>
@@ -1601,7 +1601,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
         </h2>
         <div className="text-center py-12">
           <p className="text-gray-500 dark:text-gray-400">
-            Keine Standorte vorhanden. Bitte gehen Sie zur├╝ck und f├╝gen Sie Standorte hinzu.
+            Keine Standorte vorhanden. Bitte gehen Sie zurück und fügen Sie Standorte hinzu.
           </p>
         </div>
       </div>
@@ -1642,19 +1642,19 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
       value: 'copper' as CablingType, 
       label: 'Netzwerkkabel (Kupfer)', 
       description: 'Standard CAT6/CAT7 Verkabelung',
-      icon: '­ƒöî'
+      icon: '🔌'
     },
     { 
       value: 'fiber' as CablingType, 
       label: 'Glasfaser', 
       description: 'LWL-Verkabelung mit Medienkonvertern/SFPs',
-      icon: '­ƒÆí'
+      icon: '💡'
     },
     { 
       value: 'wlan-bridge' as CablingType, 
       label: 'WLAN-Bridge', 
       description: 'Drahtlose Punkt-zu-Punkt Verbindung',
-      icon: '­ƒôí'
+      icon: '📡'
     }
   ]
 
@@ -1664,14 +1664,14 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
         Verkabelung & Netzwerk
       </h2>
       <p className="text-gray-600 dark:text-gray-400 mb-8">
-        Konfigurieren Sie die Netzwerkinfrastruktur f├╝r jeden Standort.
+        Konfigurieren Sie die Netzwerkinfrastruktur für jeden Standort.
       </p>
 
       {/* Site Selector */}
       {project.sites.length > 1 && (
         <div className="mb-8">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Standort ausw├ñhlen:
+            Standort auswählen:
           </label>
           <div className="flex gap-2 flex-wrap">
             {project.sites.map((site, index) => (
@@ -1729,14 +1729,14 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
         {selectedSite.cabling === 'fiber' && (
           <div className="mt-4 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
             <p className="text-sm text-primary-800 dark:text-primary-200">
-              <strong>Ôä╣´©Å Automatisch hinzugef├╝gt:</strong> Medienkonverter, SFP-Module, LWL-Patchkabel
+              <strong>ℹ️ Automatisch hinzugefügt:</strong> Medienkonverter, SFP-Module, LWL-Patchkabel
             </p>
           </div>
         )}
         {selectedSite.cabling === 'wlan-bridge' && (
           <div className="mt-4 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
             <p className="text-sm text-primary-800 dark:text-primary-200">
-              <strong>Ôä╣´©Å Automatisch hinzugef├╝gt:</strong> WLAN-Bridge Set (2 St├╝ck), Outdoor-Geh├ñuse, PoE-Injektoren
+              <strong>ℹ️ Automatisch hinzugefügt:</strong> WLAN-Bridge Set (2 Stück), Outdoor-Gehäuse, PoE-Injektoren
             </p>
           </div>
         )}
@@ -1778,10 +1778,10 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
             />
             <div className="flex-1">
               <div className="font-medium text-gray-900 dark:text-white mb-1">
-                Eigenst├ñndiger Standort
+                Eigenständiger Standort
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Standort ben├Âtigt eigene Netzwerk-Infrastruktur (Switch, ggf. Outdoor-Cabinet, Stromversorgung)
+                Standort benötigt eigene Netzwerk-Infrastruktur (Switch, ggf. Outdoor-Cabinet, Stromversorgung)
               </div>
             </div>
           </label>
@@ -1789,7 +1789,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
           {selectedSite.isStandalone && (
             <div className="ml-8 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                <strong>ÔÜÖ´©Å Automatisch hinzugef├╝gt:</strong> Netzwerk-Switch, Outdoor-Cabinet (bei Outdoor), Stromversorgung, Patchpanel
+                <strong>⚙️ Automatisch hinzugefügt:</strong> Netzwerk-Switch, Outdoor-Cabinet (bei Outdoor), Stromversorgung, Patchpanel
               </p>
             </div>
           )}
@@ -1811,7 +1811,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
           <div className="flex justify-between">
             <span className="text-gray-600 dark:text-gray-400">Anbindung:</span>
             <span className="text-gray-900 dark:text-white font-medium">
-              {selectedSite.isStandalone ? 'Eigenst├ñndig' : 'Direkt verkabelt'}
+              {selectedSite.isStandalone ? 'Eigenständig' : 'Direkt verkabelt'}
             </span>
           </div>
           <div className="flex justify-between">
@@ -1848,7 +1848,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
               IP-Dokumentation aktivieren
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Automatische fortlaufende IP-Vergabe f├╝r alle Netzwerkger├ñte an diesem Standort
+              Automatische fortlaufende IP-Vergabe für alle Netzwerkgeräte an diesem Standort
             </div>
           </div>
         </label>
@@ -1872,7 +1872,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 outline-none uppercase"
                 />
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  F├╝r Kameras & IP-Lautsprecher (z.B. "CAM-DOME-01")
+                  Für Kameras & IP-Lautsprecher (z.B. "CAM-DOME-01")
                 </p>
               </div>
 
@@ -1891,7 +1891,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 outline-none uppercase"
                 />
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  F├╝r Switches, NVR/VMS, Router (z.B. "NET-SW-01")
+                  Für Switches, NVR/VMS, Router (z.B. "NET-SW-01")
                 </p>
               </div>
 
@@ -1916,7 +1916,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                 />
                 {selectedSite.ipStart && !validateIPv4(selectedSite.ipStart) && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    Ung├╝ltige IPv4-Adresse
+                    Ungültige IPv4-Adresse
                   </p>
                 )}
                 {selectedSite.ipStart && validateIPv4(selectedSite.ipStart) && !isValidHostIP(selectedSite.ipStart) && (
@@ -1962,7 +1962,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                 />
                 {selectedSite.ipGateway && selectedSite.ipGateway.length > 0 && !validateIPv4(selectedSite.ipGateway) && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    Ung├╝ltige IPv4-Adresse
+                    Ungültige IPv4-Adresse
                   </p>
                 )}
               </div>
@@ -1970,8 +1970,8 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
 
             <div className="mt-4 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
               <p className="text-xs text-primary-800 dark:text-primary-200">
-                <strong>­ƒÆí Hinweis:</strong> Die IP-Adressen werden automatisch fortlaufend an alle Netzwerkger├ñte vergeben.
-                Die Reihenfolge ist: <strong>Router ÔåÆ Switches ÔåÆ WLAN-Bridge ÔåÆ NVR/VMS ÔåÆ Kameras</strong>. In Schritt 6 k├Ânnen Sie die Bezeichnungen vor dem Export anpassen.
+                <strong>💡 Hinweis:</strong> Die IP-Adressen werden automatisch fortlaufend an alle Netzwerkgeräte vergeben.
+                Die Reihenfolge ist: <strong>Router → Switches → WLAN-Bridge → NVR/VMS → Kameras</strong>. In Schritt 6 können Sie die Bezeichnungen vor dem Export anpassen.
               </p>
             </div>
           </div>
@@ -2023,7 +2023,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
       wsData.push([]) // Empty row
       
       // Header row 2: Column headers
-      wsData.push(['Ger├ñte-ID', 'Bezeichnung', 'Typ', 'Hersteller', 'ESO-Artikelnummer', 'IP-Adresse'])
+      wsData.push(['Geräte-ID', 'Bezeichnung', 'Typ', 'Hersteller', 'ESO-Artikelnummer', 'IP-Adresse'])
       
       // Data rows
       devicesWithIP.forEach(device => {
@@ -2043,7 +2043,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
       
       // Set column widths
       ws['!cols'] = [
-        { wch: 18 },  // Ger├ñte-ID
+        { wch: 18 },  // Geräte-ID
         { wch: 35 },  // Bezeichnung
         { wch: 15 },  // Typ
         { wch: 15 },  // Hersteller
@@ -2249,7 +2249,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
             esoArticleNumber: 'ACC-JBOX-001',
             quantity: totalOutdoorCameras,
             unitPrice: 29,
-            category: 'Zubeh├Âr'
+            category: 'Zubehör'
           })
         }
       }
@@ -2284,7 +2284,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
           category: 'Netzwerk'
         })
         bom.push({
-          articleName: `${sitePrefix} Outdoor-Geh├ñuse f├╝r WLAN`,
+          articleName: `${sitePrefix} Outdoor-Gehäuse für WLAN`,
           manufacturer: 'Universal',
           esoArticleNumber: 'ACC-ENCL-001',
           quantity: 2,
@@ -2349,7 +2349,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     0)
 
     if (project.videoManagement === 'nvr') {
-      // Automatische Reserve: Immer n├ñchstgr├Â├ƒere Ger├ñtegr├Â├ƒe
+      // Automatische Reserve: Immer nächstgrößere Gerätegröße
       let channels = 8
       if (totalCameras > 16) {
         channels = 32
@@ -2528,7 +2528,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     const materialSubtotal = bom.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
     
     // BHE-Zeiten (Installation times based on BHE_TIME_MODEL_VIDEO.md)
-    // All times in minutes, rate: 120Ôé¼/hour
+    // All times in minutes, rate: 120€/hour
     let totalBHEMinutes = 0
     
     // 1. CAMERAS - Base installation time per camera
@@ -2619,7 +2619,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     
     // 7. MONITORS
     // Desktop-Monitor aufstellen / einstellen: 10 min
-    // Zus├ñtzlicher Monitor (Multibild): 15 min
+    // Zusätzlicher Monitor (Multibild): 15 min
     if (project.videoManagement === 'vms') {
       totalBHEMinutes += 10 // Main monitor
       if (project.vmsMultiMonitor) {
@@ -2637,7 +2637,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     
     if (installationHours > 0) {
       bom.push({
-        articleName: `Montage & Inbetriebnahme (${totalBHEMinutes} min = ${installationHours}h ├á 120Ôé¼)`,
+        articleName: `Montage & Inbetriebnahme (${totalBHEMinutes} min = ${installationHours}h à 120€)`,
         manufacturer: 'Securitas Technology',
         esoArticleNumber: 'SERVICE-INST-001',
         quantity: installationHours,
@@ -2646,11 +2646,11 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
       })
     }
     
-    // Anfahrtspauschale (135Ôé¼ je 4 Kameras, aufgerundet)
+    // Anfahrtspauschale (135€ je 4 Kameras, aufgerundet)
     const tripCount = Math.ceil(totalCameras / 4)
     if (tripCount > 0) {
       bom.push({
-        articleName: `Anfahrtspauschale (${tripCount}├ù ├á 135Ôé¼)`,
+        articleName: `Anfahrtspauschale (${tripCount}× à 135€)`,
         manufacturer: 'Securitas Technology',
         esoArticleNumber: 'SERVICE-TRIP-001',
         quantity: tripCount,
@@ -2688,7 +2688,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     return acc
   }, {} as Record<string, BOMItem[]>)
 
-  const categories = ['Kameras', 'Netzwerk', 'Recorder/VMS', 'Lizenzen', 'Speicher', 'Hardware', 'Audio', 'Zubeh├Âr', 'Infrastruktur', 'Dienstleistung']
+  const categories = ['Kameras', 'Netzwerk', 'Recorder/VMS', 'Lizenzen', 'Speicher', 'Hardware', 'Audio', 'Zubehör', 'Infrastruktur', 'Dienstleistung']
   
   const totalPrice = bom.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
 
@@ -2709,15 +2709,15 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
   return (
     <div>
       <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-        Zusammenfassung & St├╝ckliste
+        Zusammenfassung & Stückliste
       </h2>
       <p className="text-gray-600 dark:text-gray-400 mb-8">
-        Ihre Konfiguration ist abgeschlossen. Hier ist die detaillierte St├╝ckliste.
+        Ihre Konfiguration ist abgeschlossen. Hier ist die detaillierte Stückliste.
       </p>
 
       {/* Project Summary */}
       <div className="mb-8 p-6 bg-gradient-to-br from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg border-2 border-primary-200 dark:border-primary-800">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Projekt-├£bersicht</h3>
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Projekt-Übersicht</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <div className="flex justify-between">
@@ -2785,16 +2785,16 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
         {project.remoteCapable && getTotalCameras() > 0 && (
           <div className="mt-4 p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
             <h4 className="font-semibold text-primary-900 dark:text-primary-300 mb-2">
-              ­ƒôí Empfohlene Upload-Bandbreite
+              📡 Empfohlene Upload-Bandbreite
             </h4>
             <p className="text-sm text-primary-800 dark:text-primary-200">
-              F├╝r {getTotalCameras()} Kamera{getTotalCameras() > 1 ? 's' : ''} wird empfohlen:
+              Für {getTotalCameras()} Kamera{getTotalCameras() > 1 ? 's' : ''} wird empfohlen:
               <strong className="ml-2">
-                ÔëÑ {Math.max(10, Math.ceil(getTotalCameras() * 2))} Mbit/s Upload
+                ≥ {Math.max(10, Math.ceil(getTotalCameras() * 2))} Mbit/s Upload
               </strong>
             </p>
             <p className="text-xs text-primary-700 dark:text-primary-300 mt-2">
-              ­ƒÆí Tipp: F├╝r bessere Performance empfehlen wir die Verwendung von Substreams f├╝r Remote-Zugriff.
+              💡 Tipp: Für bessere Performance empfehlen wir die Verwendung von Substreams für Remote-Zugriff.
             </p>
           </div>
         )}
@@ -2804,7 +2804,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-            St├╝ckliste
+            Stückliste
           </h3>
           <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
             UVP: {totalPrice.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
@@ -2890,7 +2890,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
           </button>
         </div>
         <div className="mt-4 pt-4 border-t border-gray-300 dark:border-slate-600 text-xs text-gray-500 dark:text-gray-400">
-          * Alle Preise sind unverbindliche Verkaufspreise (UVP) zzgl. MwSt. | Die St├╝ckliste dient als Grundlage f├╝r die Angebotserstellung.
+          * Alle Preise sind unverbindliche Verkaufspreise (UVP) zzgl. MwSt. | Die Stückliste dient als Grundlage für die Angebotserstellung.
         </div>
       </div>
 
@@ -2947,10 +2947,10 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
                 {error ? (
                   <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-b-lg border-2 border-red-200 dark:border-red-800">
                     <p className="text-red-800 dark:text-red-200 font-medium">
-                      ÔÜá´©Å Fehler: {error}
+                      ⚠️ Fehler: {error}
                     </p>
                     <p className="text-sm text-red-700 dark:text-red-300 mt-2">
-                      Bitte ├╝berpr├╝fen Sie die Start-IP-Adresse in Schritt 5.
+                      Bitte überprüfen Sie die Start-IP-Adresse in Schritt 5.
                     </p>
                   </div>
                 ) : (
@@ -2958,7 +2958,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
                     <table className="w-full">
                       <thead className="bg-gray-50 dark:bg-slate-700/50">
                         <tr className="text-left text-xs text-gray-600 dark:text-gray-400 uppercase">
-                          <th className="px-4 py-3">Ger├ñte-ID</th>
+                          <th className="px-4 py-3">Geräte-ID</th>
                           <th className="px-4 py-3">Bezeichnung (editierbar)</th>
                           <th className="px-4 py-3">Typ</th>
                           <th className="px-4 py-3">Hersteller</th>
@@ -2997,7 +2997,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
                       </tbody>
                     </table>
                     <div className="px-4 py-3 bg-gray-50 dark:bg-slate-700/50 text-xs text-gray-500 dark:text-gray-400">
-                      Gesamt: {devicesWithIP.length} Netzwerkger├ñte | Start-IP: {site.ipStart} | End-IP: {devicesWithIP[devicesWithIP.length - 1]?.ip}
+                      Gesamt: {devicesWithIP.length} Netzwerkgeräte | Start-IP: {site.ipStart} | End-IP: {devicesWithIP[devicesWithIP.length - 1]?.ip}
                     </div>
                   </div>
                 )}
