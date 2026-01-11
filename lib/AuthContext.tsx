@@ -24,79 +24,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter()
 
   useEffect(() => {
-    // Try to restore from session storage FIRST (instant, no network)
+    // ONLY read from Session Storage - NO Supabase calls
+    // This prevents any network requests that could be blocked by tab freezing
     const cachedUser = sessionStorage.getItem('sb_user')
+    const cachedSession = sessionStorage.getItem('sb_session')
     const cachedAdmin = sessionStorage.getItem('sb_isAdmin')
     
-    if (cachedUser) {
+    if (cachedUser && cachedSession) {
       try {
         setUser(JSON.parse(cachedUser))
+        setSession(JSON.parse(cachedSession))
         setIsAdmin(cachedAdmin === 'true')
-        setLoading(false) // Immediately ready with cached data
+        console.log('✅ Auth restored from cache (no network call)')
       } catch (e) {
-        console.error('Error parsing cached user:', e)
+        console.error('❌ Error parsing cached auth data:', e)
+        // Clear invalid cache
+        sessionStorage.removeItem('sb_user')
+        sessionStorage.removeItem('sb_session')
+        sessionStorage.removeItem('sb_isAdmin')
       }
-    }
-
-    // Then validate/update from Supabase in background (no blocking)
-    const initializeAuth = async () => {
-      try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession()
-        
-        if (initialSession?.user) {
-          setSession(initialSession)
-          setUser(initialSession.user)
-          sessionStorage.setItem('sb_user', JSON.stringify(initialSession.user))
-          await checkAdminStatus(initialSession.user.id)
-        } else {
-          // No session - clear cache
-          setUser(null)
-          setSession(null)
-          setIsAdmin(false)
-          sessionStorage.removeItem('sb_user')
-          sessionStorage.removeItem('sb_isAdmin')
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error)
-        // Keep cached data on error, don't force logout
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    // Only call Supabase if no cache or after cache is loaded
-    if (!cachedUser) {
-      initializeAuth()
     } else {
-      // Validate in background without blocking UI
-      setTimeout(initializeAuth, 100)
+      console.log('ℹ️ No cached auth data found - user is logged out')
     }
+    
+    // Always set loading to false immediately (instant load)
+    setLoading(false)
 
-    // Listen for auth changes (login/logout events)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        console.log(`Auth event: ${event}`)
-        
-        if (event === 'SIGNED_OUT') {
-          setSession(null)
-          setUser(null)
-          setIsAdmin(false)
-          sessionStorage.removeItem('sb_user')
-          sessionStorage.removeItem('sb_isAdmin')
-        } else if (currentSession?.user) {
-          setSession(currentSession)
-          setUser(currentSession.user)
-          sessionStorage.setItem('sb_user', JSON.stringify(currentSession.user))
-          await checkAdminStatus(currentSession.user.id)
-        }
-        
-        setLoading(false)
-      }
-    )
-
-    return () => {
-      subscription.unsubscribe()
-    }
+    // NO onAuthStateChange listener
+    // NO getSession() call
+    // NO background validation
+    // Auth state is ONLY updated by explicit signIn/signOut calls
   }, [])
 
   const checkAdminStatus = async (userId: string) => {
@@ -110,22 +67,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const adminStatus = !!data
       setIsAdmin(adminStatus)
       sessionStorage.setItem('sb_isAdmin', String(adminStatus))
+      console.log(`✅ Admin status checked: ${adminStatus}`)
+      return adminStatus
     } catch (error) {
+      console.error('❌ Error checking admin status:', error)
       setIsAdmin(false)
       sessionStorage.setItem('sb_isAdmin', 'false')
+      return false
     }
   }
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    console.log('🔐 Attempting sign-in...')
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
+
+    if (!error && data.session && data.user) {
+      // Update state
+      setSession(data.session)
+      setUser(data.user)
+      
+      // Cache in session storage
+      sessionStorage.setItem('sb_user', JSON.stringify(data.user))
+      sessionStorage.setItem('sb_session', JSON.stringify(data.session))
+      
+      // Check admin status
+      await checkAdminStatus(data.user.id)
+      
+      console.log('✅ Sign-in successful, auth cached')
+    } else {
+      console.error('❌ Sign-in failed:', error?.message)
+    }
+
     return { error }
   }
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    const { error } = await supabase.auth.signUp({
+    console.log('📝 Attempting sign-up...')
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -134,18 +115,63 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         },
       },
     })
+
+    if (!error && data.session && data.user) {
+      // Update state
+      setSession(data.session)
+      setUser(data.user)
+      
+      // Cache in session storage
+      sessionStorage.setItem('sb_user', JSON.stringify(data.user))
+      sessionStorage.setItem('sb_session', JSON.stringify(data.session))
+      
+      // Check admin status
+      await checkAdminStatus(data.user.id)
+      
+      console.log('✅ Sign-up successful, auth cached')
+    } else {
+      console.error('❌ Sign-up failed:', error?.message)
+    }
+
     return { error }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    console.log('👋 Signing out...')
+    
+    // Clear local state
+    setSession(null)
+    setUser(null)
+    setIsAdmin(false)
+    
+    // Clear cache
+    sessionStorage.removeItem('sb_user')
+    sessionStorage.removeItem('sb_session')
+    sessionStorage.removeItem('sb_isAdmin')
+    
+    // Call Supabase signOut (async, but we don't wait)
+    supabase.auth.signOut().catch(err => {
+      console.error('❌ Error during Supabase signOut:', err)
+    })
+    
+    console.log('✅ Signed out, cache cleared')
+    
+    // Redirect to login
     router.push('/login')
   }
 
   const resetPassword = async (email: string) => {
+    console.log('🔑 Requesting password reset...')
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     })
+    
+    if (!error) {
+      console.log('✅ Password reset email sent')
+    } else {
+      console.error('❌ Password reset failed:', error.message)
+    }
+    
     return { error }
   }
 
