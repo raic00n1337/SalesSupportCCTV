@@ -13,7 +13,7 @@ export default function Projects() {
   const [loading, setLoading] = useState(false) // Changed to false by default
   const [error, setError] = useState('')
   const [hasLoaded, setHasLoaded] = useState(false)
-  const { user, signOut } = useAuth()
+  const { user, signOut, isAdmin } = useAuth()
   const router = useRouter()
 
   // Auto-load projects ONLY if coming from login (autoLoad=true in URL)
@@ -99,6 +99,14 @@ export default function Projects() {
             >
               + Neues Projekt
             </Link>
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
+              >
+                👑 Admin
+              </Link>
+            )}
             <button
               onClick={signOut}
               className="px-6 py-3 bg-gray-200 dark:bg-slate-700 text-gray-900 dark:text-white font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors"

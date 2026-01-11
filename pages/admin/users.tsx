@@ -30,6 +30,16 @@ export default function AdminUsers() {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
 
+  // Edit user modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    userId: '',
+    email: '',
+    password: '',
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -81,6 +91,63 @@ export default function AdminUsers() {
       setError(err.message || 'Fehler beim Laden der Benutzer');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditLoading(true);
+    setEditError('');
+
+    try {
+      // Validate form - at least one field must be provided
+      if (!editForm.email && !editForm.password) {
+        throw new Error('Bitte Email oder Passwort eingeben');
+      }
+
+      if (editForm.password && editForm.password.length < 6) {
+        throw new Error('Passwort muss mindestens 6 Zeichen lang sein');
+      }
+
+      // Get current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Keine aktive Session');
+      }
+
+      // Call API route to update user
+      const response = await fetch('/api/admin/update-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          userId: editForm.userId,
+          email: editForm.email || undefined,
+          password: editForm.password || undefined,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Fehler beim Aktualisieren des Benutzers');
+      }
+
+      // Reset form and close modal
+      setEditForm({ userId: '', email: '', password: '' });
+      setShowEditModal(false);
+
+      // Reload users
+      await loadUsers();
+
+      alert(`✅ Benutzer erfolgreich aktualisiert!`);
+    } catch (err: any) {
+      console.error('Error updating user:', err);
+      setEditError(err.message || 'Fehler beim Aktualisieren des Benutzers');
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -302,21 +369,32 @@ export default function AdminUsers() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => toggleAdminStatus(user.id, user.is_admin)}
-                            disabled={updatingUserId === user.id}
-                            className={`px-3 py-1 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
-                              user.is_admin
-                                ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800'
-                                : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800'
-                            }`}
-                          >
-                            {updatingUserId === user.id
-                              ? '...'
-                              : user.is_admin
-                              ? 'Admin entfernen'
-                              : 'Zu Admin machen'}
-                          </button>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setEditForm({ userId: user.id, email: user.email, password: '' });
+                                setShowEditModal(true);
+                              }}
+                              className="px-3 py-1 rounded-lg font-semibold transition-colors bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800"
+                            >
+                              ✏️ Bearbeiten
+                            </button>
+                            <button
+                              onClick={() => toggleAdminStatus(user.id, user.is_admin)}
+                              disabled={updatingUserId === user.id}
+                              className={`px-3 py-1 rounded-lg font-semibold transition-colors disabled:opacity-50 ${
+                                user.is_admin
+                                  ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800'
+                                  : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800'
+                              }`}
+                            >
+                              {updatingUserId === user.id
+                                ? '...'
+                                : user.is_admin
+                                ? 'Admin entfernen'
+                                : 'Zu Admin machen'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -438,6 +516,97 @@ export default function AdminUsers() {
                       className="flex-1 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                     >
                       {createLoading ? 'Erstelle...' : 'Erstellen'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Edit User Modal */}
+          {showEditModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Benutzer bearbeiten
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditError('');
+                      setEditForm({ userId: '', email: '', password: '' });
+                    }}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {editError && (
+                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-800 dark:text-red-200">{editError}</p>
+                  </div>
+                )}
+
+                <form onSubmit={handleEditUser} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Email (optional)
+                    </label>
+                    <input
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="neue.email@example.com"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Leer lassen, um Email nicht zu ändern
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Neues Passwort (optional)
+                    </label>
+                    <input
+                      type="password"
+                      value={editForm.password}
+                      onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Neues Passwort (min. 6 Zeichen)"
+                      minLength={6}
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Leer lassen, um Passwort nicht zu ändern
+                    </p>
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      💡 Mindestens ein Feld muss ausgefüllt werden
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowEditModal(false);
+                        setEditError('');
+                        setEditForm({ userId: '', email: '', password: '' });
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Abbrechen
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={editLoading}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {editLoading ? 'Speichere...' : 'Speichern'}
                     </button>
                   </div>
                 </form>
