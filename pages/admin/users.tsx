@@ -18,6 +18,17 @@ export default function AdminUsers() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  
+  // Create user modal
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    email: '',
+    password: '',
+    fullName: '',
+    isAdmin: false,
+  });
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -73,6 +84,62 @@ export default function AdminUsers() {
     }
   };
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateLoading(true);
+    setCreateError('');
+
+    try {
+      // Validate form
+      if (!createForm.email || !createForm.password) {
+        throw new Error('Email und Passwort sind erforderlich');
+      }
+
+      if (createForm.password.length < 6) {
+        throw new Error('Passwort muss mindestens 6 Zeichen lang sein');
+      }
+
+      // Create user via Supabase Auth Admin API
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: createForm.email,
+        password: createForm.password,
+        email_confirm: true, // Auto-confirm email
+        user_metadata: {
+          full_name: createForm.fullName || '',
+        },
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('User konnte nicht erstellt werden');
+
+      // If admin checkbox is checked, add to admin_users
+      if (createForm.isAdmin) {
+        const { error: adminError } = await (supabase
+          .from('admin_users') as any)
+          .insert({ user_id: authData.user.id });
+
+        if (adminError) {
+          console.error('Error adding admin role:', adminError);
+          // Don't fail the whole operation, just log it
+        }
+      }
+
+      // Reset form and close modal
+      setCreateForm({ email: '', password: '', fullName: '', isAdmin: false });
+      setShowCreateModal(false);
+
+      // Reload users
+      await loadUsers();
+
+      alert(`✅ Benutzer "${createForm.email}" erfolgreich erstellt!`);
+    } catch (err: any) {
+      console.error('Error creating user:', err);
+      setCreateError(err.message || 'Fehler beim Erstellen des Benutzers');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   const toggleAdminStatus = async (userId: string, currentStatus: boolean) => {
     setUpdatingUserId(userId);
 
@@ -122,13 +189,21 @@ export default function AdminUsers() {
                 Verwalten Sie Benutzer und Admin-Rollen
               </p>
             </div>
-            <button
-              onClick={loadUsers}
-              disabled={loading}
-              className="px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
-            >
-              {loading ? 'Lädt...' : '🔄 Aktualisieren'}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
+              >
+                ➕ Neuer Benutzer
+              </button>
+              <button
+                onClick={loadUsers}
+                disabled={loading}
+                className="px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Lädt...' : '🔄 Aktualisieren'}
+              </button>
+            </div>
           </div>
 
           {/* Search */}
@@ -258,6 +333,113 @@ export default function AdminUsers() {
               {' • '}
               {users.filter((u) => u.is_admin).length} Admin
               {users.filter((u) => u.is_admin).length !== 1 ? 's' : ''}
+            </div>
+          )}
+
+          {/* Create User Modal */}
+          {showCreateModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Neuer Benutzer
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      setCreateError('');
+                      setCreateForm({ email: '', password: '', fullName: '', isAdmin: false });
+                    }}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {createError && (
+                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-800 dark:text-red-200">{createError}</p>
+                  </div>
+                )}
+
+                <form onSubmit={handleCreateUser} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={createForm.email}
+                      onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="benutzer@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Passwort *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={createForm.password}
+                      onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Mindestens 6 Zeichen"
+                      minLength={6}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Name (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={createForm.fullName}
+                      onChange={(e) => setCreateForm({ ...createForm, fullName: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Max Mustermann"
+                    />
+                  </div>
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="isAdmin"
+                      checked={createForm.isAdmin}
+                      onChange={(e) => setCreateForm({ ...createForm, isAdmin: e.target.checked })}
+                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                    <label htmlFor="isAdmin" className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Als Admin anlegen 👑
+                    </label>
+                  </div>
+
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateModal(false);
+                        setCreateError('');
+                        setCreateForm({ email: '', password: '', fullName: '', isAdmin: false });
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Abbrechen
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={createLoading}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      {createLoading ? 'Erstelle...' : 'Erstellen'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
         </div>
