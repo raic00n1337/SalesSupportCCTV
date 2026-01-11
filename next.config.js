@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'export',
+  // Removed 'output: export' to enable API routes
+  // Using Netlify's Next.js Runtime instead
   images: {
     unoptimized: true,
   },

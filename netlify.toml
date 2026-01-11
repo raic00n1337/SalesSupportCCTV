@@ -1,15 +1,19 @@
 # Netlify Configuration für Video-System-Konfigurator
-# Next.js 14 App
+# Next.js 14 App with API Routes
 
 [build]
   # Build Command
   command = "npm run build"
   
-  # Publish Directory - Next.js Static Export
-  publish = "out"
+  # Publish Directory - Next.js with API routes (not static export)
+  publish = ".next"
   
   # Node Version
   environment = { NODE_VERSION = "20" }
+
+# Enable Next.js Runtime for API routes
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 # Redirects für 404-Seite
 [[redirects]]

@@ -99,29 +99,31 @@ export default function AdminUsers() {
         throw new Error('Passwort muss mindestens 6 Zeichen lang sein');
       }
 
-      // Create user via Supabase Auth Admin API
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: createForm.email,
-        password: createForm.password,
-        email_confirm: true, // Auto-confirm email
-        user_metadata: {
-          full_name: createForm.fullName || '',
+      // Get current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Keine aktive Session');
+      }
+
+      // Call API route to create user (requires admin service role key)
+      const response = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
+        body: JSON.stringify({
+          email: createForm.email,
+          password: createForm.password,
+          fullName: createForm.fullName,
+          isAdmin: createForm.isAdmin,
+        }),
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('User konnte nicht erstellt werden');
+      const data = await response.json();
 
-      // If admin checkbox is checked, add to admin_users
-      if (createForm.isAdmin) {
-        const { error: adminError } = await (supabase
-          .from('admin_users') as any)
-          .insert({ user_id: authData.user.id });
-
-        if (adminError) {
-          console.error('Error adding admin role:', adminError);
-          // Don't fail the whole operation, just log it
-        }
+      if (!response.ok) {
+        throw new Error(data.error || 'Fehler beim Erstellen des Benutzers');
       }
 
       // Reset form and close modal
