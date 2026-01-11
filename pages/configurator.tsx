@@ -1,4 +1,5 @@
-﻿import { useState } from 'react'
+﻿// UTF-8 Encoding Fix - Build v2
+import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '../lib/AuthContext'
 import type { Project, Site, TierType, ManufacturerType, VideoManagementType, HanwhaSeriesType, AjaxSeriesType, CablingType, BOMItem, MountType } from '../types'
