@@ -10,28 +10,32 @@ type Project = Database['public']['Tables']['projects']['Row']
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // Changed to false by default
   const [error, setError] = useState('')
+  const [hasLoaded, setHasLoaded] = useState(false)
   const { user, signOut } = useAuth()
   const router = useRouter()
 
-  useEffect(() => {
-    if (user) {
-      loadProjects()
-    }
-  }, [user])
+  // NO AUTO-LOAD on mount - only explicit button click
+  // This prevents the timeout/loading loop issues
 
   const loadProjects = async () => {
+    if (!user) return
+
+    setLoading(true)
+    setError('')
+
     try {
       const { data, error } = await supabase
         .from('projects')
         .select('*')
-        .eq('owner_id', user!.id)
+        .eq('owner_id', user.id)
         .order('updated_at', { ascending: false })
 
       if (error) throw error
 
       setProjects(data || [])
+      setHasLoaded(true)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -98,8 +102,38 @@ export default function Projects() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 flex justify-between items-center">
             <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            <button
+              onClick={loadProjects}
+              className="px-4 py-2 bg-red-800 text-white font-semibold rounded-lg hover:bg-red-900 transition-colors text-sm"
+            >
+              Erneut versuchen
+            </button>
+          </div>
+        )}
+
+        {/* Initial State - Show Load Button */}
+        {!loading && !hasLoaded && !error && (
+          <div className="text-center py-12 bg-gray-50 dark:bg-slate-800 rounded-lg border-2 border-dashed border-primary-300 dark:border-primary-700">
+            <svg className="mx-auto h-16 w-16 text-primary-600 dark:text-primary-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              Projekte laden
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Klicken Sie auf den Button, um Ihre gespeicherten Projekte anzuzeigen
+            </p>
+            <button
+              onClick={loadProjects}
+              className="inline-flex items-center px-8 py-4 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors text-lg"
+            >
+              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Projekte laden
+            </button>
           </div>
         )}
 
@@ -108,11 +142,14 @@ export default function Projects() {
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
             <p className="mt-4 text-gray-600 dark:text-gray-400">Lädt Projekte...</p>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-500">
+              Bitte warten Sie einen Moment
+            </p>
           </div>
         )}
 
         {/* Empty State */}
-        {!loading && projects.length === 0 && (
+        {!loading && hasLoaded && projects.length === 0 && (
           <div className="text-center py-12 bg-gray-50 dark:bg-slate-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-slate-600">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -131,7 +168,7 @@ export default function Projects() {
         )}
 
         {/* Projects Grid */}
-        {!loading && projects.length > 0 && (
+        {!loading && hasLoaded && projects.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project) => (
               <div

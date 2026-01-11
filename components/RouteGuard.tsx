@@ -27,7 +27,7 @@ export default function RouteGuard({ children, requireAdmin = false }: RouteGuar
     }
   }, [user, loading, isAdmin, requireAdmin, router])
 
-  // Show loading state
+  // Show loading while checking auth
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
@@ -41,7 +41,7 @@ export default function RouteGuard({ children, requireAdmin = false }: RouteGuar
 
   // Not authenticated
   if (!user) {
-    return null
+    return null // Will redirect via useEffect
   }
 
   // Authenticated but not admin when admin is required
@@ -53,7 +53,7 @@ export default function RouteGuard({ children, requireAdmin = false }: RouteGuar
             Zugriff verweigert
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            Sie haben keine Berechtigung, auf diesen Bereich zuzugreifen.
+            Sie haben keine Berechtigung für diesen Bereich.
           </p>
         </div>
       </div>

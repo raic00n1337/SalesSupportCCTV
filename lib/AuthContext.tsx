@@ -24,35 +24,70 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter()
 
   useEffect(() => {
-    // Get initial session
+    // Try to restore from session storage FIRST (instant, no network)
+    const cachedUser = sessionStorage.getItem('sb_user')
+    const cachedAdmin = sessionStorage.getItem('sb_isAdmin')
+    
+    if (cachedUser) {
+      try {
+        setUser(JSON.parse(cachedUser))
+        setIsAdmin(cachedAdmin === 'true')
+        setLoading(false) // Immediately ready with cached data
+      } catch (e) {
+        console.error('Error parsing cached user:', e)
+      }
+    }
+
+    // Then validate/update from Supabase in background (no blocking)
     const initializeAuth = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession()
-        setSession(initialSession)
-        setUser(initialSession?.user ?? null)
         
         if (initialSession?.user) {
+          setSession(initialSession)
+          setUser(initialSession.user)
+          sessionStorage.setItem('sb_user', JSON.stringify(initialSession.user))
           await checkAdminStatus(initialSession.user.id)
+        } else {
+          // No session - clear cache
+          setUser(null)
+          setSession(null)
+          setIsAdmin(false)
+          sessionStorage.removeItem('sb_user')
+          sessionStorage.removeItem('sb_isAdmin')
         }
       } catch (error) {
         console.error('Error initializing auth:', error)
+        // Keep cached data on error, don't force logout
       } finally {
         setLoading(false)
       }
     }
 
-    initializeAuth()
+    // Only call Supabase if no cache or after cache is loaded
+    if (!cachedUser) {
+      initializeAuth()
+    } else {
+      // Validate in background without blocking UI
+      setTimeout(initializeAuth, 100)
+    }
 
-    // Listen for auth changes
+    // Listen for auth changes (login/logout events)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        setSession(currentSession)
-        setUser(currentSession?.user ?? null)
+        console.log(`Auth event: ${event}`)
         
-        if (currentSession?.user) {
-          await checkAdminStatus(currentSession.user.id)
-        } else {
+        if (event === 'SIGNED_OUT') {
+          setSession(null)
+          setUser(null)
           setIsAdmin(false)
+          sessionStorage.removeItem('sb_user')
+          sessionStorage.removeItem('sb_isAdmin')
+        } else if (currentSession?.user) {
+          setSession(currentSession)
+          setUser(currentSession.user)
+          sessionStorage.setItem('sb_user', JSON.stringify(currentSession.user))
+          await checkAdminStatus(currentSession.user.id)
         }
         
         setLoading(false)
@@ -72,9 +107,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('user_id', userId)
         .single()
       
-      setIsAdmin(!!data)
+      const adminStatus = !!data
+      setIsAdmin(adminStatus)
+      sessionStorage.setItem('sb_isAdmin', String(adminStatus))
     } catch (error) {
       setIsAdmin(false)
+      sessionStorage.setItem('sb_isAdmin', 'false')
     }
   }
 
