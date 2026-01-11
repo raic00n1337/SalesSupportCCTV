@@ -139,7 +139,7 @@ export default function AdminProducts() {
       esoNumber: product.eso_number,
       name: product.name,
       description: product.description || '',
-      uvpCents: String(product.uvp_cents),
+      uvpCents: (product.uvp_cents / 100).toFixed(2), // Convert cents to euros
       tags: product.tags.join(', '),
       isActive: product.is_active,
     });
@@ -158,10 +158,12 @@ export default function AdminProducts() {
         throw new Error('Alle Pflichtfelder müssen ausgefüllt sein');
       }
 
-      const uvpCents = parseInt(modalForm.uvpCents, 10);
-      if (isNaN(uvpCents) || uvpCents < 0) {
+      // Convert euros to cents (multiply by 100 and round)
+      const uvpEuro = parseFloat(modalForm.uvpCents.replace(',', '.'));
+      if (isNaN(uvpEuro) || uvpEuro < 0) {
         throw new Error('UVP muss eine positive Zahl sein');
       }
+      const uvpCents = Math.round(uvpEuro * 100);
 
       // Parse tags
       const tags = modalForm.tags
@@ -703,22 +705,18 @@ export default function AdminProducts() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      UVP (in Cent) *
+                      UVP (in €) *
                     </label>
                     <input
                       type="number"
                       required
                       min="0"
+                      step="0.01"
                       value={modalForm.uvpCents}
                       onChange={(e) => setModalForm({ ...modalForm, uvpCents: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                      placeholder="z.B. 45900 für 459,00 €"
+                      placeholder="z.B. 459.00 oder 459,99"
                     />
-                    {modalForm.uvpCents && !isNaN(parseInt(modalForm.uvpCents)) && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        = {(parseInt(modalForm.uvpCents) / 100).toFixed(2)} €
-                      </p>
-                    )}
                   </div>
 
                   <div>
@@ -813,8 +811,9 @@ export default function AdminProducts() {
                       • Trennzeichen: <code>;</code> (Semikolon)<br />
                       • <strong>manufacturer_slug</strong> muss einem existierenden Hersteller entsprechen<br />
                       • <strong>uvp_cents</strong> ist der Preis in Cent (45900 = 459,00 €)<br />
-                      • <strong>tags</strong> sind komma-getrennt<br />
-                      • <strong>is_active</strong>: true oder false
+                      • <strong>tags</strong> sind komma-getrennt (ohne Leerzeichen nach Komma!)<br />
+                      • <strong>is_active</strong>: true oder false<br />
+                      <span className="text-yellow-600 dark:text-yellow-400">⚠️ Im Formular: Preis in €, im CSV: Preis in Cent!</span>
                     </p>
                   </div>
 
