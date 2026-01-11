@@ -16,8 +16,15 @@ export default function Projects() {
   const { user, signOut } = useAuth()
   const router = useRouter()
 
-  // NO AUTO-LOAD on mount - only explicit button click
-  // This prevents the timeout/loading loop issues
+  // Auto-load projects ONLY if coming from login (autoLoad=true in URL)
+  useEffect(() => {
+    if (router.isReady && router.query.autoLoad === 'true' && user && !hasLoaded) {
+      console.log('✅ Auto-loading projects after login...')
+      loadProjects()
+      // Remove the autoLoad parameter from URL (clean URL)
+      router.replace('/projects', undefined, { shallow: true })
+    }
+  }, [router.isReady, router.query.autoLoad, user, hasLoaded])
 
   const loadProjects = async () => {
     if (!user) return

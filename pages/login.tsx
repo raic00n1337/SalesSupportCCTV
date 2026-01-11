@@ -25,8 +25,8 @@ export default function Login() {
         return
       }
 
-      // Redirect to projects page or redirect URL from query
-      const redirectTo = (router.query.redirect as string) || '/projects'
+      // Redirect to projects page with autoLoad flag or redirect URL from query
+      const redirectTo = (router.query.redirect as string) || '/projects?autoLoad=true'
       router.push(redirectTo)
     } catch (err: any) {
       setError(err.message || 'Ein Fehler ist aufgetreten')
