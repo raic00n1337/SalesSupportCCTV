@@ -259,6 +259,29 @@ export default function AdminProducts() {
     }
   };
 
+  const handleDownloadSampleCsv = () => {
+    // Generate sample CSV with real manufacturer slugs
+    const manufacturerSlugs = manufacturers.map(m => m.slug).join(', ') || 'axis, hikvision, dahua';
+    const firstSlug = manufacturers.length > 0 ? manufacturers[0].slug : 'axis';
+    
+    const sampleCsv = `manufacturer_slug;category;sku;eso_number;name;description;uvp_cents;tags;is_active
+${firstSlug};camera;SAMPLE-CAM-001;ESO999001;Beispiel Dome Kamera 4K;8MP Outdoor Dome mit IR;45900;dome,outdoor,4k;true
+${firstSlug};nvr;SAMPLE-NVR-001;ESO999002;Beispiel NVR 8 Kanal;8 Channel Network Video Recorder;78900;nvr,8ch,poe;true
+${firstSlug};switch;SAMPLE-SW-001;ESO999003;Beispiel PoE Switch;8 Port PoE+ Switch 120W;34900;switch,8port,poe+;true`;
+
+    // Create blob and download
+    const blob = new Blob([sampleCsv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'produkte-muster.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleCsvImport = async () => {
     if (!csvFile) {
       setCsvError('Bitte wählen Sie eine CSV-Datei aus');
@@ -802,7 +825,16 @@ export default function AdminProducts() {
 
                 <div className="space-y-4">
                   <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Format:</h3>
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Format:</h3>
+                      <button
+                        type="button"
+                        onClick={handleDownloadSampleCsv}
+                        className="px-3 py-1 text-sm bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        📥 Muster-CSV herunterladen
+                      </button>
+                    </div>
                     <div className="bg-gray-100 dark:bg-slate-700 p-3 rounded-lg text-xs font-mono overflow-x-auto">
                       <pre>manufacturer_slug;category;sku;eso_number;name;description;uvp_cents;tags;is_active</pre>
                       <pre className="text-gray-600 dark:text-gray-400 mt-1">axis;camera;AXIS-M4318;ESO123;AXIS M4318-PLVA;Dome Cam;45900;dome,outdoor;true</pre>
@@ -815,6 +847,13 @@ export default function AdminProducts() {
                       • <strong>is_active</strong>: true oder false<br />
                       <span className="text-yellow-600 dark:text-yellow-400">⚠️ Im Formular: Preis in €, im CSV: Preis in Cent!</span>
                     </p>
+                    {manufacturers.length > 0 && (
+                      <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+                        <p className="text-xs text-blue-800 dark:text-blue-200">
+                          <strong>Verfügbare Hersteller-Slugs:</strong> {manufacturers.map(m => m.slug).join(', ')}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div>
