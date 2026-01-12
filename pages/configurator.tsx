@@ -213,6 +213,38 @@ export default function Configurator() {
         // Update sites
         if (project.sites && project.sites.length > 0) {
           for (const site of project.sites) {
+            // Clean camera config: ensure mounts arrays are valid
+            const cleanedCameras = {
+              domeFixed: {
+                ...site.cameras.domeFixed,
+                mounts: site.cameras.domeFixed.mounts?.filter(m => m) || []
+              },
+              domeVario: {
+                ...site.cameras.domeVario,
+                mounts: site.cameras.domeVario.mounts?.filter(m => m) || []
+              },
+              bulletFixed: {
+                ...site.cameras.bulletFixed,
+                mounts: site.cameras.bulletFixed.mounts?.filter(m => m) || []
+              },
+              bulletVario: {
+                ...site.cameras.bulletVario,
+                mounts: site.cameras.bulletVario.mounts?.filter(m => m) || []
+              },
+              ptz: {
+                ...site.cameras.ptz,
+                mounts: site.cameras.ptz.mounts?.filter(m => m) || []
+              },
+              thermal: {
+                ...site.cameras.thermal,
+                mounts: site.cameras.thermal.mounts?.filter(m => m) || []
+              },
+              ipSpeakers: {
+                ...site.cameras.ipSpeakers,
+                mounts: site.cameras.ipSpeakers.mounts?.filter(m => m) || []
+              }
+            }
+
             const { error: siteError } = await (supabase
               .from('sites') as any)
               .upsert({
@@ -222,7 +254,7 @@ export default function Configurator() {
                 cabling: site.cabling,
                 is_standalone: site.isStandalone,
                 outdoor: site.outdoor,
-                cameras_config: site.cameras,
+                cameras_config: cleanedCameras,
                 ip_doc_enabled: site.ipDocEnabled,
                 ip_start: site.ipStart,
                 ip_gateway: site.ipGateway,
@@ -273,6 +305,38 @@ export default function Configurator() {
         // Insert sites
         if (project.sites && project.sites.length > 0) {
           for (const site of project.sites) {
+            // Clean camera config: ensure mounts arrays are valid
+            const cleanedCameras = {
+              domeFixed: {
+                ...site.cameras.domeFixed,
+                mounts: site.cameras.domeFixed.mounts?.filter(m => m) || []
+              },
+              domeVario: {
+                ...site.cameras.domeVario,
+                mounts: site.cameras.domeVario.mounts?.filter(m => m) || []
+              },
+              bulletFixed: {
+                ...site.cameras.bulletFixed,
+                mounts: site.cameras.bulletFixed.mounts?.filter(m => m) || []
+              },
+              bulletVario: {
+                ...site.cameras.bulletVario,
+                mounts: site.cameras.bulletVario.mounts?.filter(m => m) || []
+              },
+              ptz: {
+                ...site.cameras.ptz,
+                mounts: site.cameras.ptz.mounts?.filter(m => m) || []
+              },
+              thermal: {
+                ...site.cameras.thermal,
+                mounts: site.cameras.thermal.mounts?.filter(m => m) || []
+              },
+              ipSpeakers: {
+                ...site.cameras.ipSpeakers,
+                mounts: site.cameras.ipSpeakers.mounts?.filter(m => m) || []
+              }
+            }
+
             const { error: siteError } = await (supabase
               .from('sites') as any)
               .insert({
@@ -281,7 +345,7 @@ export default function Configurator() {
                 cabling: site.cabling,
                 is_standalone: site.isStandalone,
                 outdoor: site.outdoor,
-                cameras_config: site.cameras,
+                cameras_config: cleanedCameras,
                 ip_doc_enabled: site.ipDocEnabled,
                 ip_start: site.ipStart,
                 ip_gateway: site.ipGateway,
@@ -302,7 +366,8 @@ export default function Configurator() {
       }
     } catch (err: any) {
       console.error('Save error:', err)
-      setSaveError(err.message || 'Fehler beim Speichern')
+      console.error('Error details:', JSON.stringify(err, null, 2))
+      setSaveError(err.message || err.error_description || 'Fehler beim Speichern')
       setSaveStatus('error')
       setTimeout(() => setSaveStatus('idle'), 5000)
     }
