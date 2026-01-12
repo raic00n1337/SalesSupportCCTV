@@ -42,6 +42,7 @@ export interface CameraLensConfig {
 
 export interface IPSpeakerConfig {
   quantity: number;
+  mounts?: MountType[]; // Individual mount type per speaker
   customNames?: string[];
 }
 

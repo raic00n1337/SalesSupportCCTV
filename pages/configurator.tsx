@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabaseClient'
 import type { Project, Site, TierType, ManufacturerType, VideoManagementType, HanwhaSeriesType, AjaxSeriesType, CablingType, BOMItem, MountType } from '../types'
 import { validateIPv4, isValidHostIP, assignIPsToDevices, generateAllNetworkDevices, type NetworkDevice } from '../ipHelper'
 import * as XLSX from 'xlsx'
-import { generateMountingAccessories, generateMountingAccessoriesIndividual } from '../mountAccessories'
+import { generateMountingAccessories, generateMountingAccessoriesIndividual, generateSpeakerMountingAccessories } from '../mountAccessories'
 import { generatePDF } from '../pdfExport'
 
 export default function Configurator() {
@@ -200,6 +200,10 @@ export default function Configurator() {
             vms_multi_monitor: project.vmsMultiMonitor,
             network_cabinet_9he: project.networkCabinet9HE,
             lift_platform: project.liftPlatform,
+            data_cable_meters: project.dataCableMeters || null,
+            data_cable_price_per_meter: project.dataCablePricePerMeter || null,
+            fiber_cable_meters: project.fiberCableMeters || null,
+            fiber_cable_price_per_meter: project.fiberCablePricePerMeter || null,
           } as any)
           .eq('id', projectId)
           .eq('owner_id', user.id)
@@ -253,6 +257,10 @@ export default function Configurator() {
             vms_multi_monitor: project.vmsMultiMonitor,
             network_cabinet_9he: project.networkCabinet9HE,
             lift_platform: project.liftPlatform,
+            data_cable_meters: project.dataCableMeters || null,
+            data_cable_price_per_meter: project.dataCablePricePerMeter || null,
+            fiber_cable_meters: project.fiberCableMeters || null,
+            fiber_cable_price_per_meter: project.fiberCablePricePerMeter || null,
           } as any)
           .select()
           .single()
@@ -1137,90 +1145,6 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
               </div>
             </div>
           </label>
-
-          {/* Cat.7 Data Cable */}
-          <div className="p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
-            <div className="font-medium text-gray-900 dark:text-white mb-3">
-              Cat.7 Datenkabel
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  Länge in Metern
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={project.dataCableMeters || ''}
-                  onChange={(e) => updateProject({ dataCableMeters: parseFloat(e.target.value) || 0 })}
-                  placeholder="z.B. 100"
-                  className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  Preis pro Meter (€)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={project.dataCablePricePerMeter || ''}
-                  onChange={(e) => updateProject({ dataCablePricePerMeter: parseFloat(e.target.value) || 0 })}
-                  placeholder="z.B. 2.50"
-                  className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
-                />
-              </div>
-            </div>
-            {project.dataCableMeters && project.dataCablePricePerMeter && (
-              <div className="mt-3 text-sm text-primary-600 dark:text-primary-400 font-semibold">
-                Gesamtpreis: {(project.dataCableMeters * project.dataCablePricePerMeter).toFixed(2)} €
-              </div>
-            )}
-          </div>
-
-          {/* Fiber Cable */}
-          <div className="p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
-            <div className="font-medium text-gray-900 dark:text-white mb-3">
-              Glasfaserkabel
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  Länge in Metern
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={project.fiberCableMeters || ''}
-                  onChange={(e) => updateProject({ fiberCableMeters: parseFloat(e.target.value) || 0 })}
-                  placeholder="z.B. 50"
-                  className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  Preis pro Meter (€)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={project.fiberCablePricePerMeter || ''}
-                  onChange={(e) => updateProject({ fiberCablePricePerMeter: parseFloat(e.target.value) || 0 })}
-                  placeholder="z.B. 5.00"
-                  className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
-                />
-              </div>
-            </div>
-            {project.fiberCableMeters && project.fiberCablePricePerMeter && (
-              <div className="mt-3 text-sm text-primary-600 dark:text-primary-400 font-semibold">
-                Gesamtpreis: {(project.fiberCableMeters * project.fiberCablePricePerMeter).toFixed(2)} €
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>
@@ -1370,10 +1294,12 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
     const updatedSites = [...project.sites!]
     const currentSpeakers = selectedSite.cameras.ipSpeakers
     
-    // Generate default names for new speakers
+    // Generate default names and mounts for new speakers
     if (value !== currentSpeakers.quantity) {
       const existingNames = currentSpeakers.customNames || []
+      const existingMounts = currentSpeakers.mounts || []
       const newNames: string[] = []
+      const newMounts: MountType[] = []
       const manufacturer = project.manufacturer || 'IP'
       
       for (let i = 0; i < value; i++) {
@@ -1381,6 +1307,12 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
           newNames.push(existingNames[i])
         } else {
           newNames.push(`${manufacturer} Lautsprecher ${i + 1}`)
+        }
+        
+        if (i < existingMounts.length && existingMounts[i]) {
+          newMounts.push(existingMounts[i])
+        } else {
+          newMounts.push('wall') // Default mount type
         }
       }
       
@@ -1390,7 +1322,8 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
           ...selectedSite.cameras,
           ipSpeakers: {
             quantity: value,
-            customNames: newNames
+            customNames: newNames,
+            mounts: newMounts
           }
         }
       }
@@ -1423,6 +1356,25 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
         ipSpeakers: {
           ...currentSpeakers,
           customNames: [...names]
+        }
+      }
+    }
+    updateProject({ sites: updatedSites })
+  }
+
+  const updateIPSpeakerMount = (index: number, mount: MountType) => {
+    const updatedSites = [...project.sites!]
+    const currentSpeakers = selectedSite.cameras.ipSpeakers
+    const mounts = currentSpeakers.mounts || Array(currentSpeakers.quantity).fill('wall')
+    mounts[index] = mount
+    
+    updatedSites[selectedSiteIndex] = {
+      ...selectedSite,
+      cameras: {
+        ...selectedSite.cameras,
+        ipSpeakers: {
+          ...currentSpeakers,
+          mounts: [...mounts]
         }
       }
     }
@@ -2024,16 +1976,16 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
             />
           </div>
 
-          {/* Speaker Names */}
+          {/* Speaker Names & Mounts */}
           {selectedSite.cameras.ipSpeakers.quantity > 0 && (
             <div className="mt-4 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
               <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                📝 Lautsprechernamen (optional anpassbar)
+                📝 Lautsprechernamen & Montagevarianten
               </h5>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {Array.from({ length: selectedSite.cameras.ipSpeakers.quantity }).map((_, i) => (
-                  <div key={i}>
-                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                  <div key={i} className="p-3 bg-white dark:bg-slate-700 rounded border border-primary-300 dark:border-primary-600">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Lautsprecher {i + 1}
                     </label>
                     <input
@@ -2041,8 +1993,17 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
                       value={selectedSite.cameras.ipSpeakers.customNames?.[i] || ''}
                       onChange={(e) => updateIPSpeakerName(i, e.target.value)}
                       placeholder={`z.B. Durchsage Empfang ${i + 1}`}
-                      className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                      className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none mb-2"
                     />
+                    <select
+                      value={selectedSite.cameras.ipSpeakers.mounts?.[i] || 'wall'}
+                      onChange={(e) => updateIPSpeakerMount(i, e.target.value as MountType)}
+                      className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                    >
+                      <option value="wall">Wandmontage</option>
+                      <option value="ceiling">Deckenmontage</option>
+                      <option value="pole">Mastmontage</option>
+                    </select>
                   </div>
                 ))}
               </div>
@@ -2231,6 +2192,98 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
             </p>
           </div>
         )}
+      </div>
+
+      {/* Cable Calculation Section */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Kabelberechnung
+        </h3>
+        <div className="space-y-4">
+          {/* Cat.7 Data Cable */}
+          <div className="p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+            <div className="font-medium text-gray-900 dark:text-white mb-3">
+              Cat.7 Datenkabel
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Länge in Metern
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={project.dataCableMeters || ''}
+                  onChange={(e) => updateProject({ dataCableMeters: parseFloat(e.target.value) || 0 })}
+                  placeholder="z.B. 100"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Preis pro Meter (€)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={project.dataCablePricePerMeter || ''}
+                  onChange={(e) => updateProject({ dataCablePricePerMeter: parseFloat(e.target.value) || 0 })}
+                  placeholder="z.B. 2.50"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+            {project.dataCableMeters && project.dataCablePricePerMeter && (
+              <div className="mt-3 text-sm text-primary-600 dark:text-primary-400 font-semibold">
+                Gesamtpreis: {(project.dataCableMeters * project.dataCablePricePerMeter).toFixed(2)} €
+              </div>
+            )}
+          </div>
+
+          {/* Fiber Cable */}
+          <div className="p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+            <div className="font-medium text-gray-900 dark:text-white mb-3">
+              Glasfaserkabel
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Länge in Metern
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={project.fiberCableMeters || ''}
+                  onChange={(e) => updateProject({ fiberCableMeters: parseFloat(e.target.value) || 0 })}
+                  placeholder="z.B. 50"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Preis pro Meter (€)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={project.fiberCablePricePerMeter || ''}
+                  onChange={(e) => updateProject({ fiberCablePricePerMeter: parseFloat(e.target.value) || 0 })}
+                  placeholder="z.B. 5.00"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+            {project.fiberCableMeters && project.fiberCablePricePerMeter && (
+              <div className="mt-3 text-sm text-primary-600 dark:text-primary-400 font-semibold">
+                Gesamtpreis: {(project.fiberCableMeters * project.fiberCablePricePerMeter).toFixed(2)} €
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Standalone Configuration */}
@@ -2722,6 +2775,9 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
           unitPrice: 249,
           category: 'Audio'
         })
+        // Add mounting accessories for speakers
+        const speakerMounts = site.cameras.ipSpeakers.mounts || Array(site.cameras.ipSpeakers.quantity).fill('wall')
+        bom.push(...generateSpeakerMountingAccessories(speakerMounts, project.manufacturer!, sitePrefix))
       }
 
       // Outdoor accessories (Junction Boxes)
