@@ -183,6 +183,11 @@ CREATE POLICY "Admins can view admin_users"
   ON public.admin_users FOR SELECT
   USING (is_admin());
 
+CREATE POLICY "Admins can manage admin_users"
+  ON public.admin_users FOR ALL
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
 -- Projects: Users can CRUD their own projects
 CREATE POLICY "Users can view own projects"
   ON public.projects FOR SELECT
