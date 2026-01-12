@@ -103,3 +103,72 @@ export function generateMountingAccessoriesIndividual(
   return accessories
 }
 
+/**
+ * Generate mounting accessories for IP Speakers with individual mount types
+ * Aggregates accessories by mount type to avoid redundant BOM entries
+ */
+export function generateSpeakerMountingAccessories(
+  mounts: MountType[],
+  manufacturer: string,
+  sitePrefix: string
+): BOMItem[] {
+  if (mounts.length === 0) return []
+
+  // Count mounts by type
+  const mountCounts: Record<MountType, number> = {
+    wall: 0,
+    ceiling: 0,
+    pole: 0
+  }
+
+  mounts.forEach(mount => {
+    mountCounts[mount]++
+  })
+
+  // Generate accessories for each mount type
+  const accessories: BOMItem[] = []
+  
+  if (mountCounts.wall > 0) {
+    accessories.push({
+      articleName: `${sitePrefix} Wandhalter für Lautsprecher`,
+      manufacturer: manufacturer,
+      esoArticleNumber: `${manufacturer}-MOUNT-WALL-SPEAKER`,
+      quantity: mountCounts.wall,
+      unitPrice: 19,
+      category: 'Zubehör'
+    })
+  }
+  
+  if (mountCounts.ceiling > 0) {
+    accessories.push({
+      articleName: `${sitePrefix} Deckenhalter für Lautsprecher`,
+      manufacturer: manufacturer,
+      esoArticleNumber: `${manufacturer}-MOUNT-CEIL-SPEAKER`,
+      quantity: mountCounts.ceiling,
+      unitPrice: 25,
+      category: 'Zubehör'
+    })
+  }
+  
+  if (mountCounts.pole > 0) {
+    accessories.push({
+      articleName: `${sitePrefix} Mastadapter für Lautsprecher`,
+      manufacturer: manufacturer,
+      esoArticleNumber: `${manufacturer}-MOUNT-POLE-ADAPTER-SPEAKER`,
+      quantity: mountCounts.pole,
+      unitPrice: 35,
+      category: 'Zubehör'
+    })
+    accessories.push({
+      articleName: `${sitePrefix} Mastklemme`,
+      manufacturer: 'Universal',
+      esoArticleNumber: 'MOUNT-POLE-CLAMP',
+      quantity: mountCounts.pole,
+      unitPrice: 25,
+      category: 'Zubehör'
+    })
+  }
+
+  return accessories
+}
+
