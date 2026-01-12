@@ -245,25 +245,51 @@ export default function Configurator() {
               }
             }
 
-            const { error: siteError } = await (supabase
-              .from('sites') as any)
-              .upsert({
-                id: site.id,
-                project_id: projectId,
-                name: site.name,
-                cabling: site.cabling,
-                is_standalone: site.isStandalone,
-                outdoor: site.outdoor,
-                cameras_config: cleanedCameras,
-                ip_doc_enabled: site.ipDocEnabled,
-                ip_start: site.ipStart,
-                ip_gateway: site.ipGateway,
-                ip_cidr: site.ipCidr,
-                ip_video_device_prefix: site.ipVideoDevicePrefix,
-                ip_network_device_prefix: site.ipNetworkDevicePrefix,
-              }, { onConflict: 'id' })
+            // Check if site.id is a valid UUID (contains dashes)
+            const isValidUUID = site.id.includes('-')
+            
+            if (isValidUUID) {
+              // Update existing site with valid UUID
+              const { error: siteError } = await (supabase
+                .from('sites') as any)
+                .upsert({
+                  id: site.id,
+                  project_id: projectId,
+                  name: site.name,
+                  cabling: site.cabling,
+                  is_standalone: site.isStandalone,
+                  outdoor: site.outdoor,
+                  cameras_config: cleanedCameras,
+                  ip_doc_enabled: site.ipDocEnabled,
+                  ip_start: site.ipStart,
+                  ip_gateway: site.ipGateway,
+                  ip_cidr: site.ipCidr,
+                  ip_video_device_prefix: site.ipVideoDevicePrefix,
+                  ip_network_device_prefix: site.ipNetworkDevicePrefix,
+                }, { onConflict: 'id' })
 
-            if (siteError) throw siteError
+              if (siteError) throw siteError
+            } else {
+              // Insert new site (PostgreSQL will generate UUID)
+              const { error: siteError } = await (supabase
+                .from('sites') as any)
+                .insert({
+                  project_id: projectId,
+                  name: site.name,
+                  cabling: site.cabling,
+                  is_standalone: site.isStandalone,
+                  outdoor: site.outdoor,
+                  cameras_config: cleanedCameras,
+                  ip_doc_enabled: site.ipDocEnabled,
+                  ip_start: site.ipStart,
+                  ip_gateway: site.ipGateway,
+                  ip_cidr: site.ipCidr,
+                  ip_video_device_prefix: site.ipVideoDevicePrefix,
+                  ip_network_device_prefix: site.ipNetworkDevicePrefix,
+                })
+
+              if (siteError) throw siteError
+            }
           }
         }
 
@@ -337,6 +363,7 @@ export default function Configurator() {
               }
             }
 
+            // Don't include id for new sites - let PostgreSQL generate UUID
             const { error: siteError } = await (supabase
               .from('sites') as any)
               .insert({
@@ -613,7 +640,7 @@ const Step2Sites = ({ project, updateProject }: { project: Partial<Project>; upd
   const handleAddSite = () => {
     if (newSiteName.trim()) {
       const newSite: Site = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         name: newSiteName,
         cameras: {
           domeFixed: { quantity: 0, mount: 'ceiling' as MountType },
