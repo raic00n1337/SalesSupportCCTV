@@ -2295,15 +2295,20 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                 <input
                   type="text"
                   inputMode="decimal"
-                  value={project.dataCablePricePerMeter || ''}
+                  value={project.dataCablePricePerMeter !== undefined ? String(project.dataCablePricePerMeter).replace('.', ',') : ''}
                   onChange={(e) => {
-                    const val = e.target.value.trim().replace(',', '.')
-                    if (val === '') {
+                    const val = e.target.value.trim()
+                    if (val === '' || val === ',') {
                       updateProject({ dataCablePricePerMeter: undefined })
                     } else {
-                      const num = parseFloat(val)
-                      if (!isNaN(num)) {
-                        updateProject({ dataCablePricePerMeter: num })
+                      // Allow both comma and period, and partial inputs like "0," or "0,6"
+                      const normalizedVal = val.replace(',', '.')
+                      // Allow if it's a valid number or a partial number (like "0." or ".")
+                      if (/^-?\d*\.?\d*$/.test(normalizedVal)) {
+                        const num = parseFloat(normalizedVal)
+                        if (!isNaN(num)) {
+                          updateProject({ dataCablePricePerMeter: num })
+                        }
                       }
                     }
                   }}
@@ -2349,15 +2354,20 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                 <input
                   type="text"
                   inputMode="decimal"
-                  value={project.fiberCablePricePerMeter || ''}
+                  value={project.fiberCablePricePerMeter !== undefined ? String(project.fiberCablePricePerMeter).replace('.', ',') : ''}
                   onChange={(e) => {
-                    const val = e.target.value.trim().replace(',', '.')
-                    if (val === '') {
+                    const val = e.target.value.trim()
+                    if (val === '' || val === ',') {
                       updateProject({ fiberCablePricePerMeter: undefined })
                     } else {
-                      const num = parseFloat(val)
-                      if (!isNaN(num)) {
-                        updateProject({ fiberCablePricePerMeter: num })
+                      // Allow both comma and period, and partial inputs like "0," or "0,6"
+                      const normalizedVal = val.replace(',', '.')
+                      // Allow if it's a valid number or a partial number (like "0." or ".")
+                      if (/^-?\d*\.?\d*$/.test(normalizedVal)) {
+                        const num = parseFloat(normalizedVal)
+                        if (!isNaN(num)) {
+                          updateProject({ fiberCablePricePerMeter: num })
+                        }
                       }
                     }
                   }}
