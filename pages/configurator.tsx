@@ -55,23 +55,6 @@ export default function Configurator() {
     }
   }, [project, user, projectId])
 
-  // Sync display inputs with project values
-  useEffect(() => {
-    if (project.dataCablePricePerMeter !== undefined) {
-      setDataCablePriceInput(String(project.dataCablePricePerMeter).replace('.', ','))
-    } else if (dataCablePriceInput !== '') {
-      setDataCablePriceInput('')
-    }
-  }, [project.dataCablePricePerMeter])
-
-  useEffect(() => {
-    if (project.fiberCablePricePerMeter !== undefined) {
-      setFiberCablePriceInput(String(project.fiberCablePricePerMeter).replace('.', ','))
-    } else if (fiberCablePriceInput !== '') {
-      setFiberCablePriceInput('')
-    }
-  }, [project.fiberCablePricePerMeter])
-
   // Load project from URL parameter (if provided)
   useEffect(() => {
     const loadProjectFromURL = async () => {
@@ -626,8 +609,6 @@ const Step1ProjectSetup = ({ project, updateProject }: { project: Partial<Projec
 // Step 2: Sites
 const Step2Sites = ({ project, updateProject }: { project: Partial<Project>; updateProject: (updates: Partial<Project>) => void }) => {
   const [newSiteName, setNewSiteName] = useState('')
-  const [dataCablePriceInput, setDataCablePriceInput] = useState('')
-  const [fiberCablePriceInput, setFiberCablePriceInput] = useState('')
 
   const handleAddSite = () => {
     if (newSiteName.trim()) {
@@ -2128,6 +2109,25 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
 // Step 5: Network and Cabling
 const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<Project>; updateProject: (updates: Partial<Project>) => void }) => {
   const [selectedSiteIndex, setSelectedSiteIndex] = useState(0)
+  const [dataCablePriceInput, setDataCablePriceInput] = useState('')
+  const [fiberCablePriceInput, setFiberCablePriceInput] = useState('')
+
+  // Sync display inputs with project values
+  useEffect(() => {
+    if (project.dataCablePricePerMeter !== undefined) {
+      setDataCablePriceInput(String(project.dataCablePricePerMeter).replace('.', ','))
+    } else if (dataCablePriceInput !== '') {
+      setDataCablePriceInput('')
+    }
+  }, [project.dataCablePricePerMeter])
+
+  useEffect(() => {
+    if (project.fiberCablePricePerMeter !== undefined) {
+      setFiberCablePriceInput(String(project.fiberCablePricePerMeter).replace('.', ','))
+    } else if (fiberCablePriceInput !== '') {
+      setFiberCablePriceInput('')
+    }
+  }, [project.fiberCablePricePerMeter])
 
   if (!project.sites || project.sites.length === 0) {
     return (
