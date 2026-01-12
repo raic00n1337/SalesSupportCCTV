@@ -55,6 +55,23 @@ export default function Configurator() {
     }
   }, [project, user, projectId])
 
+  // Sync display inputs with project values
+  useEffect(() => {
+    if (project.dataCablePricePerMeter !== undefined) {
+      setDataCablePriceInput(String(project.dataCablePricePerMeter).replace('.', ','))
+    } else if (dataCablePriceInput !== '') {
+      setDataCablePriceInput('')
+    }
+  }, [project.dataCablePricePerMeter])
+
+  useEffect(() => {
+    if (project.fiberCablePricePerMeter !== undefined) {
+      setFiberCablePriceInput(String(project.fiberCablePricePerMeter).replace('.', ','))
+    } else if (fiberCablePriceInput !== '') {
+      setFiberCablePriceInput('')
+    }
+  }, [project.fiberCablePricePerMeter])
+
   // Load project from URL parameter (if provided)
   useEffect(() => {
     const loadProjectFromURL = async () => {
@@ -609,6 +626,8 @@ const Step1ProjectSetup = ({ project, updateProject }: { project: Partial<Projec
 // Step 2: Sites
 const Step2Sites = ({ project, updateProject }: { project: Partial<Project>; updateProject: (updates: Partial<Project>) => void }) => {
   const [newSiteName, setNewSiteName] = useState('')
+  const [dataCablePriceInput, setDataCablePriceInput] = useState('')
+  const [fiberCablePriceInput, setFiberCablePriceInput] = useState('')
 
   const handleAddSite = () => {
     if (newSiteName.trim()) {
@@ -2295,21 +2314,31 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                 <input
                   type="text"
                   inputMode="decimal"
-                  value={project.dataCablePricePerMeter !== undefined ? String(project.dataCablePricePerMeter).replace('.', ',') : ''}
+                  value={dataCablePriceInput}
                   onChange={(e) => {
-                    const val = e.target.value.trim()
-                    if (val === '' || val === ',') {
-                      updateProject({ dataCablePricePerMeter: undefined })
-                    } else {
-                      // Allow both comma and period, and partial inputs like "0," or "0,6"
-                      const normalizedVal = val.replace(',', '.')
-                      // Allow if it's a valid number or a partial number (like "0." or ".")
-                      if (/^-?\d*\.?\d*$/.test(normalizedVal)) {
+                    const val = e.target.value
+                    // Allow only valid decimal characters: digits, comma, and period
+                    if (/^[\d,\.]*$/.test(val)) {
+                      setDataCablePriceInput(val)
+                      
+                      // Update project state only if it's a valid number
+                      if (val === '' || val === ',' || val === '.') {
+                        updateProject({ dataCablePricePerMeter: undefined })
+                      } else {
+                        const normalizedVal = val.replace(',', '.')
                         const num = parseFloat(normalizedVal)
                         if (!isNaN(num)) {
                           updateProject({ dataCablePricePerMeter: num })
                         }
                       }
+                    }
+                  }}
+                  onBlur={() => {
+                    // Clean up display on blur
+                    if (project.dataCablePricePerMeter !== undefined) {
+                      setDataCablePriceInput(String(project.dataCablePricePerMeter).replace('.', ','))
+                    } else {
+                      setDataCablePriceInput('')
                     }
                   }}
                   placeholder="z.B. 2,50 oder 0,68"
@@ -2354,21 +2383,31 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                 <input
                   type="text"
                   inputMode="decimal"
-                  value={project.fiberCablePricePerMeter !== undefined ? String(project.fiberCablePricePerMeter).replace('.', ',') : ''}
+                  value={fiberCablePriceInput}
                   onChange={(e) => {
-                    const val = e.target.value.trim()
-                    if (val === '' || val === ',') {
-                      updateProject({ fiberCablePricePerMeter: undefined })
-                    } else {
-                      // Allow both comma and period, and partial inputs like "0," or "0,6"
-                      const normalizedVal = val.replace(',', '.')
-                      // Allow if it's a valid number or a partial number (like "0." or ".")
-                      if (/^-?\d*\.?\d*$/.test(normalizedVal)) {
+                    const val = e.target.value
+                    // Allow only valid decimal characters: digits, comma, and period
+                    if (/^[\d,\.]*$/.test(val)) {
+                      setFiberCablePriceInput(val)
+                      
+                      // Update project state only if it's a valid number
+                      if (val === '' || val === ',' || val === '.') {
+                        updateProject({ fiberCablePricePerMeter: undefined })
+                      } else {
+                        const normalizedVal = val.replace(',', '.')
                         const num = parseFloat(normalizedVal)
                         if (!isNaN(num)) {
                           updateProject({ fiberCablePricePerMeter: num })
                         }
                       }
+                    }
+                  }}
+                  onBlur={() => {
+                    // Clean up display on blur
+                    if (project.fiberCablePricePerMeter !== undefined) {
+                      setFiberCablePriceInput(String(project.fiberCablePricePerMeter).replace('.', ','))
+                    } else {
+                      setFiberCablePriceInput('')
                     }
                   }}
                   placeholder="z.B. 5,00 oder 0,85"
