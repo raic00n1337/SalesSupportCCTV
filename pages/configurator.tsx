@@ -1251,6 +1251,37 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
     updateProject({ sites: updatedSites })
   }
 
+  const updateCameraMount = (
+    field: 'domeFixed' | 'domeVario' | 'bulletFixed' | 'bulletVario' | 'ptz' | 'thermal',
+    index: number,
+    mount: MountType
+  ) => {
+    const updatedSites = [...project.sites!]
+    const currentCamera = selectedSite.cameras[field]
+    const mounts = currentCamera.mounts || []
+    
+    // Initialize mounts array if it doesn't exist
+    if (mounts.length < currentCamera.quantity) {
+      for (let i = mounts.length; i < currentCamera.quantity; i++) {
+        mounts.push(currentCamera.mount || 'wall')
+      }
+    }
+    
+    mounts[index] = mount
+    
+    updatedSites[selectedSiteIndex] = {
+      ...selectedSite,
+      cameras: {
+        ...selectedSite.cameras,
+        [field]: {
+          ...currentCamera,
+          mounts: [...mounts]
+        }
+      }
+    }
+    updateProject({ sites: updatedSites })
+  }
+
   const updateIPSpeakers = (value: number) => {
     const updatedSites = [...project.sites!]
     const currentSpeakers = selectedSite.cameras.ipSpeakers
@@ -1488,27 +1519,46 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
               </div>
             </div>
 
-            {/* Camera Names for Dome Vario */}
+            {/* Camera Names and Mount Types for Dome Vario */}
             {selectedSite.cameras.domeVario.quantity > 0 && (
               <div className="mt-3 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
                 <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                  📝 Kameranamen (optional anpassbar)
+                  📝 Kameras konfigurieren
                 </h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {Array.from({ length: selectedSite.cameras.domeVario.quantity }).map((_, i) => (
-                    <div key={i}>
-                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                        Kamera {i + 1}
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedSite.cameras.domeVario.customNames?.[i] || ''}
-                        onChange={(e) => updateCameraName('domeVario', i, e.target.value)}
-                        placeholder={`z.B. Parkplatz ${i + 1}`}
-                        className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
-                      />
-                    </div>
-                  ))}
+                <div className="space-y-3">
+                  {Array.from({ length: selectedSite.cameras.domeVario.quantity }).map((_, i) => {
+                    const currentMount = selectedSite.cameras.domeVario.mounts?.[i] || selectedSite.cameras.domeVario.mount || 'wall'
+                    return (
+                      <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            Kamera {i + 1} - Name
+                          </label>
+                          <input
+                            type="text"
+                            value={selectedSite.cameras.domeVario.customNames?.[i] || ''}
+                            onChange={(e) => updateCameraName('domeVario', i, e.target.value)}
+                            placeholder={`z.B. Parkplatz ${i + 1}`}
+                            className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            Kamera {i + 1} - Montageart
+                          </label>
+                          <select
+                            value={currentMount}
+                            onChange={(e) => updateCameraMount('domeVario', i, e.target.value as MountType)}
+                            className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                          >
+                            <option value="wall">Wandmontage</option>
+                            <option value="ceiling">Deckenmontage</option>
+                            <option value="pole">Mastmontage</option>
+                          </select>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
