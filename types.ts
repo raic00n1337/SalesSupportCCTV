@@ -18,7 +18,8 @@ export type MountType = 'wall' | 'ceiling' | 'pole';
 
 export interface CameraConfig {
   quantity: number;
-  mount: MountType;
+  mount: MountType; // Kept for backwards compatibility
+  mounts?: MountType[]; // Individual mount type per camera (preferred)
   customNames?: string[]; // Optional: Custom names for each camera
 }
 
@@ -87,6 +88,11 @@ export interface Project {
   vmsMultiMonitor?: boolean; // Multibild-Option für VMS
   networkCabinet9HE?: boolean; // 9 HE Netzwerkschrank
   liftPlatform?: boolean; // Hubsteiger
+  // Cabling
+  dataCableMeters?: number; // Cat.7 Datenkabel in Metern
+  dataCablePricePerMeter?: number; // Preis pro Meter Cat.7
+  fiberCableMeters?: number; // Glasfaserkabel in Metern
+  fiberCablePricePerMeter?: number; // Preis pro Meter Glasfaser
 }
 
 export interface BOMItem {
