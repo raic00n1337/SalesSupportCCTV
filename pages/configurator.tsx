@@ -2293,22 +2293,28 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   Preis pro Meter (€)
                 </label>
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   value={project.dataCablePricePerMeter || ''}
                   onChange={(e) => {
-                    const val = e.target.value.trim()
-                    updateProject({ dataCablePricePerMeter: val === '' ? undefined : parseFloat(val) })
+                    const val = e.target.value.trim().replace(',', '.')
+                    if (val === '') {
+                      updateProject({ dataCablePricePerMeter: undefined })
+                    } else {
+                      const num = parseFloat(val)
+                      if (!isNaN(num)) {
+                        updateProject({ dataCablePricePerMeter: num })
+                      }
+                    }
                   }}
-                  placeholder="z.B. 2.50"
+                  placeholder="z.B. 2,50 oder 0,68"
                   className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
                 />
               </div>
             </div>
             {project.dataCableMeters && project.dataCablePricePerMeter && (
               <div className="mt-3 text-sm text-primary-600 dark:text-primary-400 font-semibold">
-                Gesamtpreis: {(project.dataCableMeters * project.dataCablePricePerMeter).toFixed(2)} €
+                Gesamtpreis: {(project.dataCableMeters * project.dataCablePricePerMeter).toFixed(2).replace('.', ',')} €
               </div>
             )}
           </div>
@@ -2341,22 +2347,28 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   Preis pro Meter (€)
                 </label>
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   value={project.fiberCablePricePerMeter || ''}
                   onChange={(e) => {
-                    const val = e.target.value.trim()
-                    updateProject({ fiberCablePricePerMeter: val === '' ? undefined : parseFloat(val) })
+                    const val = e.target.value.trim().replace(',', '.')
+                    if (val === '') {
+                      updateProject({ fiberCablePricePerMeter: undefined })
+                    } else {
+                      const num = parseFloat(val)
+                      if (!isNaN(num)) {
+                        updateProject({ fiberCablePricePerMeter: num })
+                      }
+                    }
                   }}
-                  placeholder="z.B. 5.00"
+                  placeholder="z.B. 5,00 oder 0,85"
                   className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
                 />
               </div>
             </div>
             {project.fiberCableMeters && project.fiberCablePricePerMeter && (
               <div className="mt-3 text-sm text-primary-600 dark:text-primary-400 font-semibold">
-                Gesamtpreis: {(project.fiberCableMeters * project.fiberCablePricePerMeter).toFixed(2)} €
+                Gesamtpreis: {(project.fiberCableMeters * project.fiberCablePricePerMeter).toFixed(2).replace('.', ',')} €
               </div>
             )}
           </div>
@@ -3300,6 +3312,32 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
       })
     }
     
+    // ====== CABLING / VERKABELUNG ======
+    
+    // Cat.7 Data Cable
+    if (project.dataCableMeters && project.dataCablePricePerMeter && project.dataCableMeters > 0) {
+      bom.push({
+        articleName: `Cat.7 Datenkabel (${project.dataCableMeters}m à ${project.dataCablePricePerMeter.toFixed(2)}€)`,
+        manufacturer: 'Generic',
+        esoArticleNumber: 'CABLE-CAT7-001',
+        quantity: project.dataCableMeters,
+        unitPrice: project.dataCablePricePerMeter,
+        category: 'Verkabelung'
+      })
+    }
+    
+    // Fiber Optic Cable
+    if (project.fiberCableMeters && project.fiberCablePricePerMeter && project.fiberCableMeters > 0) {
+      bom.push({
+        articleName: `Glasfaserkabel (${project.fiberCableMeters}m à ${project.fiberCablePricePerMeter.toFixed(2)}€)`,
+        manufacturer: 'Generic',
+        esoArticleNumber: 'CABLE-FIBER-001',
+        quantity: project.fiberCableMeters,
+        unitPrice: project.fiberCablePricePerMeter,
+        category: 'Verkabelung'
+      })
+    }
+    
     // Dokumentationskosten (5% der Gesamtsumme aller bisherigen Positionen)
     const subtotalBeforeDocs = bom.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
     const documentationCost = Math.round(subtotalBeforeDocs * 0.05)
@@ -3329,7 +3367,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     return acc
   }, {} as Record<string, BOMItem[]>)
 
-  const categories = ['Kameras', 'Netzwerk', 'Recorder/VMS', 'Lizenzen', 'Speicher', 'Hardware', 'Audio', 'Zubehör', 'Infrastruktur', 'Dienstleistung']
+  const categories = ['Kameras', 'Netzwerk', 'Recorder/VMS', 'Lizenzen', 'Speicher', 'Hardware', 'Audio', 'Zubehör', 'Verkabelung', 'Infrastruktur', 'Dienstleistung']
   
   const totalPrice = bom.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
 
