@@ -200,10 +200,10 @@ export default function Configurator() {
             vms_multi_monitor: project.vmsMultiMonitor,
             network_cabinet_9he: project.networkCabinet9HE,
             lift_platform: project.liftPlatform,
-            data_cable_meters: project.dataCableMeters || null,
-            data_cable_price_per_meter: project.dataCablePricePerMeter || null,
-            fiber_cable_meters: project.fiberCableMeters || null,
-            fiber_cable_price_per_meter: project.fiberCablePricePerMeter || null,
+            data_cable_meters: project.dataCableMeters ?? null,
+            data_cable_price_per_meter: project.dataCablePricePerMeter ?? null,
+            fiber_cable_meters: project.fiberCableMeters ?? null,
+            fiber_cable_price_per_meter: project.fiberCablePricePerMeter ?? null,
           } as any)
           .eq('id', projectId)
           .eq('owner_id', user.id)
@@ -257,10 +257,10 @@ export default function Configurator() {
             vms_multi_monitor: project.vmsMultiMonitor,
             network_cabinet_9he: project.networkCabinet9HE,
             lift_platform: project.liftPlatform,
-            data_cable_meters: project.dataCableMeters || null,
-            data_cable_price_per_meter: project.dataCablePricePerMeter || null,
-            fiber_cable_meters: project.fiberCableMeters || null,
-            fiber_cable_price_per_meter: project.fiberCablePricePerMeter || null,
+            data_cable_meters: project.dataCableMeters ?? null,
+            data_cable_price_per_meter: project.dataCablePricePerMeter ?? null,
+            fiber_cable_meters: project.fiberCableMeters ?? null,
+            fiber_cable_price_per_meter: project.fiberCablePricePerMeter ?? null,
           } as any)
           .select()
           .single()
@@ -2215,7 +2215,10 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   min="0"
                   step="1"
                   value={project.dataCableMeters || ''}
-                  onChange={(e) => updateProject({ dataCableMeters: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const val = e.target.value.trim()
+                    updateProject({ dataCableMeters: val === '' ? undefined : parseFloat(val) })
+                  }}
                   placeholder="z.B. 100"
                   className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
                 />
@@ -2229,7 +2232,10 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   min="0"
                   step="0.01"
                   value={project.dataCablePricePerMeter || ''}
-                  onChange={(e) => updateProject({ dataCablePricePerMeter: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const val = e.target.value.trim()
+                    updateProject({ dataCablePricePerMeter: val === '' ? undefined : parseFloat(val) })
+                  }}
                   placeholder="z.B. 2.50"
                   className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
                 />
@@ -2257,7 +2263,10 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   min="0"
                   step="1"
                   value={project.fiberCableMeters || ''}
-                  onChange={(e) => updateProject({ fiberCableMeters: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const val = e.target.value.trim()
+                    updateProject({ fiberCableMeters: val === '' ? undefined : parseFloat(val) })
+                  }}
                   placeholder="z.B. 50"
                   className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
                 />
@@ -2271,7 +2280,10 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
                   min="0"
                   step="0.01"
                   value={project.fiberCablePricePerMeter || ''}
-                  onChange={(e) => updateProject({ fiberCablePricePerMeter: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const val = e.target.value.trim()
+                    updateProject({ fiberCablePricePerMeter: val === '' ? undefined : parseFloat(val) })
+                  }}
                   placeholder="z.B. 5.00"
                   className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
                 />
