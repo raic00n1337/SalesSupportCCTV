@@ -245,51 +245,25 @@ export default function Configurator() {
               }
             }
 
-            // Check if site.id is a valid UUID (contains dashes)
-            const isValidUUID = site.id.includes('-')
-            
-            if (isValidUUID) {
-              // Update existing site with valid UUID
-              const { error: siteError } = await (supabase
-                .from('sites') as any)
-                .upsert({
-                  id: site.id,
-                  project_id: projectId,
-                  name: site.name,
-                  cabling: site.cabling,
-                  is_standalone: site.isStandalone,
-                  outdoor: site.outdoor,
-                  cameras_config: cleanedCameras,
-                  ip_doc_enabled: site.ipDocEnabled,
-                  ip_start: site.ipStart,
-                  ip_gateway: site.ipGateway,
-                  ip_cidr: site.ipCidr,
-                  ip_video_device_prefix: site.ipVideoDevicePrefix,
-                  ip_network_device_prefix: site.ipNetworkDevicePrefix,
-                }, { onConflict: 'id' })
+            const { error: siteError } = await (supabase
+              .from('sites') as any)
+              .upsert({
+                id: site.id,
+                project_id: projectId,
+                name: site.name,
+                cabling: site.cabling,
+                is_standalone: site.isStandalone,
+                outdoor: site.outdoor,
+                cameras_config: cleanedCameras,
+                ip_doc_enabled: site.ipDocEnabled,
+                ip_start: site.ipStart,
+                ip_gateway: site.ipGateway,
+                ip_cidr: site.ipCidr,
+                ip_video_device_prefix: site.ipVideoDevicePrefix,
+                ip_network_device_prefix: site.ipNetworkDevicePrefix,
+              }, { onConflict: 'id' })
 
-              if (siteError) throw siteError
-            } else {
-              // Insert new site (PostgreSQL will generate UUID)
-              const { error: siteError } = await (supabase
-                .from('sites') as any)
-                .insert({
-                  project_id: projectId,
-                  name: site.name,
-                  cabling: site.cabling,
-                  is_standalone: site.isStandalone,
-                  outdoor: site.outdoor,
-                  cameras_config: cleanedCameras,
-                  ip_doc_enabled: site.ipDocEnabled,
-                  ip_start: site.ipStart,
-                  ip_gateway: site.ipGateway,
-                  ip_cidr: site.ipCidr,
-                  ip_video_device_prefix: site.ipVideoDevicePrefix,
-                  ip_network_device_prefix: site.ipNetworkDevicePrefix,
-                })
-
-              if (siteError) throw siteError
-            }
+            if (siteError) throw siteError
           }
         }
 
@@ -363,7 +337,6 @@ export default function Configurator() {
               }
             }
 
-            // Don't include id for new sites - let PostgreSQL generate UUID
             const { error: siteError } = await (supabase
               .from('sites') as any)
               .insert({
@@ -640,7 +613,7 @@ const Step2Sites = ({ project, updateProject }: { project: Partial<Project>; upd
   const handleAddSite = () => {
     if (newSiteName.trim()) {
       const newSite: Site = {
-        id: crypto.randomUUID(),
+        id: Date.now().toString(),
         name: newSiteName,
         cameras: {
           domeFixed: { quantity: 0, mount: 'ceiling' as MountType },
@@ -3171,6 +3144,17 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
         unitPrice: 850,
         category: 'Dienstleistung'
       })
+      // Add labor surcharge for lift platform (15 min per camera)
+      const liftPlatformMinutes = totalCameras * 15
+      const liftPlatformHours = liftPlatformMinutes / 60
+      bom.push({
+        articleName: `Hubsteiger Montageaufschlag (${totalCameras} Kameras × 15 Min = ${liftPlatformMinutes} Min)`,
+        manufacturer: 'BHE',
+        esoArticleNumber: 'BHE-LIFT-SURCHARGE',
+        quantity: liftPlatformHours,
+        unitPrice: 120, // 120€ per hour
+        category: 'Dienstleistung'
+      })
     }
 
     // ====== SERVICE POSITIONS / DIENSTLEISTUNGEN ======
@@ -3237,6 +3221,12 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     const totalIPSpeakers = project.sites.reduce((sum, site) => 
       sum + (site.cameras.ipSpeakers?.quantity || 0), 0)
     totalBHEMinutes += totalIPSpeakers * 60 // Simplified: 60 min per speaker
+    
+    // 3.5. LIFT PLATFORM SURCHARGE
+    // If lift platform is selected, add 15 minutes per camera for additional mounting effort
+    if (project.liftPlatform) {
+      totalBHEMinutes += totalCameras * 15
+    }
     
     // 4. SWITCHES
     // Switch 4-Port: 15 min, 8-Port: 20 min, 16-Port: 25 min, 24-Port: 30 min
