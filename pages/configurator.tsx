@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabaseClient'
 import type { Project, Site, TierType, ManufacturerType, VideoManagementType, HanwhaSeriesType, AjaxSeriesType, CablingType, BOMItem, MountType } from '../types'
 import { validateIPv4, isValidHostIP, assignIPsToDevices, generateAllNetworkDevices, type NetworkDevice } from '../ipHelper'
 import * as XLSX from 'xlsx'
-import { generateMountingAccessories } from '../mountAccessories'
+import { generateMountingAccessories, generateMountingAccessoriesIndividual } from '../mountAccessories'
 import { generatePDF } from '../pdfExport'
 
 export default function Configurator() {
@@ -1137,6 +1137,90 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
               </div>
             </div>
           </label>
+
+          {/* Cat.7 Data Cable */}
+          <div className="p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+            <div className="font-medium text-gray-900 dark:text-white mb-3">
+              Cat.7 Datenkabel
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Länge in Metern
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={project.dataCableMeters || ''}
+                  onChange={(e) => updateProject({ dataCableMeters: parseFloat(e.target.value) || 0 })}
+                  placeholder="z.B. 100"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Preis pro Meter (€)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={project.dataCablePricePerMeter || ''}
+                  onChange={(e) => updateProject({ dataCablePricePerMeter: parseFloat(e.target.value) || 0 })}
+                  placeholder="z.B. 2.50"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+            {project.dataCableMeters && project.dataCablePricePerMeter && (
+              <div className="mt-3 text-sm text-primary-600 dark:text-primary-400 font-semibold">
+                Gesamtpreis: {(project.dataCableMeters * project.dataCablePricePerMeter).toFixed(2)} €
+              </div>
+            )}
+          </div>
+
+          {/* Fiber Cable */}
+          <div className="p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+            <div className="font-medium text-gray-900 dark:text-white mb-3">
+              Glasfaserkabel
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Länge in Metern
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={project.fiberCableMeters || ''}
+                  onChange={(e) => updateProject({ fiberCableMeters: parseFloat(e.target.value) || 0 })}
+                  placeholder="z.B. 50"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Preis pro Meter (€)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={project.fiberCablePricePerMeter || ''}
+                  onChange={(e) => updateProject({ fiberCablePricePerMeter: parseFloat(e.target.value) || 0 })}
+                  placeholder="z.B. 5.00"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-primary-500 dark:border-primary-400 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+            {project.fiberCableMeters && project.fiberCablePricePerMeter && (
+              <div className="mt-3 text-sm text-primary-600 dark:text-primary-400 font-semibold">
+                Gesamtpreis: {(project.fiberCableMeters * project.fiberCablePricePerMeter).toFixed(2)} €
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -1462,27 +1546,46 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
               </div>
             </div>
 
-            {/* Camera Names for Dome Fixed */}
+            {/* Camera Names and Mount Types for Dome Fixed */}
             {selectedSite.cameras.domeFixed.quantity > 0 && (
               <div className="mt-3 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
                 <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                  📝 Kameranamen (optional anpassbar)
+                  📝 Kameras konfigurieren
                 </h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {Array.from({ length: selectedSite.cameras.domeFixed.quantity }).map((_, i) => (
-                    <div key={i}>
-                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                        Kamera {i + 1}
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedSite.cameras.domeFixed.customNames?.[i] || ''}
-                        onChange={(e) => updateCameraName('domeFixed', i, e.target.value)}
-                        placeholder={`z.B. Eingang Haupttor ${i + 1}`}
-                        className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
-                      />
-                    </div>
-                  ))}
+                <div className="space-y-3">
+                  {Array.from({ length: selectedSite.cameras.domeFixed.quantity }).map((_, i) => {
+                    const currentMount = selectedSite.cameras.domeFixed.mounts?.[i] || selectedSite.cameras.domeFixed.mount || 'ceiling'
+                    return (
+                      <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            Kamera {i + 1} - Name
+                          </label>
+                          <input
+                            type="text"
+                            value={selectedSite.cameras.domeFixed.customNames?.[i] || ''}
+                            onChange={(e) => updateCameraName('domeFixed', i, e.target.value)}
+                            placeholder={`z.B. Eingang Haupttor ${i + 1}`}
+                            className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            Kamera {i + 1} - Montageart
+                          </label>
+                          <select
+                            value={currentMount}
+                            onChange={(e) => updateCameraMount('domeFixed', i, e.target.value as MountType)}
+                            className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                          >
+                            <option value="ceiling">Deckenmontage</option>
+                            <option value="wall">Wandmontage</option>
+                            <option value="pole">Mastmontage</option>
+                          </select>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -1603,27 +1706,46 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
               </div>
             </div>
 
-            {/* Camera Names for Bullet Fixed */}
+            {/* Camera Names and Mount Types for Bullet Fixed */}
             {selectedSite.cameras.bulletFixed.quantity > 0 && (
               <div className="mt-3 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
                 <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                  📝 Kameranamen (optional anpassbar)
+                  📝 Kameras konfigurieren
                 </h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {Array.from({ length: selectedSite.cameras.bulletFixed.quantity }).map((_, i) => (
-                    <div key={i}>
-                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                        Kamera {i + 1}
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedSite.cameras.bulletFixed.customNames?.[i] || ''}
-                        onChange={(e) => updateCameraName('bulletFixed', i, e.target.value)}
-                        placeholder={`z.B. Außenbereich ${i + 1}`}
-                        className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
-                      />
-                    </div>
-                  ))}
+                <div className="space-y-3">
+                  {Array.from({ length: selectedSite.cameras.bulletFixed.quantity }).map((_, i) => {
+                    const currentMount = selectedSite.cameras.bulletFixed.mounts?.[i] || selectedSite.cameras.bulletFixed.mount || 'wall'
+                    return (
+                      <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            Kamera {i + 1} - Name
+                          </label>
+                          <input
+                            type="text"
+                            value={selectedSite.cameras.bulletFixed.customNames?.[i] || ''}
+                            onChange={(e) => updateCameraName('bulletFixed', i, e.target.value)}
+                            placeholder={`z.B. Außenbereich ${i + 1}`}
+                            className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            Kamera {i + 1} - Montageart
+                          </label>
+                          <select
+                            value={currentMount}
+                            onChange={(e) => updateCameraMount('bulletFixed', i, e.target.value as MountType)}
+                            className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                          >
+                            <option value="wall">Wandmontage</option>
+                            <option value="ceiling">Deckenmontage</option>
+                            <option value="pole">Mastmontage</option>
+                          </select>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -1660,27 +1782,46 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
               </div>
             </div>
 
-            {/* Camera Names for Bullet Vario */}
+            {/* Camera Names and Mount Types for Bullet Vario */}
             {selectedSite.cameras.bulletVario.quantity > 0 && (
               <div className="mt-3 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
                 <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                  📝 Kameranamen (optional anpassbar)
+                  📝 Kameras konfigurieren
                 </h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {Array.from({ length: selectedSite.cameras.bulletVario.quantity }).map((_, i) => (
-                    <div key={i}>
-                      <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                        Kamera {i + 1}
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedSite.cameras.bulletVario.customNames?.[i] || ''}
-                        onChange={(e) => updateCameraName('bulletVario', i, e.target.value)}
-                        placeholder={`z.B. Zufahrt ${i + 1}`}
-                        className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
-                      />
-                    </div>
-                  ))}
+                <div className="space-y-3">
+                  {Array.from({ length: selectedSite.cameras.bulletVario.quantity }).map((_, i) => {
+                    const currentMount = selectedSite.cameras.bulletVario.mounts?.[i] || selectedSite.cameras.bulletVario.mount || 'wall'
+                    return (
+                      <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            Kamera {i + 1} - Name
+                          </label>
+                          <input
+                            type="text"
+                            value={selectedSite.cameras.bulletVario.customNames?.[i] || ''}
+                            onChange={(e) => updateCameraName('bulletVario', i, e.target.value)}
+                            placeholder={`z.B. Zufahrt ${i + 1}`}
+                            className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                            Kamera {i + 1} - Montageart
+                          </label>
+                          <select
+                            value={currentMount}
+                            onChange={(e) => updateCameraMount('bulletVario', i, e.target.value as MountType)}
+                            className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                          >
+                            <option value="wall">Wandmontage</option>
+                            <option value="ceiling">Deckenmontage</option>
+                            <option value="pole">Mastmontage</option>
+                          </select>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -1726,27 +1867,46 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
             </div>
           </div>
 
-          {/* Camera Names for PTZ */}
+          {/* Camera Names and Mount Types for PTZ */}
           {selectedSite.cameras.ptz.quantity > 0 && (
             <div className="mt-4 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
               <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                📝 Kameranamen (optional anpassbar)
+                📝 Kameras konfigurieren
               </h5>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {Array.from({ length: selectedSite.cameras.ptz.quantity }).map((_, i) => (
-                  <div key={i}>
-                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                      Kamera {i + 1}
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedSite.cameras.ptz.customNames?.[i] || ''}
-                      onChange={(e) => updateCameraName('ptz', i, e.target.value)}
-                      placeholder={`z.B. Überwachungsbereich ${i + 1}`}
-                      className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
-                    />
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {Array.from({ length: selectedSite.cameras.ptz.quantity }).map((_, i) => {
+                  const currentMount = selectedSite.cameras.ptz.mounts?.[i] || selectedSite.cameras.ptz.mount || 'wall'
+                  return (
+                    <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          Kamera {i + 1} - Name
+                        </label>
+                        <input
+                          type="text"
+                          value={selectedSite.cameras.ptz.customNames?.[i] || ''}
+                          onChange={(e) => updateCameraName('ptz', i, e.target.value)}
+                          placeholder={`z.B. Überwachungsbereich ${i + 1}`}
+                          className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          Kamera {i + 1} - Montageart
+                        </label>
+                        <select
+                          value={currentMount}
+                          onChange={(e) => updateCameraMount('ptz', i, e.target.value as MountType)}
+                          className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                        >
+                          <option value="wall">Wandmontage</option>
+                          <option value="ceiling">Deckenmontage</option>
+                          <option value="pole">Mastmontage</option>
+                        </select>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -1797,27 +1957,46 @@ const Step4CameraConfiguration = ({ project, updateProject }: { project: Partial
             </div>
           </div>
 
-          {/* Camera Names for Thermal */}
+          {/* Camera Names and Mount Types for Thermal */}
           {selectedSite.cameras.thermal.quantity > 0 && isThermalAvailable && (
             <div className="mt-4 p-4 bg-ci-light dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
               <h5 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                📝 Kameranamen (optional anpassbar)
+                📝 Kameras konfigurieren
               </h5>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {Array.from({ length: selectedSite.cameras.thermal.quantity }).map((_, i) => (
-                  <div key={i}>
-                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                      Kamera {i + 1}
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedSite.cameras.thermal.customNames?.[i] || ''}
-                      onChange={(e) => updateCameraName('thermal', i, e.target.value)}
-                      placeholder={`z.B. Perimeter ${i + 1}`}
-                      className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
-                    />
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {Array.from({ length: selectedSite.cameras.thermal.quantity }).map((_, i) => {
+                  const currentMount = selectedSite.cameras.thermal.mounts?.[i] || selectedSite.cameras.thermal.mount || 'wall'
+                  return (
+                    <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          Kamera {i + 1} - Name
+                        </label>
+                        <input
+                          type="text"
+                          value={selectedSite.cameras.thermal.customNames?.[i] || ''}
+                          onChange={(e) => updateCameraName('thermal', i, e.target.value)}
+                          placeholder={`z.B. Perimeter ${i + 1}`}
+                          className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                          Kamera {i + 1} - Montageart
+                        </label>
+                        <select
+                          value={currentMount}
+                          onChange={(e) => updateCameraMount('thermal', i, e.target.value as MountType)}
+                          className="w-full px-3 py-2 rounded border-2 border-primary-500 dark:border-primary-400 bg-ci-light dark:bg-slate-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-primary-600 outline-none"
+                        >
+                          <option value="wall">Wandmontage</option>
+                          <option value="ceiling">Deckenmontage</option>
+                          <option value="pole">Mastmontage</option>
+                        </select>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}

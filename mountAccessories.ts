@@ -62,7 +62,44 @@ export function generateMountingAccessories(
   return accessories
 }
 
+/**
+ * Generate mounting accessories for cameras with individual mount types per camera
+ * Aggregates accessories by mount type to avoid redundant BOM entries
+ */
+export function generateMountingAccessoriesIndividual(
+  cameraType: 'dome' | 'bullet' | 'ptz' | 'thermal',
+  mounts: MountType[],
+  manufacturer: string,
+  sitePrefix: string
+): BOMItem[] {
+  if (mounts.length === 0) return []
 
+  // Count mounts by type
+  const mountCounts: Record<MountType, number> = {
+    wall: 0,
+    ceiling: 0,
+    pole: 0
+  }
 
+  mounts.forEach(mount => {
+    mountCounts[mount]++
+  })
 
+  // Generate accessories for each mount type
+  const accessories: BOMItem[] = []
+  
+  Object.entries(mountCounts).forEach(([mountType, count]) => {
+    if (count > 0) {
+      accessories.push(...generateMountingAccessories(
+        cameraType,
+        mountType as MountType,
+        count,
+        manufacturer,
+        sitePrefix
+      ))
+    }
+  })
+
+  return accessories
+}
 
