@@ -41,6 +41,12 @@ export default function AdminUsers() {
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
 
+  // Delete user confirmation
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteUserId, setDeleteUserId] = useState('');
+  const [deleteUserEmail, setDeleteUserEmail] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -245,6 +251,47 @@ export default function AdminUsers() {
     }
   };
 
+  const handleDeleteUser = async () => {
+    setDeleteLoading(true);
+
+    try {
+      // Get current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Keine aktive Session');
+      }
+
+      // Call API route to delete user
+      const response = await fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          userId: deleteUserId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Fehler beim Löschen');
+      }
+
+      // Success! Reload users and close modal
+      await loadUsers();
+      setShowDeleteModal(false);
+      setDeleteUserId('');
+      setDeleteUserEmail('');
+    } catch (err: any) {
+      console.error('Error deleting user:', err);
+      alert(`Fehler: ${err.message}`);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const filteredUsers = users.filter((user) =>
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -403,6 +450,16 @@ export default function AdminUsers() {
                                 : user.is_admin
                                 ? 'Admin entfernen'
                                 : 'Zu Admin machen'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setDeleteUserId(user.id);
+                                setDeleteUserEmail(user.email);
+                                setShowDeleteModal(true);
+                              }}
+                              className="px-3 py-1 rounded-lg font-semibold transition-colors bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800"
+                            >
+                              🗑️ Löschen
                             </button>
                           </div>
                         </td>
@@ -620,6 +677,47 @@ export default function AdminUsers() {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {/* Delete User Confirmation Modal */}
+          {showDeleteModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                  Benutzer löschen?
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Möchten Sie den Benutzer <strong className="text-gray-900 dark:text-white">{deleteUserEmail}</strong> wirklich löschen?
+                </p>
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 mb-6">
+                  <p className="text-sm text-red-800 dark:text-red-200">
+                    ⚠️ <strong>Achtung:</strong> Diese Aktion kann nicht rückgängig gemacht werden. 
+                    Alle Projekte und Daten dieses Benutzers werden ebenfalls gelöscht.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setDeleteUserId('');
+                      setDeleteUserEmail('');
+                    }}
+                    disabled={deleteLoading}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    onClick={handleDeleteUser}
+                    disabled={deleteLoading}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {deleteLoading ? 'Lösche...' : 'Löschen'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
