@@ -583,6 +583,101 @@ Ein **Datenblätter-Management-System** für Produkte:
 
 ---
 
+## 🤖 **PRIORITÄT 5: AUTO-SCRAPER FÜR KAMERA-SPECS** 🔍
+
+**📍 Status:** GEPLANT (nach Datasheets, vor CSV Compiler)  
+**📄 Dokumentation:** `docs/PHASE_2_AUTOSCRAPER.md`  
+**⏱️ Geschätzte Zeit:** 17 Stunden (2-3 Arbeitstage)
+
+### **🎯 Was ist das?**
+
+Ein **intelligenter Web-Scraper**, der beim Produkt anlegen:
+- 🔗 **URL zur Herstellerseite** entgegennimmt
+- 🤖 **Automatisch Specs ausliest** (Brennweite, Sensor, IR-Reichweite, etc.)
+- 📊 **Felder vorausfüllt** (Auto-Complete)
+- 💾 **In DB speichert** (für Floor Plan Planner!)
+- 🔄 **Regelmäßig aktualisiert** (neue Daten vom Hersteller)
+
+### **🏗️ Tech Stack:**
+```
+- Puppeteer (Headless Browser) ✅
+- Cheerio (HTML Parser, Alternative) ✅
+- OpenAI GPT-4 Vision (AI-Powered, Advanced) 🤖
+- DORI Calculator (Detection/Observation/Recognition/Identification)
+```
+
+### **📊 Features (MVP):**
+```
+✅ URL-Input beim Produkt anlegen
+✅ Scraper für 3-5 Top-Hersteller (Hikvision, AXIS, Dahua, Hanwha, Bosch)
+✅ Extraktion wichtigster Specs:
+   - Brennweite (für Detection Cone)
+   - Auflösung
+   - Sensor
+   - IR-Reichweite
+   - IP/IK-Rating
+   - Öffnungswinkel
+✅ DORI-Werte automatisch berechnen (für Floor Plan!)
+✅ Confidence Score (Wie sicher sind die Daten?)
+✅ Review-Screen (Admin prüft vor Speicherung)
+✅ Fallback auf manuelle Eingabe
+```
+
+### **🎨 Nice-to-Have:**
+```
+🤖 AI-Powered Extraction (GPT-4 Vision)
+🔄 Auto-Update (täglich neue Specs)
+📸 Produktbild-Download
+🌐 Mehrsprachigkeit (DE/EN/FR)
+📋 Bulk-Scraping (mehrere Produkte)
+```
+
+### **🚀 Advanced (Phase 3):**
+```
+🧠 Machine Learning (lernt neue Seitenformate)
+🔍 Competitor Analysis (Preis-Vergleich)
+📈 Change Detection (benachrichtigt bei Updates)
+🏢 Enterprise API (direkt von Hersteller)
+```
+
+### **💡 Use Cases:**
+```
+1. Admin gibt URL ein: https://www.hikvision.com/de/products/DS-2CD2143G2-I
+2. Scraper extrahiert:
+   - Brennweite: 2.8mm ✅
+   - Auflösung: 8MP ✅
+   - IR-Reichweite: 30m ✅
+   - Öffnungswinkel: 110° ✅
+   - DORI Detection: 100m (berechnet) ✅
+3. Admin prüft & bestätigt
+4. Specs werden gespeichert
+5. Floor Plan Planner nutzt Specs für Detection Cone!
+```
+
+### **🔥 WARUM DAS CRITICAL IST:**
+
+**Floor Plan Planner BRAUCHT diese Specs:**
+- Brennweite → Zoom-Level im Cone
+- Öffnungswinkel → Cone-Breite
+- DORI-Werte → Detection-Reichweite
+- IR-Reichweite → Nachtsicht-Visualisierung
+
+**Ohne Auto-Scraper:**
+- ❌ Admin muss 20+ Felder manuell eingeben
+- ❌ Fehleranfällig
+- ❌ Zeitaufwändig
+- ❌ Oft unvollständig
+
+**Mit Auto-Scraper:**
+- ✅ 30 Sekunden statt 10 Minuten
+- ✅ Direkt von Hersteller (immer aktuell)
+- ✅ Vollständig & korrekt
+- ✅ Floor Plan Planner funktioniert perfekt!
+
+**Vollständige Dokumentation:** → `docs/PHASE_2_AUTOSCRAPER.md`
+
+---
+
 ## 📋 **PHASE 2 - PRIORITÄTEN ZUSAMMENFASSUNG:**
 
 ```
@@ -590,7 +685,8 @@ Ein **Datenblätter-Management-System** für Produkte:
 ✅ Priorität 2: Regeln-System (Feature-basiert)          → ERLEDIGT
 🔥 Priorität 3: Floor Plan Planner (Drag & Drop)        → NÄCHSTES! (13-18h)
 📄 Priorität 4: Datenblätter-Management (PDFs, URLs)    → DANACH (9h)
-⏳ Priorität 5: CSV/Excel Compiler (Bulk-Import)        → SPÄTER
+🤖 Priorität 5: Auto-Scraper (Kamera-Specs)             → DANN (17h) 🔥 CRITICAL!
+⏳ Priorität 6: CSV/Excel Compiler (Bulk-Import)        → SPÄTER (20h, optional)
 ```
 
 **Gesamter Aufwand Phase 2:**
@@ -598,9 +694,10 @@ Ein **Datenblätter-Management-System** für Produkte:
 - ✅ Prio 2: ~6h (erledigt)
 - 🔥 Prio 3: ~15h (geplant)
 - 📄 Prio 4: ~9h (geplant)
-- ⏳ Prio 5: ~20h (optional)
+- 🤖 Prio 5: ~17h (geplant) ← CRITICAL für Floor Planner!
+- ⏳ Prio 6: ~20h (optional)
 
-**GESAMT: ~58 Stunden (~7-8 Arbeitstage)**
+**GESAMT: ~75 Stunden (~9-10 Arbeitstage)**
 
 ---
 
