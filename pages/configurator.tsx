@@ -19,7 +19,7 @@ const getProductForCategory = (
   category: string,
   fallbackPrice: number,
   fallbackName: string
-): { name: string; price: number; eso: string; bheTime: number } => {
+): { name: string; price: number; eso: string; bheTime: number; manufacturer: string } => {
   const product = configuratorProducts[category]
   
   if (product) {
@@ -27,7 +27,8 @@ const getProductForCategory = (
       name: product.name,
       price: product.uvp_cents / 100,
       eso: product.eso_number || product.sku,
-      bheTime: product.bhe_time_minutes || 45
+      bheTime: product.bhe_time_minutes || 45,
+      manufacturer: product.manufacturer // Echter Hersteller aus DB!
     }
   }
   
@@ -36,7 +37,8 @@ const getProductForCategory = (
     name: fallbackName,
     price: fallbackPrice,
     eso: `${manufacturer}-${category.toUpperCase()}`,
-    bheTime: 45
+    bheTime: 45,
+    manufacturer: manufacturer || 'Unknown' // Fallback zum Projekt-Hersteller
   }
 }
 
@@ -2897,7 +2899,7 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
         const product = getProductForCategory(configuratorProducts, project.manufacturer, 'camera_dome_fixed', 299, 'Dome Kamera - Fixed')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
-          manufacturer: project.manufacturer!,
+          manufacturer: product.manufacturer,
           esoArticleNumber: product.eso,
           quantity: site.cameras.domeFixed.quantity,
           unitPrice: product.price,
@@ -2913,7 +2915,7 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
         const product = getProductForCategory(configuratorProducts, project.manufacturer, 'camera_dome_vario', 399, 'Dome Kamera - Vario')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
-          manufacturer: project.manufacturer!,
+          manufacturer: product.manufacturer,
           esoArticleNumber: product.eso,
           quantity: site.cameras.domeVario.quantity,
           unitPrice: product.price,
@@ -2929,7 +2931,7 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
         const product = getProductForCategory(configuratorProducts, project.manufacturer, 'camera_bullet_fixed', 329, 'Bullet Kamera - Fixed')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
-          manufacturer: project.manufacturer!,
+          manufacturer: product.manufacturer,
           esoArticleNumber: product.eso,
           quantity: site.cameras.bulletFixed.quantity,
           unitPrice: product.price,
@@ -2945,7 +2947,7 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
         const product = getProductForCategory(configuratorProducts, project.manufacturer, 'camera_bullet_vario', 429, 'Bullet Kamera - Vario')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
-          manufacturer: project.manufacturer!,
+          manufacturer: product.manufacturer,
           esoArticleNumber: product.eso,
           quantity: site.cameras.bulletVario.quantity,
           unitPrice: product.price,
@@ -2961,7 +2963,7 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
         const product = getProductForCategory(configuratorProducts, project.manufacturer, 'camera_ptz', 1299, 'PTZ Kamera')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
-          manufacturer: project.manufacturer!,
+          manufacturer: product.manufacturer,
           esoArticleNumber: product.eso,
           quantity: site.cameras.ptz.quantity,
           unitPrice: product.price,
@@ -2977,7 +2979,7 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
         const product = getProductForCategory(configuratorProducts, project.manufacturer, 'camera_thermal', 2499, 'Thermal Kamera')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
-          manufacturer: project.manufacturer!,
+          manufacturer: product.manufacturer,
           esoArticleNumber: product.eso,
           quantity: site.cameras.thermal.quantity,
           unitPrice: product.price,
@@ -2992,7 +2994,7 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
         const product = getProductForCategory(configuratorProducts, project.manufacturer, 'speaker_ip', 249, 'IP-Lautsprecher')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
-          manufacturer: project.manufacturer!,
+          manufacturer: product.manufacturer,
           esoArticleNumber: product.eso,
           quantity: site.cameras.ipSpeakers.quantity,
           unitPrice: product.price,
