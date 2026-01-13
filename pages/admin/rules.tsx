@@ -57,6 +57,7 @@ export default function AdminRules() {
   // Modal
   const [showModal, setShowModal] = useState(false)
   const [editingRule, setEditingRule] = useState<Rule | null>(null)
+  const [priorityInput, setPriorityInput] = useState<string>('0')
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -160,6 +161,7 @@ export default function AdminRules() {
   const handleOpenModal = (rule?: Rule) => {
     if (rule) {
       setEditingRule(rule)
+      setPriorityInput(rule.priority.toString())
       setFormData({
         name: rule.name,
         description: rule.description || '',
@@ -173,6 +175,7 @@ export default function AdminRules() {
       })
     } else {
       setEditingRule(null)
+      setPriorityInput('')
       setFormData({
         name: '',
         description: '',
@@ -191,6 +194,7 @@ export default function AdminRules() {
   const handleCloseModal = () => {
     setShowModal(false)
     setEditingRule(null)
+    setPriorityInput('0')
   }
 
   const handleSave = async () => {
@@ -503,13 +507,17 @@ export default function AdminRules() {
                         Priorität (höher = zuerst geprüft)
                       </label>
                       <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={formData.priority}
+                        type="text"
+                        inputMode="numeric"
+                        value={priorityInput}
                         onChange={(e) => {
-                          const val = e.target.value === '' ? 0 : parseInt(e.target.value)
-                          setFormData({ ...formData, priority: isNaN(val) ? 0 : val })
+                          const input = e.target.value
+                          // Allow empty or numbers only
+                          if (input === '' || /^\d+$/.test(input)) {
+                            setPriorityInput(input)
+                            const numVal = input === '' ? 0 : parseInt(input)
+                            setFormData({ ...formData, priority: numVal })
+                          }
                         }}
                         placeholder="z.B. 100"
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
