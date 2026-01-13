@@ -11,10 +11,20 @@
 Ein **interaktiver Floor Plan Editor** direkt im Konfigurator, der es ermöglicht:
 - 📐 **Grundriss hochladen** (PNG, JPG, PDF)
 - 🎯 **Kameras per Drag & Drop platzieren**
+- 🔗 **Integration mit Konfigurator-Daten** (verwendet die ausgewählten Kameras aus dem Projekt!)
 - 📊 **Detektionsbereiche visualisieren** (grafischer Trichter)
 - 📏 **Maßstab definieren** (1m = X Pixel)
 - 🎨 **Verschiedene Kamera-Typen** (Dome, Bullet, PTZ)
 - 💾 **Speichern & Exportieren** (PNG, PDF für Angebot)
+
+### **🔗 WICHTIG: Konfigurator-Integration**
+
+Der Floor Plan Planner ist **eng verzahnt** mit dem Konfigurator:
+- ✅ Zeigt nur die Kamera-Typen an, die im Projekt ausgewählt wurden
+- ✅ Verwendet die echten Kamera-Specs aus der DB (Reichweite, Winkel)
+- ✅ Automatisch richtige Icons & Farben je nach Typ
+- ✅ Sync: Änderungen im Konfigurator → Update im Floor Plan
+- ✅ Anzahl der platzierten Kameras = Anzahl im Konfigurator
 
 ---
 

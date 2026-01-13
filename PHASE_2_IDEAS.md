@@ -517,4 +517,91 @@ Ein **interaktiver Floor Plan Editor** wie bei **cctvdesigntool.com**:
 
 ---
 
+## 📄 **PRIORITÄT 4: DATENBLÄTTER-MANAGEMENT** 📋
+
+**📍 Status:** GEPLANT (nach Floor Plan Planner)  
+**📄 Dokumentation:** `docs/PHASE_2_DATASHEETS.md`  
+**⏱️ Geschätzte Zeit:** 9 Stunden (1-1.5 Arbeitstage)
+
+### **🎯 Was ist das?**
+
+Ein **Datenblätter-Management-System** für Produkte:
+- 📄 **PDFs hochladen** (technische Datenblätter)
+- 🔗 **URLs hinterlegen** (direkt vom Hersteller)
+- 📋 **Im Konfigurator anzeigen** (bei Kamera-Auswahl)
+- 📊 **In der BOM verlinken** (Schnellzugriff auf Specs)
+- 💾 **Versionierung** (alte Datenblätter behalten)
+- 🌐 **Mehrsprachigkeit** (Deutsch, Englisch, etc.)
+
+### **🏗️ Tech Stack:**
+```
+- Supabase Storage (PDF-Upload) ✅
+- React-Dropzone (File Upload UI) ✅
+- @react-pdf-viewer (PDF Preview, optional) 
+- Native DB Table (product_datasheets)
+```
+
+### **📊 Features (MVP):**
+```
+✅ PDF-Upload (max 10 MB)
+✅ URL-Hinterlegung
+✅ Admin-UI (CRUD)
+✅ Im Konfigurator anzeigen
+✅ Download-Button
+✅ Hersteller-Website verlinken
+```
+
+### **🎨 Nice-to-Have:**
+```
+📊 PDF-Vorschau im Modal
+🌐 Mehrsprachigkeit (auto DE/EN)
+📤 Im PDF-Export einbinden
+🔍 Volltext-Suche in PDFs
+📋 Bulk-Upload
+🏷️ Tags
+```
+
+### **🚀 Advanced (Phase 3):**
+```
+🤖 Auto-Download von Hersteller-Websites
+📊 PDF-Parsing (Specs extrahieren)
+🔄 Versionierungs-System mit Change-Log
+📧 Email bei neuen Versionen
+🌍 CDN für schnelle Auslieferung
+```
+
+### **💡 Use Cases:**
+```
+1. Admin lädt Hikvision-Datenblatt hoch (PDF + URL)
+2. Kunde wählt Hikvision-Kamera im Konfigurator
+3. In der BOM: "📄 Datenblatt anzeigen" Button
+4. Modal öffnet sich mit Download & Hersteller-Link
+5. Kunde lädt PDF herunter für Offline-Nutzung
+```
+
+**Vollständige Dokumentation:** → `docs/PHASE_2_DATASHEETS.md`
+
+---
+
+## 📋 **PHASE 2 - PRIORITÄTEN ZUSAMMENFASSUNG:**
+
+```
+✅ Priorität 1: Konfigurator-Integration (DB-Produkte)    → ERLEDIGT
+✅ Priorität 2: Regeln-System (Feature-basiert)          → ERLEDIGT
+🔥 Priorität 3: Floor Plan Planner (Drag & Drop)        → NÄCHSTES! (13-18h)
+📄 Priorität 4: Datenblätter-Management (PDFs, URLs)    → DANACH (9h)
+⏳ Priorität 5: CSV/Excel Compiler (Bulk-Import)        → SPÄTER
+```
+
+**Gesamter Aufwand Phase 2:**
+- ✅ Prio 1: ~8h (erledigt)
+- ✅ Prio 2: ~6h (erledigt)
+- 🔥 Prio 3: ~15h (geplant)
+- 📄 Prio 4: ~9h (geplant)
+- ⏳ Prio 5: ~20h (optional)
+
+**GESAMT: ~58 Stunden (~7-8 Arbeitstage)**
+
+---
+
 **Ende der Ideensammlung** - Bereit für Implementation! 🚀
