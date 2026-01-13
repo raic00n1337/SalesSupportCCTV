@@ -1,15 +1,33 @@
 # 💡 Phase 2 - Ideen & Features
 
 **Datum:** 11. Januar 2026  
-**Status:** 📋 Geplant
+**Status:** 🚀 In Arbeit  
+**Rollback-Punkt:** `v1.0-phase2-start` (Tag erstellt: 13. Januar 2026)
 
 ---
 
-## 🎯 **Hauptziele Phase 2:**
+## 🎯 **Hauptziele Phase 2 (NEUE PRIORITÄTEN):**
 
-1. ✅ Konfigurator-Integration (DB-Produkte)
-2. ✅ Regeln-System (Feature-basiert)
-3. 🆕 **CSV/Excel Compiler** ⭐ (NEU!)
+### **🔥 Priorität 1: Konfigurator-Integration**
+✅ **Schritt 7:** DB-Produkte im Konfigurator nutzen  
+- Tier-Defaults mit Live-Produkten verknüpfen
+- Dynamische Produktauswahl basierend auf Tier + Kategorie
+- Preise aus Datenbank laden
+- **Status:** 🔜 Startet jetzt
+
+### **🔥 Priorität 2: Regeln-System**
+🔧 **Schritt 8:** Feature-basierte Produktzuordnung  
+- Regeln für spezifische Features (z.B. "Bullet Vario Objektiv")
+- Prioritäts-System (Rules > Tier-Defaults)
+- Konflikt-Handling
+- **Status:** 📋 Geplant
+
+### **🔥 Priorität 3: CSV/Excel Compiler**
+🆕 **Bonus-Feature:** Intelligenter Import/Export  
+- Auto-Detection verschiedener Formate
+- Fuzzy Column Mapping
+- Bulk-Import mit Validierung
+- **Status:** ✅ Vorbereitet (Libraries installiert)
 
 ---
 
