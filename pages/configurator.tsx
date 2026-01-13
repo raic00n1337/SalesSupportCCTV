@@ -37,6 +37,28 @@ export default function Configurator() {
 
   const totalSteps = 6
 
+  // Helper: Get product for category with fallback to hardcoded values
+  const getProductForCategory = (category: string, fallbackPrice: number, fallbackName: string): { name: string; price: number; eso: string; bheTime: number } => {
+    const product = configuratorProducts[category]
+    
+    if (product) {
+      return {
+        name: product.name,
+        price: product.uvp_cents / 100,
+        eso: product.eso_number || product.sku,
+        bheTime: product.bhe_time_minutes || 45
+      }
+    }
+    
+    // Fallback zu hardcoded Werten
+    return {
+      name: fallbackName,
+      price: fallbackPrice,
+      eso: `${project.manufacturer}-${category.toUpperCase()}`,
+      bheTime: 45
+    }
+  }
+
   // Restore project from localStorage on mount (for guest mode)
   useEffect(() => {
     const savedProject = localStorage.getItem('configurator_project')
@@ -2852,28 +2874,6 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
       bom,
       ipDocumentation
     })
-  }
-  
-  // Helper: Get product for category with fallback to hardcoded values
-  const getProductForCategory = (category: string, fallbackPrice: number, fallbackName: string): { name: string; price: number; eso: string; bheTime: number } => {
-    const product = configuratorProducts[category]
-    
-    if (product) {
-      return {
-        name: product.name,
-        price: product.uvp_cents / 100,
-        eso: product.eso_number || product.sku,
-        bheTime: product.bhe_time_minutes || 45
-      }
-    }
-    
-    // Fallback zu hardcoded Werten
-    return {
-      name: fallbackName,
-      price: fallbackPrice,
-      eso: `${project.manufacturer}-${category.toUpperCase()}`,
-      bheTime: 45
-    }
   }
 
   // Calculate BOM based on project configuration
