@@ -110,8 +110,8 @@ function evaluateRule(
     return false
   }
 
-  // Check manufacturer (if specified in rule)
-  if (rule.manufacturer && rule.manufacturer !== manufacturer) {
+  // Check manufacturer (if specified in rule) - case insensitive
+  if (rule.manufacturer && rule.manufacturer.toLowerCase() !== manufacturer?.toLowerCase()) {
     return false
   }
 
