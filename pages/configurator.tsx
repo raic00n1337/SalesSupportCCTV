@@ -184,6 +184,7 @@ export default function Configurator() {
   }, [router.isReady, router.query.projectId, user, projectId])
 
   // Load configurator products when tier changes
+  // First check Rules, then fallback to Tier-Defaults
   useEffect(() => {
     const loadConfiguratorProducts = async () => {
       if (!project.tier) {
@@ -195,6 +196,51 @@ export default function Configurator() {
       console.log(`🔄 Loading products for tier: ${project.tier}`)
 
       try {
+        // Step 1: Try to load from Rules first (for each category)
+        const categories = [
+          'camera_dome_fixed',
+          'camera_dome_vario',
+          'camera_bullet_fixed',
+          'camera_bullet_vario',
+          'camera_ptz',
+          'camera_thermal',
+          'speaker_ip'
+        ]
+
+        const productsMap: Record<string, ConfiguratorProduct> = {}
+        let rulesMatchedCount = 0
+
+        for (const category of categories) {
+          try {
+            // Try to evaluate rule for this category
+            const ruleRes = await fetch('/api/rules/evaluate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                tier: project.tier,
+                manufacturer: project.manufacturer,
+                category,
+                features: {} // TODO: Add feature detection later
+              })
+            })
+
+            if (ruleRes.ok) {
+              const ruleData = await ruleRes.json()
+              if (ruleData.success && ruleData.matched && ruleData.product) {
+                // Rule matched! Use this product
+                productsMap[category] = ruleData.product
+                rulesMatchedCount++
+                console.log(`⚡ Rule matched for ${category}: ${ruleData.rule.name}`)
+                continue
+              }
+            }
+          } catch (err) {
+            // Rule evaluation failed, continue to tier-defaults
+            console.log(`No rule matched for ${category}, using tier-default`)
+          }
+        }
+
+        // Step 2: Load Tier-Defaults for categories without rule matches
         const res = await fetch(`/api/configurator/defaults?tier=${project.tier}`)
         
         if (!res.ok) {
@@ -204,8 +250,16 @@ export default function Configurator() {
         const data = await res.json()
         
         if (data.success) {
-          setConfiguratorProducts(data.defaults || {})
-          console.log(`✅ Loaded ${data.count} default products for tier ${project.tier}`)
+          // Merge tier-defaults with rule-based products (rules take priority)
+          const defaults = data.defaults || {}
+          for (const [category, product] of Object.entries(defaults)) {
+            if (!productsMap[category]) {
+              productsMap[category] = product as ConfiguratorProduct
+            }
+          }
+          
+          setConfiguratorProducts(productsMap)
+          console.log(`✅ Loaded ${Object.keys(productsMap).length} products (${rulesMatchedCount} from rules, ${Object.keys(productsMap).length - rulesMatchedCount} from tier-defaults)`)
         } else {
           throw new Error(data.error || 'Unknown error')
         }
@@ -219,7 +273,7 @@ export default function Configurator() {
     }
 
     loadConfiguratorProducts()
-  }, [project.tier])
+  }, [project.tier, project.manufacturer]) // Also reload when manufacturer changes
 
   const handleNext = () => {
     if (currentStep < totalSteps) {

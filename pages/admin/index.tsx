@@ -126,6 +126,11 @@ export default function AdminDashboard() {
                 icon="🎯"
                 href="/admin/configurator-products"
               />
+              <QuickActionCard
+                title="Produkt-Regeln"
+                icon="⚡"
+                href="/admin/rules"
+              />
             </div>
           </div>
         </div>
