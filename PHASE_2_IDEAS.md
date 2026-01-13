@@ -459,4 +459,62 @@ Es macht das System:
 
 ---
 
+## 🏗️ **PRIORITÄT 3: FLOOR PLAN PLANNER** 🎯
+
+**📍 Status:** NÄCHSTE PRIORITÄT  
+**📄 Dokumentation:** `docs/PHASE_2_FLOORPLAN.md`  
+**⏱️ Geschätzte Zeit:** 13-18 Stunden (2-3 Arbeitstage)
+
+### **🎯 Was ist das?**
+
+Ein **interaktiver Floor Plan Editor** wie bei **cctvdesigntool.com**:
+- 📐 Grundriss-Upload (PNG, JPG, PDF)
+- 🎯 Kameras per **Drag & Drop** platzieren
+- 📊 **Detektionsbereiche** als grafischer Trichter visualisieren
+- 📏 Maßstab definieren (1m = X Pixel)
+- 💾 Speichern & Exportieren (PNG, PDF)
+
+### **🏗️ Tech Stack:**
+```
+- react-konva (Canvas Library) ✅
+- react-dropzone (Image Upload) ✅
+- html2canvas (PNG Export) ✅
+- jsPDF (PDF Export) ✅
+- Supabase Storage (Floor Plans) ✅
+```
+
+### **📊 Features (MVP):**
+```
+✅ Grundriss-Upload
+✅ Kamera-Icons per Drag & Drop
+✅ Detektionsbereich als Trichter/Kegel
+✅ Rotation der Kameras
+✅ Maßstab-Definition
+✅ Speichern in Supabase
+✅ Export als PNG
+```
+
+### **🎨 Nice-to-Have (Phase 2.4):**
+```
+📐 Zeichnen-Tools (Linien, Kreise)
+📏 Entfernungsmessung
+🎨 Layer-System
+📤 Export als PDF mit Legende
+🎯 Blind-Spot Detection
+📊 Coverage-Heatmap
+```
+
+### **🚀 Advanced (Phase 3):**
+```
+🤖 AI-Vorschläge (optimale Positionen)
+📐 3D-View (Three.js)
+🎥 Simulated Camera-View
+📊 DORI-Analyse
+🔄 Live-Sync (Multi-User)
+```
+
+**Vollständige Dokumentation:** → `docs/PHASE_2_FLOORPLAN.md`
+
+---
+
 **Ende der Ideensammlung** - Bereit für Implementation! 🚀
