@@ -35,12 +35,19 @@ interface Rule {
   products?: Product
 }
 
+interface Manufacturer {
+  id: string
+  name: string
+  slug: string
+}
+
 export default function AdminRules() {
   const { user } = useAuth()
   const router = useRouter()
   
   const [rules, setRules] = useState<Rule[]>([])
   const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
@@ -70,6 +77,7 @@ export default function AdminRules() {
     
     handleLoadRules()
     handleLoadProducts()
+    handleLoadManufacturers()
   }, [user])
 
   const handleLoadRules = async () => {
@@ -130,6 +138,22 @@ export default function AdminRules() {
       setAllProducts(data as Product[])
     } catch (err: any) {
       console.error('Error loading products:', err)
+    }
+  }
+
+  const handleLoadManufacturers = async () => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('manufacturers')
+        .select('id, name, slug')
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+
+      if (fetchError) throw fetchError
+
+      setManufacturers(data as Manufacturer[])
+    } catch (err: any) {
+      console.error('Error loading manufacturers:', err)
     }
   }
 
@@ -263,7 +287,10 @@ export default function AdminRules() {
     { value: 'camera_bullet_vario', label: 'Bullet Vario' },
     { value: 'camera_ptz', label: 'PTZ' },
     { value: 'camera_thermal', label: 'Thermal' },
-    { value: 'speaker_ip', label: 'IP-Lautsprecher' }
+    { value: 'speaker_ip', label: 'IP-Lautsprecher' },
+    { value: 'nvr', label: 'NVR' },
+    { value: 'switch', label: 'Switch' },
+    { value: 'monitor', label: 'Monitor' }
   ]
 
   return (
@@ -294,9 +321,10 @@ export default function AdminRules() {
             </h3>
             <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
               <li>• Regeln haben <strong>Vorrang</strong> vor Tier-Defaults</li>
-              <li>• Höhere Priorität = wird zuerst geprüft</li>
-              <li>• Bedingungen: Tier, Hersteller, Kategorie, Features</li>
-              <li>• Alle Bedingungen müssen erfüllt sein (AND-Verknüpfung)</li>
+              <li>• Höhere Priorität = wird zuerst geprüft (z.B. 100 vor 50)</li>
+              <li>• Bedingungen: <strong>Tier + Hersteller + Kategorie</strong> (alle müssen erfüllt sein)</li>
+              <li>• Beispiel: <strong>AXIS + Premium + Bullet Vario</strong> → Spezielle Kamera</li>
+              <li>• Features sind optional für zusätzliche Filterung</li>
             </ul>
           </div>
 
@@ -476,10 +504,19 @@ export default function AdminRules() {
                       </label>
                       <input
                         type="number"
+                        min="0"
+                        step="1"
                         value={formData.priority}
-                        onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? 0 : parseInt(e.target.value)
+                          setFormData({ ...formData, priority: isNaN(val) ? 0 : val })
+                        }}
+                        placeholder="z.B. 100"
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Empfehlung: 100 = hoch, 50 = mittel, 0 = niedrig
+                      </p>
                     </div>
 
                     {/* Conditions */}
@@ -487,14 +524,14 @@ export default function AdminRules() {
                       {/* Tier */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Tier (optional)
+                          Tier (empfohlen) *
                         </label>
                         <select
                           value={formData.tier}
                           onChange={(e) => setFormData({ ...formData, tier: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         >
-                          <option value="">Alle</option>
+                          <option value="">Alle Tiers</option>
                           <option value="eco">Eco</option>
                           <option value="premium">Premium</option>
                           <option value="high-risk">High-Risk</option>
@@ -504,28 +541,33 @@ export default function AdminRules() {
                       {/* Manufacturer */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Hersteller (optional)
+                          Hersteller (empfohlen) *
                         </label>
-                        <input
-                          type="text"
+                        <select
                           value={formData.manufacturer}
                           onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                          placeholder="z.B. axis"
-                        />
+                        >
+                          <option value="">Alle Hersteller</option>
+                          {manufacturers.map(m => (
+                            <option key={m.id} value={m.slug}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
                       {/* Category */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Kategorie (optional)
+                          Kategorie (empfohlen) *
                         </label>
                         <select
                           value={formData.category}
                           onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         >
-                          <option value="">Alle</option>
+                          <option value="">Alle Kategorien</option>
                           {categories.map(cat => (
                             <option key={cat.value} value={cat.value}>{cat.label}</option>
                           ))}
