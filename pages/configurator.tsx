@@ -9,6 +9,7 @@ import { validateIPv4, isValidHostIP, assignIPsToDevices, generateAllNetworkDevi
 import * as XLSX from 'xlsx'
 import { generateMountingAccessories, generateMountingAccessoriesIndividual, generateSpeakerMountingAccessories } from '../mountAccessories'
 import { generatePDF } from '../pdfExport'
+import type { ConfiguratorProduct } from './api/configurator/products'
 
 export default function Configurator() {
   const { user } = useAuth()
@@ -29,6 +30,10 @@ export default function Configurator() {
     upsRequired: false,
     remoteCapable: false
   })
+
+  // State für DB-Produkte (loaded based on tier)
+  const [configuratorProducts, setConfiguratorProducts] = useState<Record<string, ConfiguratorProduct>>({})
+  const [loadingProducts, setLoadingProducts] = useState(false)
 
   const totalSteps = 6
 
@@ -146,6 +151,44 @@ export default function Configurator() {
       loadProjectFromURL()
     }
   }, [router.isReady, router.query.projectId, user, projectId])
+
+  // Load configurator products when tier changes
+  useEffect(() => {
+    const loadConfiguratorProducts = async () => {
+      if (!project.tier) {
+        setConfiguratorProducts({})
+        return
+      }
+
+      setLoadingProducts(true)
+      console.log(`🔄 Loading products for tier: ${project.tier}`)
+
+      try {
+        const res = await fetch(`/api/configurator/defaults?tier=${project.tier}`)
+        
+        if (!res.ok) {
+          throw new Error(`Failed to load products: ${res.statusText}`)
+        }
+
+        const data = await res.json()
+        
+        if (data.success) {
+          setConfiguratorProducts(data.defaults || {})
+          console.log(`✅ Loaded ${data.count} default products for tier ${project.tier}`)
+        } else {
+          throw new Error(data.error || 'Unknown error')
+        }
+      } catch (err: any) {
+        console.error('Error loading configurator products:', err)
+        // Fallback: continue with empty products (will use hardcoded values)
+        setConfiguratorProducts({})
+      } finally {
+        setLoadingProducts(false)
+      }
+    }
+
+    loadConfiguratorProducts()
+  }, [project.tier])
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -2811,6 +2854,28 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
     })
   }
   
+  // Helper: Get product for category with fallback to hardcoded values
+  const getProductForCategory = (category: string, fallbackPrice: number, fallbackName: string): { name: string; price: number; eso: string; bheTime: number } => {
+    const product = configuratorProducts[category]
+    
+    if (product) {
+      return {
+        name: product.name,
+        price: product.uvp_cents / 100,
+        eso: product.eso_number || product.sku,
+        bheTime: product.bhe_time_minutes || 45
+      }
+    }
+    
+    // Fallback zu hardcoded Werten
+    return {
+      name: fallbackName,
+      price: fallbackPrice,
+      eso: `${project.manufacturer}-${category.toUpperCase()}`,
+      bheTime: 45
+    }
+  }
+
   // Calculate BOM based on project configuration
   const calculateBOM = () => {
     const bom: BOMItem[] = []
@@ -2822,95 +2887,108 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
 
       // Dome Fixed Cameras + Mounting
       if (site.cameras.domeFixed.quantity > 0) {
+        const product = getProductForCategory('camera_dome_fixed', 299, 'Dome Kamera - Fixed')
         bom.push({
-          articleName: `${sitePrefix} Dome Kamera - Fixed`,
+          articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
-          esoArticleNumber: `${project.manufacturer}-DOME-FIX-001`,
+          esoArticleNumber: product.eso,
           quantity: site.cameras.domeFixed.quantity,
-          unitPrice: 299,
+          unitPrice: product.price,
           category: 'Kameras'
         })
         // Add mounting accessories
-        bom.push(...generateMountingAccessories('dome', site.cameras.domeFixed.mount, site.cameras.domeFixed.quantity, project.manufacturer!, sitePrefix))
+        const mounts = site.cameras.domeFixed.mounts || Array(site.cameras.domeFixed.quantity).fill(site.cameras.domeFixed.mount || 'ceiling')
+        bom.push(...generateMountingAccessoriesIndividual('dome', mounts, project.manufacturer!, sitePrefix))
       }
 
       // Dome Vario Cameras + Mounting
       if (site.cameras.domeVario.quantity > 0) {
+        const product = getProductForCategory('camera_dome_vario', 399, 'Dome Kamera - Vario')
         bom.push({
-          articleName: `${sitePrefix} Dome Kamera - Vario`,
+          articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
-          esoArticleNumber: `${project.manufacturer}-DOME-VAR-001`,
+          esoArticleNumber: product.eso,
           quantity: site.cameras.domeVario.quantity,
-          unitPrice: 399,
+          unitPrice: product.price,
           category: 'Kameras'
         })
         // Add mounting accessories
-        bom.push(...generateMountingAccessories('dome', site.cameras.domeVario.mount, site.cameras.domeVario.quantity, project.manufacturer!, sitePrefix))
+        const mounts = site.cameras.domeVario.mounts || Array(site.cameras.domeVario.quantity).fill(site.cameras.domeVario.mount || 'ceiling')
+        bom.push(...generateMountingAccessoriesIndividual('dome', mounts, project.manufacturer!, sitePrefix))
       }
 
       // Bullet Fixed Cameras + Mounting
       if (site.cameras.bulletFixed.quantity > 0) {
+        const product = getProductForCategory('camera_bullet_fixed', 329, 'Bullet Kamera - Fixed')
         bom.push({
-          articleName: `${sitePrefix} Bullet Kamera - Fixed`,
+          articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
-          esoArticleNumber: `${project.manufacturer}-BULL-FIX-001`,
+          esoArticleNumber: product.eso,
           quantity: site.cameras.bulletFixed.quantity,
-          unitPrice: 329,
+          unitPrice: product.price,
           category: 'Kameras'
         })
         // Add mounting accessories
-        bom.push(...generateMountingAccessories('bullet', site.cameras.bulletFixed.mount, site.cameras.bulletFixed.quantity, project.manufacturer!, sitePrefix))
+        const mounts = site.cameras.bulletFixed.mounts || Array(site.cameras.bulletFixed.quantity).fill(site.cameras.bulletFixed.mount || 'wall')
+        bom.push(...generateMountingAccessoriesIndividual('bullet', mounts, project.manufacturer!, sitePrefix))
       }
 
       // Bullet Vario Cameras + Mounting
       if (site.cameras.bulletVario.quantity > 0) {
+        const product = getProductForCategory('camera_bullet_vario', 429, 'Bullet Kamera - Vario')
         bom.push({
-          articleName: `${sitePrefix} Bullet Kamera - Vario`,
+          articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
-          esoArticleNumber: `${project.manufacturer}-BULL-VAR-001`,
+          esoArticleNumber: product.eso,
           quantity: site.cameras.bulletVario.quantity,
-          unitPrice: 429,
+          unitPrice: product.price,
           category: 'Kameras'
         })
         // Add mounting accessories
-        bom.push(...generateMountingAccessories('bullet', site.cameras.bulletVario.mount, site.cameras.bulletVario.quantity, project.manufacturer!, sitePrefix))
+        const mounts = site.cameras.bulletVario.mounts || Array(site.cameras.bulletVario.quantity).fill(site.cameras.bulletVario.mount || 'wall')
+        bom.push(...generateMountingAccessoriesIndividual('bullet', mounts, project.manufacturer!, sitePrefix))
       }
 
       // PTZ Cameras + Mounting
       if (site.cameras.ptz.quantity > 0) {
+        const product = getProductForCategory('camera_ptz', 1299, 'PTZ Kamera')
         bom.push({
-          articleName: `${sitePrefix} PTZ Kamera`,
+          articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
-          esoArticleNumber: `${project.manufacturer}-PTZ-001`,
+          esoArticleNumber: product.eso,
           quantity: site.cameras.ptz.quantity,
-          unitPrice: 1299,
+          unitPrice: product.price,
           category: 'Kameras'
         })
         // Add mounting accessories
-        bom.push(...generateMountingAccessories('ptz', site.cameras.ptz.mount, site.cameras.ptz.quantity, project.manufacturer!, sitePrefix))
+        const mounts = site.cameras.ptz.mounts || Array(site.cameras.ptz.quantity).fill(site.cameras.ptz.mount || 'wall')
+        bom.push(...generateMountingAccessoriesIndividual('ptz', mounts, project.manufacturer!, sitePrefix))
       }
 
       // Thermal Cameras + Mounting
       if (site.cameras.thermal.quantity > 0) {
+        const product = getProductForCategory('camera_thermal', 2499, 'Thermal Kamera')
         bom.push({
-          articleName: `${sitePrefix} Thermal Kamera`,
+          articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
-          esoArticleNumber: `${project.manufacturer}-THRM-001`,
+          esoArticleNumber: product.eso,
           quantity: site.cameras.thermal.quantity,
-          unitPrice: 2499,
+          unitPrice: product.price,
           category: 'Kameras'
         })
         // Add mounting accessories
-        bom.push(...generateMountingAccessories('thermal', site.cameras.thermal.mount, site.cameras.thermal.quantity, project.manufacturer!, sitePrefix))
+        const mounts = site.cameras.thermal.mounts || Array(site.cameras.thermal.quantity).fill(site.cameras.thermal.mount || 'pole')
+        bom.push(...generateMountingAccessoriesIndividual('thermal', mounts, project.manufacturer!, sitePrefix))
       }
 
       if (site.cameras.ipSpeakers.quantity > 0) {
+        const product = getProductForCategory('speaker_ip', 249, 'IP-Lautsprecher')
         bom.push({
-          articleName: `${sitePrefix} IP-Lautsprecher`,
+          articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
-          esoArticleNumber: `${project.manufacturer}-SPEAK-001`,
+          esoArticleNumber: product.eso,
           quantity: site.cameras.ipSpeakers.quantity,
-          unitPrice: 249,
+          unitPrice: product.price,
           category: 'Audio'
         })
         // Add mounting accessories for speakers

@@ -116,6 +116,16 @@ export default function AdminDashboard() {
                 icon="👥"
                 href="/admin/users"
               />
+              <QuickActionCard
+                title="Tier-Defaults verwalten"
+                icon="⚙️"
+                href="/admin/tier-defaults"
+              />
+              <QuickActionCard
+                title="Konfigurator-Produkte"
+                icon="🎯"
+                href="/admin/configurator-products"
+              />
             </div>
           </div>
         </div>
