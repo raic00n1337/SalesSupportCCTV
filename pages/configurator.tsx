@@ -11,6 +11,35 @@ import { generateMountingAccessories, generateMountingAccessoriesIndividual, gen
 import { generatePDF } from '../pdfExport'
 import type { ConfiguratorProduct } from './api/configurator/products'
 
+// Helper: Get product for category with fallback to hardcoded values
+// This is defined outside the component so it can be used by Step6Summary
+const getProductForCategory = (
+  configuratorProducts: Record<string, ConfiguratorProduct>,
+  manufacturer: string | undefined,
+  category: string,
+  fallbackPrice: number,
+  fallbackName: string
+): { name: string; price: number; eso: string; bheTime: number } => {
+  const product = configuratorProducts[category]
+  
+  if (product) {
+    return {
+      name: product.name,
+      price: product.uvp_cents / 100,
+      eso: product.eso_number || product.sku,
+      bheTime: product.bhe_time_minutes || 45
+    }
+  }
+  
+  // Fallback zu hardcoded Werten
+  return {
+    name: fallbackName,
+    price: fallbackPrice,
+    eso: `${manufacturer}-${category.toUpperCase()}`,
+    bheTime: 45
+  }
+}
+
 export default function Configurator() {
   const { user } = useAuth()
   const router = useRouter()
@@ -36,28 +65,6 @@ export default function Configurator() {
   const [loadingProducts, setLoadingProducts] = useState(false)
 
   const totalSteps = 6
-
-  // Helper: Get product for category with fallback to hardcoded values
-  const getProductForCategory = (category: string, fallbackPrice: number, fallbackName: string): { name: string; price: number; eso: string; bheTime: number } => {
-    const product = configuratorProducts[category]
-    
-    if (product) {
-      return {
-        name: product.name,
-        price: product.uvp_cents / 100,
-        eso: product.eso_number || product.sku,
-        bheTime: product.bhe_time_minutes || 45
-      }
-    }
-    
-    // Fallback zu hardcoded Werten
-    return {
-      name: fallbackName,
-      price: fallbackPrice,
-      eso: `${project.manufacturer}-${category.toUpperCase()}`,
-      bheTime: 45
-    }
-  }
 
   // Restore project from localStorage on mount (for guest mode)
   useEffect(() => {
@@ -451,7 +458,7 @@ export default function Configurator() {
       case 5:
         return <Step5NetworkAndCabling project={project} updateProject={updateProject} />
       case 6:
-        return <Step6Summary project={project} />
+        return <Step6Summary project={project} configuratorProducts={configuratorProducts} />
       default:
         return null
     }
@@ -2729,7 +2736,7 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
 }
 
 // Step 6: Summary
-const Step6Summary = ({ project }: { project: Partial<Project> }) => {
+const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Project>; configuratorProducts: Record<string, ConfiguratorProduct> }) => {
   // State for editable device labels
   const [editableDevices, setEditableDevices] = useState<Record<string, Record<string, string>>>({})
   
@@ -2887,7 +2894,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
 
       // Dome Fixed Cameras + Mounting
       if (site.cameras.domeFixed.quantity > 0) {
-        const product = getProductForCategory('camera_dome_fixed', 299, 'Dome Kamera - Fixed')
+        const product = getProductForCategory(configuratorProducts, project.manufacturer, 'camera_dome_fixed', 299, 'Dome Kamera - Fixed')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
@@ -2903,7 +2910,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
 
       // Dome Vario Cameras + Mounting
       if (site.cameras.domeVario.quantity > 0) {
-        const product = getProductForCategory('camera_dome_vario', 399, 'Dome Kamera - Vario')
+        const product = getProductForCategory(configuratorProducts, project.manufacturer, 'camera_dome_vario', 399, 'Dome Kamera - Vario')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
@@ -2919,7 +2926,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
 
       // Bullet Fixed Cameras + Mounting
       if (site.cameras.bulletFixed.quantity > 0) {
-        const product = getProductForCategory('camera_bullet_fixed', 329, 'Bullet Kamera - Fixed')
+        const product = getProductForCategory(configuratorProducts, project.manufacturer, 'camera_bullet_fixed', 329, 'Bullet Kamera - Fixed')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
@@ -2935,7 +2942,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
 
       // Bullet Vario Cameras + Mounting
       if (site.cameras.bulletVario.quantity > 0) {
-        const product = getProductForCategory('camera_bullet_vario', 429, 'Bullet Kamera - Vario')
+        const product = getProductForCategory(configuratorProducts, project.manufacturer, 'camera_bullet_vario', 429, 'Bullet Kamera - Vario')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
@@ -2951,7 +2958,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
 
       // PTZ Cameras + Mounting
       if (site.cameras.ptz.quantity > 0) {
-        const product = getProductForCategory('camera_ptz', 1299, 'PTZ Kamera')
+        const product = getProductForCategory(configuratorProducts, project.manufacturer, 'camera_ptz', 1299, 'PTZ Kamera')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
@@ -2967,7 +2974,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
 
       // Thermal Cameras + Mounting
       if (site.cameras.thermal.quantity > 0) {
-        const product = getProductForCategory('camera_thermal', 2499, 'Thermal Kamera')
+        const product = getProductForCategory(configuratorProducts, project.manufacturer, 'camera_thermal', 2499, 'Thermal Kamera')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
@@ -2982,7 +2989,7 @@ const Step6Summary = ({ project }: { project: Partial<Project> }) => {
       }
 
       if (site.cameras.ipSpeakers.quantity > 0) {
-        const product = getProductForCategory('speaker_ip', 249, 'IP-Lautsprecher')
+        const product = getProductForCategory(configuratorProducts, project.manufacturer, 'speaker_ip', 249, 'IP-Lautsprecher')
         bom.push({
           articleName: `${sitePrefix} ${product.name}`,
           manufacturer: project.manufacturer!,
