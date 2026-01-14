@@ -133,8 +133,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     return res.status(400).json({ error: 'Missing required fields: project_id, name' })
   }
 
-  const { data: design, error } = await supabase
-    .from('system_designs')
+  const { data: design, error } = await (supabase
+    .from('system_designs') as any)
     .insert({
       project_id,
       name,
@@ -147,7 +147,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       canvas_zoom: 1.0,
       canvas_pan_x: 0,
       canvas_pan_y: 0
-    } as any)
+    })
     .select()
     .single()
 
@@ -184,9 +184,9 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
   if (canvas_pan_x !== undefined) updateData.canvas_pan_x = canvas_pan_x
   if (canvas_pan_y !== undefined) updateData.canvas_pan_y = canvas_pan_y
 
-  const { data: design, error } = await supabase
-    .from('system_designs')
-    .update(updateData as any)
+  const { data: design, error } = await (supabase
+    .from('system_designs') as any)
+    .update(updateData)
     .eq('id', id)
     .select()
     .single()

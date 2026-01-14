@@ -89,8 +89,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
 
-  const { data: placement, error } = await supabase
-    .from('camera_placements')
+  const { data: placement, error } = await (supabase
+    .from('camera_placements') as any)
     .insert({
       system_design_id,
       camera_type,
@@ -106,7 +106,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       cone_color: cone_color ?? '#3b82f6',
       cone_opacity: cone_opacity ?? 0.3,
       notes
-    } as any)
+    })
     .select()
     .single()
 
@@ -157,9 +157,9 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
   if (cone_opacity !== undefined) updateData.cone_opacity = cone_opacity
   if (notes !== undefined) updateData.notes = notes
 
-  const { data: placement, error } = await supabase
-    .from('camera_placements')
-    .update(updateData as any)
+  const { data: placement, error } = await (supabase
+    .from('camera_placements') as any)
+    .update(updateData)
     .eq('id', id)
     .select()
     .single()

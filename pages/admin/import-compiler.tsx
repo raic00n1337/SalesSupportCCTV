@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../../lib/AuthContext';
 import RouteGuard from '../../components/RouteGuard';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabaseClient';
 import type { CompilerResult, ColumnMapping } from '../../lib/csvCompilerTypes';
 import { FORMAT_PROFILES } from '../../lib/formatProfiles';
 

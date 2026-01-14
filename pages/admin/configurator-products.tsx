@@ -163,8 +163,8 @@ export default function ConfiguratorProductsPage() {
 
       if (editingProduct) {
         // Update
-        const { error: updateError } = await supabase
-          .from('configurator_products')
+        const { error: updateError } = await (supabase
+          .from('configurator_products') as any)
           .update({
             tier: formData.tier,
             category: formData.category,
@@ -172,14 +172,14 @@ export default function ConfiguratorProductsPage() {
             is_default: formData.is_default,
             bhe_time_minutes: formData.bhe_time_minutes,
             required_accessories: formData.required_accessories
-          } as any)
+          })
           .eq('id', editingProduct.id)
 
         if (updateError) throw updateError
       } else {
         // Insert
-        const { error: insertError } = await supabase
-          .from('configurator_products')
+        const { error: insertError } = await (supabase
+          .from('configurator_products') as any)
           .insert({
             product_id: formData.product_id,
             tier: formData.tier,
@@ -188,7 +188,7 @@ export default function ConfiguratorProductsPage() {
             is_default: formData.is_default,
             bhe_time_minutes: formData.bhe_time_minutes,
             required_accessories: formData.required_accessories
-          } as any)
+          })
 
         if (insertError) throw insertError
       }

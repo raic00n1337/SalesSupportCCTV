@@ -105,3 +105,71 @@ export interface BOMItem {
   category: string;
 }
 
+
+
+// ============================================
+// SYSTEM DESIGNER TYPES
+// ============================================
+
+export interface SystemDesign {
+  id: string;
+  project_id: string;
+  
+  // Grundriss-Info
+  name: string;
+  description?: string;
+  floor_number: number; // 0 = EG, 1 = OG, -1 = UG
+  
+  // Bild
+  image_url?: string;
+  image_width?: number;
+  image_height?: number;
+  
+  // Maßstab
+  scale_pixels_per_meter: number; // Default: 100 (100px = 1m)
+  scale_reference_length_m?: number; // Referenzlänge in Metern
+  scale_reference_px?: number; // Referenzlänge in Pixeln
+  
+  // Canvas Settings
+  canvas_zoom: number; // Default: 1.0
+  canvas_pan_x: number; // Default: 0
+  canvas_pan_y: number; // Default: 0
+  
+  // Metadata
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+  
+  // Client-side only (not in DB)
+  placements?: CameraPlacement[];
+}
+
+export interface CameraPlacement {
+  id: string;
+  system_design_id: string;
+  
+  // Kamera-Info
+  camera_type: 'dome_fixed' | 'dome_vario' | 'bullet_fixed' | 'bullet_vario' | 'ptz' | 'thermal';
+  camera_name?: string;
+  product_id?: string;
+  
+  // Position & Rotation
+  position_x: number; // X-Position auf Canvas (Pixel)
+  position_y: number; // Y-Position auf Canvas (Pixel)
+  rotation: number; // Rotation in Grad (0-360)
+  
+  // Kamera-Specs (für Detection Cone)
+  focal_length_mm: number; // Brennweite (2.8, 4, 6, 8, 12mm)
+  field_of_view: number; // Öffnungswinkel in Grad
+  detection_range_m: number; // Detection-Reichweite in Metern
+  
+  // Detection Cone Settings
+  show_detection_cone: boolean;
+  cone_color: string; // Hex color (z.B. '#3b82f6')
+  cone_opacity: number; // 0-1
+  
+  // Metadata
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
