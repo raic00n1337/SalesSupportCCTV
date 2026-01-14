@@ -148,7 +148,14 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     })
   } catch (error: any) {
     console.error('Error creating rule:', error)
-    return res.status(500).json({ error: 'Failed to create rule', details: error.message })
+    console.error('Error details:', JSON.stringify(error, null, 2))
+    console.error('Error stack:', error.stack)
+    return res.status(500).json({ 
+      error: 'Failed to create rule', 
+      details: error.message,
+      code: error.code,
+      hint: error.hint
+    })
   }
 }
 
@@ -197,7 +204,14 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
     })
   } catch (error: any) {
     console.error('Error updating rule:', error)
-    return res.status(500).json({ error: 'Failed to update rule', details: error.message })
+    console.error('Error details:', JSON.stringify(error, null, 2))
+    console.error('Error stack:', error.stack)
+    return res.status(500).json({ 
+      error: 'Failed to update rule', 
+      details: error.message,
+      code: error.code,
+      hint: error.hint
+    })
   }
 }
 
@@ -223,6 +237,13 @@ async function handleDelete(req: NextApiRequest, res: NextApiResponse) {
     })
   } catch (error: any) {
     console.error('Error deleting rule:', error)
-    return res.status(500).json({ error: 'Failed to delete rule', details: error.message })
+    console.error('Error details:', JSON.stringify(error, null, 2))
+    console.error('Error stack:', error.stack)
+    return res.status(500).json({ 
+      error: 'Failed to delete rule', 
+      details: error.message,
+      code: error.code,
+      hint: error.hint
+    })
   }
 }
