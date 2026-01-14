@@ -14,13 +14,20 @@
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.90.1",
+    "@types/formidable": "^3.4.6",
+    "formidable": "^3.5.4",
     "fuse.js": "^7.1.0",
-    "jspdf": "^4.0.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.2",
     "jspdf-autotable": "^5.0.7",
+    "konva": "^9.3.6",
     "next": "^14.1.0",
     "papaparse": "^5.5.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-dropzone": "^14.2.3",
+    "react-konva": "^18.2.10",
+    "use-image": "^1.1.4",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

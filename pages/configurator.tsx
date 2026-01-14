@@ -565,6 +565,14 @@ export default function Configurator() {
             >
               Meine Projekte
             </Link>
+            {projectId && (
+              <Link
+                href={`/system-designer/${projectId}`}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors inline-flex items-center gap-2"
+              >
+                🎨 System Designer
+              </Link>
+            )}
             {saveStatus === 'saved' && (
               <span className="text-green-600 dark:text-green-400 text-sm font-medium">
                 ✓ Gespeichert
