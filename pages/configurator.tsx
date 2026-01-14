@@ -468,6 +468,7 @@ export default function Configurator() {
             const { error: siteError } = await (supabase
               .from('sites') as any)
               .insert({
+                id: site.id, // Include the UUID from client
                 project_id: newProject.id,
                 name: site.name,
                 cabling: site.cabling,
