@@ -133,30 +133,34 @@ export default function SystemDesignerCanvas({
               )}
 
               {/* Camera Icon */}
-              <Circle
-                x={placement.position_x}
-                y={placement.position_y}
-                radius={12}
-                fill={selectedPlacement?.id === placement.id ? '#3b82f6' : '#ef4444'}
-                stroke="#ffffff"
-                strokeWidth={2}
+              <Text
+                x={placement.position_x - 12}
+                y={placement.position_y - 12}
+                text={placement.camera_type === 'dome_fixed' || placement.camera_type === 'dome_vario' ? '🎥' : 
+                      placement.camera_type === 'bullet_fixed' || placement.camera_type === 'bullet_vario' ? '📹' :
+                      placement.camera_type === 'ptz' ? '🔄' : '🌡️'}
+                fontSize={24}
                 draggable
                 onClick={() => handleCameraClick(placement)}
                 onDragEnd={(e) => handleCameraDragEnd(placement, e)}
                 shadowColor="black"
                 shadowBlur={4}
-                shadowOpacity={0.3}
+                shadowOpacity={0.5}
+                fill={selectedPlacement?.id === placement.id ? '#3b82f6' : '#000000'}
               />
 
-              {/* Camera Name */}
+              {/* Camera Name Label */}
               {placement.camera_name && (
                 <Text
-                  x={placement.position_x + 15}
-                  y={placement.position_y - 10}
+                  x={placement.position_x - 40}
+                  y={placement.position_y + 20}
                   text={placement.camera_name}
-                  fontSize={12}
+                  fontSize={11}
                   fill="#1f2937"
+                  fontStyle="bold"
                   listening={false}
+                  align="center"
+                  width={80}
                 />
               )}
             </React.Fragment>

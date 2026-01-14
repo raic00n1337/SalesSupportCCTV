@@ -76,7 +76,13 @@ export default function SystemDesigner() {
           
           // Select first design if exists
           if (designsData.designs && designsData.designs.length > 0) {
-            setCurrentDesign(designsData.designs[0])
+            const firstDesign = designsData.designs[0]
+            setCurrentDesign(firstDesign)
+            
+            // Auto-import cameras from configurator if design has no placements yet
+            if (projData && (!firstDesign.placements || firstDesign.placements.length === 0)) {
+              await importCamerasFromConfigurator(projData, firstDesign.id)
+            }
           }
         }
       } catch (error) {
@@ -138,6 +144,90 @@ export default function SystemDesigner() {
     } finally {
       setSaving(false)
     }
+
+  // Import cameras from configurator
+  const importCamerasFromConfigurator = async (project: Project, designId: string) => {
+    if (!project.sites || project.sites.length === 0) return
+    
+    try {
+      const allCameras: any[] = []
+      let cameraIndex = 0
+      
+      // Collect all cameras from all sites
+      project.sites.forEach((site: any, siteIdx: number) => {
+        const cameras = site.cameras_config || {}
+        
+        // Helper to add cameras
+        const addCameras = (type: string, count: number, icon: string) => {
+          for (let i = 0; i < count; i++) {
+            const customName = cameras[type]?.customNames?.[i]
+            allCameras.push({
+              type,
+              icon,
+              name: customName || `${type.replace('_', ' ')} #${i + 1}`,
+              siteIndex: siteIdx,
+              siteName: site.name
+            })
+          }
+        }
+        
+        // Add all camera types
+        if (cameras.domeFixed?.quantity) addCameras('dome_fixed', cameras.domeFixed.quantity, '🎥')
+        if (cameras.domeVario?.quantity) addCameras('dome_vario', cameras.domeVario.quantity, '🎥')
+        if (cameras.bulletFixed?.quantity) addCameras('bullet_fixed', cameras.bulletFixed.quantity, '📹')
+        if (cameras.bulletVario?.quantity) addCameras('bullet_vario', cameras.bulletVario.quantity, '📹')
+        if (cameras.ptz?.quantity) addCameras('ptz', cameras.ptz.quantity, '🔄')
+        if (cameras.thermal?.quantity) addCameras('thermal', cameras.thermal.quantity, '🌡️')
+      })
+      
+      // Create placements in a grid layout
+      const gridCols = 5
+      const startX = 100
+      const startY = 100
+      const spacingX = 120
+      const spacingY = 120
+      
+      for (let i = 0; i < allCameras.length; i++) {
+        const camera = allCameras[i]
+        const row = Math.floor(i / gridCols)
+        const col = i % gridCols
+        
+        const placement = {
+          system_design_id: designId,
+          camera_type: camera.type,
+          camera_name: `${camera.siteName} - ${camera.name}`,
+          position_x: startX + (col * spacingX),
+          position_y: startY + (row * spacingY),
+          rotation: 0,
+          focal_length_mm: 2.8,
+          field_of_view: 90,
+          detection_range_m: 30,
+          show_detection_cone: true,
+          cone_color: '#3b82f6',
+          cone_opacity: 0.3
+        }
+        
+        // Create placement via API
+        const res = await fetch('/api/system-designer/placements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(placement)
+        })
+        
+        if (res.ok) {
+          const data = await res.json()
+          setCurrentDesign(prev => prev ? {
+            ...prev,
+            placements: [...(prev.placements || []), data.placement]
+          } : null)
+        }
+      }
+      
+      console.log(`Imported ${allCameras.length} cameras from configurator`)
+    } catch (error) {
+      console.error('Error importing cameras:', error)
+    }
+  }
   }
 
   // Upload Floor Plan Image
