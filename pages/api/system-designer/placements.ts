@@ -106,7 +106,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       cone_color: cone_color ?? '#3b82f6',
       cone_opacity: cone_opacity ?? 0.3,
       notes
-    })
+    } as any)
     .select()
     .single()
 
@@ -159,7 +159,7 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
 
   const { data: placement, error } = await supabase
     .from('camera_placements')
-    .update(updateData)
+    .update(updateData as any)
     .eq('id', id)
     .select()
     .single()

@@ -147,7 +147,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       canvas_zoom: 1.0,
       canvas_pan_x: 0,
       canvas_pan_y: 0
-    })
+    } as any)
     .select()
     .single()
 
@@ -186,7 +186,7 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
 
   const { data: design, error } = await supabase
     .from('system_designs')
-    .update(updateData)
+    .update(updateData as any)
     .eq('id', id)
     .select()
     .single()

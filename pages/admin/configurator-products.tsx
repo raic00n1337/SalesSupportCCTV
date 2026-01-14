@@ -172,7 +172,7 @@ export default function ConfiguratorProductsPage() {
             is_default: formData.is_default,
             bhe_time_minutes: formData.bhe_time_minutes,
             required_accessories: formData.required_accessories
-          })
+          } as any)
           .eq('id', editingProduct.id)
 
         if (updateError) throw updateError
@@ -188,7 +188,7 @@ export default function ConfiguratorProductsPage() {
             is_default: formData.is_default,
             bhe_time_minutes: formData.bhe_time_minutes,
             required_accessories: formData.required_accessories
-          })
+          } as any)
 
         if (insertError) throw insertError
       }
