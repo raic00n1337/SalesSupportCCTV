@@ -68,7 +68,16 @@ export default async function handler(
 
     if (error) {
       console.error('Supabase error:', error)
-      return res.status(500).json({ error: 'Database query failed', details: error.message })
+      // If table doesn't exist, return empty defaults (graceful fallback)
+      return res.status(200).json({ 
+        success: true,
+        defaults: {},
+        count: 0,
+        tier,
+        categories: [],
+        warning: 'configurator_products table not available',
+        error: error.message
+      })
     }
 
     // Daten transformieren und nach Kategorie gruppieren

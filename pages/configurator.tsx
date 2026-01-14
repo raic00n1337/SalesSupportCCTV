@@ -749,7 +749,7 @@ const Step2Sites = ({ project, updateProject }: { project: Partial<Project>; upd
   const handleAddSite = () => {
     if (newSiteName.trim()) {
       const newSite: Site = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         name: newSiteName,
         cameras: {
           domeFixed: { quantity: 0, mount: 'ceiling' as MountType },

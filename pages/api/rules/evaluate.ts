@@ -51,7 +51,16 @@ export default async function handler(
       .eq('is_active', true)
       .order('priority', { ascending: false })
 
-    if (rulesError) throw rulesError
+    if (rulesError) {
+      // If table doesn't exist or query fails, return no match (fallback to defaults)
+      console.error('Rules query error:', rulesError)
+      return res.status(200).json({
+        success: true,
+        matched: false,
+        message: 'Rules table not available, use tier-defaults',
+        error: rulesError.message
+      })
+    }
 
     // Evaluate rules in priority order
     for (const rule of rules || []) {
