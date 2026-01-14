@@ -41,10 +41,17 @@ export default function SystemDesignerCanvas({
     const stage = e.target.getStage()
     const pointerPos = stage.getPointerPosition()
 
-    // Check if clicked on stage (not on a shape)
-    if (e.target === stage) {
-      if (selectedCameraType) {
+    console.log('Stage click:', { 
+      target: e.target.constructor.name, 
+      pointerPos, 
+      selectedCameraType 
+    })
+
+    // Check if clicked on stage or image (not on a camera shape)
+    if (e.target === stage || e.target.attrs.image) {
+      if (selectedCameraType && pointerPos) {
         // Add new camera
+        console.log('Adding camera at:', pointerPos)
         onAddCamera(pointerPos.x, pointerPos.y)
       } else {
         // Deselect

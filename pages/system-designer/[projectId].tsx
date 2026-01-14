@@ -117,6 +117,29 @@ export default function SystemDesigner() {
     }
   }
 
+  // Delete Design
+  const handleDeleteDesign = async (designId: string) => {
+    if (!confirm('Möchten Sie diesen Grundriss wirklich löschen?')) return
+
+    try {
+      setSaving(true)
+      const res = await fetch(`/api/system-designer/designs?id=${designId}`, {
+        method: 'DELETE'
+      })
+
+      if (res.ok) {
+        setDesigns(prev => prev.filter(d => d.id !== designId))
+        if (currentDesign?.id === designId) {
+          setCurrentDesign(designs.length > 1 ? designs[0] : null)
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting design:', error)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   // Upload Floor Plan Image
   const handleImageUpload = async (file: File) => {
     if (!currentDesign) return
@@ -304,20 +327,31 @@ export default function SystemDesigner() {
             </button>
             <div className="mt-3 space-y-2">
               {designs.map(design => (
-                <button
-                  key={design.id}
-                  onClick={() => setCurrentDesign(design)}
-                  className={`w-full px-3 py-2 text-left rounded-lg transition ${
-                    currentDesign?.id === design.id
-                      ? 'bg-blue-50 border border-blue-200 text-blue-700'
-                      : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <div className="font-medium">{design.name}</div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {design.placements?.length || 0} Kameras
-                  </div>
-                </button>
+                <div key={design.id} className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentDesign(design)}
+                    className={`flex-1 px-3 py-2 text-left rounded-lg transition ${
+                      currentDesign?.id === design.id
+                        ? 'bg-blue-50 border border-blue-200 text-blue-700'
+                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <div className="font-medium">{design.name}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {design.placements?.length || 0} Kameras
+                    </div>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteDesign(design.id)
+                    }}
+                    className="px-2 py-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                    title="Grundriss löschen"
+                  >
+                    🗑️
+                  </button>
+                </div>
               ))}
             </div>
           </div>
