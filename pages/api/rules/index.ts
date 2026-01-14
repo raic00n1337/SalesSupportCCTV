@@ -124,8 +124,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       })
     }
 
-    const { data, error } = await supabase
-      .from('rules')
+    const { data, error } = await (supabase
+      .from('rules') as any)
       .insert({
         name,
         description,
@@ -172,8 +172,8 @@ async function handlePut(req: NextApiRequest, res: NextApiResponse) {
       return res.status(400).json({ error: 'Rule ID is required' })
     }
 
-    const { data, error } = await supabase
-      .from('rules')
+    const { data, error } = await (supabase
+      .from('rules') as any)
       .update({
         name,
         description,
@@ -210,8 +210,8 @@ async function handleDelete(req: NextApiRequest, res: NextApiResponse) {
       return res.status(400).json({ error: 'Rule ID is required' })
     }
 
-    const { error } = await supabase
-      .from('rules')
+    const { error } = await (supabase
+      .from('rules') as any)
       .delete()
       .eq('id', id)
 
