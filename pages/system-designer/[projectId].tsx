@@ -43,10 +43,20 @@ export default function SystemDesigner() {
   const [stageSize, setStageSize] = useState({ width: 1000, height: 800 })
   const [selectedCameraType, setSelectedCameraType] = useState<string | null>(null)
   const [selectedPlacement, setSelectedPlacement] = useState<CameraPlacement | null>(null)
+  
+  // Product Search
+  const [availableProducts, setAvailableProducts] = useState<any[]>([])
+  const [productSearchOpen, setProductSearchOpen] = useState(false)
+  const [productSearchQuery, setProductSearchQuery] = useState('')
 
   // Import cameras from configurator
   const importCamerasFromConfigurator = async (project: Project, designId: string) => {
-    if (!project.sites || project.sites.length === 0) return
+    console.log('🎬 Starting camera import...', { projectId: project.id, designId, sitesCount: project.sites?.length })
+    
+    if (!project.sites || project.sites.length === 0) {
+      console.warn('⚠️ No sites found in project')
+      return
+    }
     
     try {
       const allCameras: any[] = []
@@ -55,6 +65,7 @@ export default function SystemDesigner() {
       // Collect all cameras from all sites
       project.sites.forEach((site: any, siteIdx: number) => {
         const cameras = site.cameras_config || {}
+        console.log(`📍 Site ${siteIdx + 1}:`, site.name, 'Cameras:', cameras)
         
         // Helper to add cameras
         const addCameras = (type: string, count: number, icon: string) => {
@@ -86,6 +97,8 @@ export default function SystemDesigner() {
       const spacingX = 120
       const spacingY = 120
       
+      console.log(`📦 Total cameras to import: ${allCameras.length}`)
+      
       for (let i = 0; i < allCameras.length; i++) {
         const camera = allCameras[i]
         const row = Math.floor(i / gridCols)
@@ -106,6 +119,8 @@ export default function SystemDesigner() {
           cone_opacity: 0.3
         }
         
+        console.log(`🎥 Importing camera ${i + 1}/${allCameras.length}:`, camera.name)
+        
         // Create placement via API
         const res = await fetch('/api/system-designer/placements', {
           method: 'POST',
@@ -115,16 +130,140 @@ export default function SystemDesigner() {
         
         if (res.ok) {
           const data = await res.json()
+          console.log(`  ✅ Placed successfully at (${placement.position_x}, ${placement.position_y})`)
           setCurrentDesign(prev => prev ? {
             ...prev,
             placements: [...(prev.placements || []), data.placement]
           } : null)
+        } else {
+          console.error(`  ❌ Failed to place camera:`, await res.text())
         }
       }
       
-      console.log(`Imported ${allCameras.length} cameras from configurator`)
+      console.log(`✅ Import complete! ${allCameras.length} cameras placed on canvas`)
     } catch (error) {
-      console.error('Error importing cameras:', error)
+      console.error('❌ Error importing cameras:', error)
+    }
+  }
+
+  // Refresh cameras from configurator
+  const handleRefreshCameras = async () => {
+    if (!project || !currentDesign) return
+    
+    if (!confirm('Alle bestehenden Kameras löschen und neu aus Konfigurator laden?')) return
+    
+    try {
+      setSaving(true)
+      console.log('🔄 Refreshing cameras from configurator...')
+      
+      // Delete all existing placements
+      const placementIds = currentDesign.placements?.map(p => p.id) || []
+      for (const id of placementIds) {
+        await fetch(`/api/system-designer/placements?id=${id}`, { method: 'DELETE' })
+      }
+      
+      // Re-import from configurator
+      await importCamerasFromConfigurator(project, currentDesign.id)
+      
+      // Reload design
+      const res = await fetch(`/api/system-designer/designs?design_id=${currentDesign.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setCurrentDesign(data.design)
+        setDesigns(prev => prev.map(d => d.id === currentDesign.id ? data.design : d))
+      }
+      
+      console.log('✅ Cameras refreshed successfully')
+    } catch (error) {
+      console.error('❌ Error refreshing cameras:', error)
+      alert('Fehler beim Neu-Laden der Kameras')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Load available products from database
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('configurator_products')
+          .select(`
+            *,
+            products (
+              id,
+              name,
+              sku,
+              manufacturer
+            )
+          `)
+          .order('category')
+        
+        if (!error && data) {
+          setAvailableProducts(data)
+          console.log(`✅ Loaded ${data.length} products from database`)
+        }
+      } catch (error) {
+        console.error('❌ Error loading products:', error)
+      }
+    }
+    
+    loadProducts()
+  }, [])
+
+  // Add product from search to canvas
+  const handleAddProductToCanvas = async (product: any) => {
+    if (!currentDesign) return
+    
+    try {
+      // Map product category to camera type
+      const categoryToCameraType: Record<string, string> = {
+        'camera_dome_fixed': 'dome_fixed',
+        'camera_dome_vario': 'dome_vario',
+        'camera_bullet_fixed': 'bullet_fixed',
+        'camera_bullet_vario': 'bullet_vario',
+        'camera_ptz': 'ptz',
+        'camera_thermal': 'thermal',
+        'ip_speaker': 'dome_fixed' // Fallback
+      }
+      
+      const cameraType = categoryToCameraType[product.category] || 'dome_fixed'
+      
+      // Add to center of canvas
+      const placement = {
+        system_design_id: currentDesign.id,
+        camera_type: cameraType,
+        camera_name: product.products?.name || 'Unbekannt',
+        product_id: product.product_id,
+        position_x: 400,
+        position_y: 300,
+        rotation: 0,
+        focal_length_mm: product.focal_length_min || 2.8,
+        field_of_view: 90,
+        detection_range_m: product.dori_detect_m || 30,
+        show_detection_cone: true,
+        cone_color: '#3b82f6',
+        cone_opacity: 0.3
+      }
+      
+      const res = await fetch('/api/system-designer/placements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(placement)
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        setCurrentDesign(prev => prev ? {
+          ...prev,
+          placements: [...(prev.placements || []), data.placement]
+        } : null)
+        setProductSearchOpen(false)
+        setProductSearchQuery('')
+        console.log('✅ Product added to canvas:', product.products?.name)
+      }
+    } catch (error) {
+      console.error('❌ Error adding product:', error)
     }
   }
 
@@ -197,6 +336,14 @@ export default function SystemDesigner() {
 
       if (res.ok) {
         const data = await res.json()
+        console.log('✅ Design created:', data.design.name)
+        
+        // AUTO-IMPORT: Import cameras from configurator after creating new design
+        if (project) {
+          console.log('🔄 Auto-importing cameras from configurator...')
+          await importCamerasFromConfigurator(project, data.design.id)
+        }
+        
         setDesigns(prev => [data.design, ...prev])
         setCurrentDesign(data.design)
       }
@@ -449,7 +596,17 @@ export default function SystemDesigner() {
           {/* Camera Types */}
           {currentDesign && (
             <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold mb-3">📷 Kameras</h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">📷 Kameras</h2>
+                <button
+                  onClick={handleRefreshCameras}
+                  disabled={saving}
+                  className="px-3 py-1 text-sm bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white rounded-lg transition"
+                  title="Kameras aus Konfigurator neu laden"
+                >
+                  🔄
+                </button>
+              </div>
               <div className="space-y-2">
                 {[
                   { type: 'dome_fixed', label: 'Dome Fixed', icon: '🎥' },
@@ -471,6 +628,73 @@ export default function SystemDesigner() {
                     {icon} {label}
                   </button>
                 ))}
+              </div>
+              
+              {/* Product Search */}
+              <div className="mt-4">
+                <button
+                  onClick={() => setProductSearchOpen(!productSearchOpen)}
+                  className="w-full px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition text-sm"
+                >
+                  🔍 Produkt aus Datenbank hinzufügen
+                </button>
+                
+                {productSearchOpen && (
+                  <div className="mt-2 space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Suche nach Name, SKU, Hersteller..."
+                      value={productSearchQuery}
+                      onChange={(e) => setProductSearchQuery(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                    />
+                    
+                    <div className="max-h-64 overflow-y-auto space-y-1 bg-gray-50 rounded-lg p-2">
+                      {availableProducts
+                        .filter(p => {
+                          if (!productSearchQuery) return true
+                          const query = productSearchQuery.toLowerCase()
+                          return (
+                            p.products?.name?.toLowerCase().includes(query) ||
+                            p.products?.sku?.toLowerCase().includes(query) ||
+                            p.products?.manufacturer?.toLowerCase().includes(query)
+                          )
+                        })
+                        .slice(0, 20)
+                        .map(product => (
+                          <button
+                            key={product.id}
+                            onClick={() => handleAddProductToCanvas(product)}
+                            className="w-full px-2 py-2 text-left hover:bg-white rounded border border-transparent hover:border-purple-200 transition text-sm"
+                          >
+                            <div className="font-medium text-gray-900 text-xs">
+                              {product.products?.name || 'Unbekannt'}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {product.products?.manufacturer} • {product.products?.sku}
+                            </div>
+                            <div className="text-xs text-purple-600 mt-0.5">
+                              {product.category.replace('camera_', '').replace('_', ' ')}
+                            </div>
+                          </button>
+                        ))}
+                      
+                      {availableProducts.filter(p => {
+                        if (!productSearchQuery) return true
+                        const query = productSearchQuery.toLowerCase()
+                        return (
+                          p.products?.name?.toLowerCase().includes(query) ||
+                          p.products?.sku?.toLowerCase().includes(query) ||
+                          p.products?.manufacturer?.toLowerCase().includes(query)
+                        )
+                      }).length === 0 && (
+                        <div className="text-center py-4 text-gray-500 text-sm">
+                          Keine Produkte gefunden
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
