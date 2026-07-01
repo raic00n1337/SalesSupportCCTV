@@ -197,6 +197,19 @@ export default function AdminRules() {
     setPriorityInput('0')
   }
 
+  // The /api/rules endpoint requires admin authentication (server-side check).
+  // Attach the current session's access token to every mutating request.
+  const getAuthHeaders = async (): Promise<HeadersInit> => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      throw new Error('Keine aktive Session')
+    }
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    }
+  }
+
   const handleSave = async () => {
     try {
       if (!formData.name) {
@@ -216,11 +229,13 @@ export default function AdminRules() {
         category: formData.category || null
       }
 
+      const headers = await getAuthHeaders()
+
       if (editingRule) {
         // Update
         const res = await fetch(`/api/rules?id=${editingRule.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(cleanData)
         })
 
@@ -229,7 +244,7 @@ export default function AdminRules() {
         // Create
         const res = await fetch('/api/rules', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(cleanData)
         })
 
@@ -248,8 +263,10 @@ export default function AdminRules() {
     if (!confirm('Wirklich löschen?')) return
 
     try {
+      const headers = await getAuthHeaders()
       const res = await fetch(`/api/rules?id=${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       })
 
       if (!res.ok) throw new Error('Failed to delete rule')
@@ -263,9 +280,10 @@ export default function AdminRules() {
 
   const handleToggleActive = async (rule: Rule) => {
     try {
+      const headers = await getAuthHeaders()
       const res = await fetch(`/api/rules?id=${rule.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ ...rule, is_active: !rule.is_active })
       })
 

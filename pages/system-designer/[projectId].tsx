@@ -22,6 +22,29 @@ const SystemDesignerCanvas = dynamic(
  * - Save/Load zu/von Supabase
  * - PNG/PDF Export
  */
+// The /api/system-designer/* endpoints require a logged-in user (server-side check).
+// Attach the current session's access token to every request.
+const getAuthHeaders = async (): Promise<HeadersInit> => {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    throw new Error('Keine aktive Session')
+  }
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${session.access_token}`,
+  }
+}
+
+const getAuthHeaderOnly = async (): Promise<HeadersInit> => {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    throw new Error('Keine aktive Session')
+  }
+  return {
+    'Authorization': `Bearer ${session.access_token}`,
+  }
+}
+
 export default function SystemDesigner() {
   const router = useRouter()
   const { projectId } = router.query
@@ -124,7 +147,7 @@ export default function SystemDesigner() {
         // Create placement via API
         const res = await fetch('/api/system-designer/placements', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await getAuthHeaders(),
           body: JSON.stringify(placement)
         })
         
@@ -158,15 +181,18 @@ export default function SystemDesigner() {
       
       // Delete all existing placements
       const placementIds = currentDesign.placements?.map(p => p.id) || []
+      const deleteHeaders = await getAuthHeaderOnly()
       for (const id of placementIds) {
-        await fetch(`/api/system-designer/placements?id=${id}`, { method: 'DELETE' })
+        await fetch(`/api/system-designer/placements?id=${id}`, { method: 'DELETE', headers: deleteHeaders })
       }
       
       // Re-import from configurator
       await importCamerasFromConfigurator(project, currentDesign.id)
       
       // Reload design
-      const res = await fetch(`/api/system-designer/designs?design_id=${currentDesign.id}`)
+      const res = await fetch(`/api/system-designer/designs?design_id=${currentDesign.id}`, {
+        headers: await getAuthHeaderOnly()
+      })
       if (res.ok) {
         const data = await res.json()
         setCurrentDesign(data.design)
@@ -248,7 +274,7 @@ export default function SystemDesigner() {
       
       const res = await fetch('/api/system-designer/placements', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify(placement)
       })
       
@@ -292,7 +318,9 @@ export default function SystemDesigner() {
         }
 
         // Load Designs
-        const designsRes = await fetch(`/api/system-designer/designs?project_id=${projectId}`)
+        const designsRes = await fetch(`/api/system-designer/designs?project_id=${projectId}`, {
+          headers: await getAuthHeaderOnly()
+        })
         if (designsRes.ok) {
           const designsData = await designsRes.json()
           setDesigns(designsData.designs || [])
@@ -326,7 +354,7 @@ export default function SystemDesigner() {
       setSaving(true)
       const res = await fetch('/api/system-designer/designs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           project_id: projectId,
           name,
@@ -361,7 +389,8 @@ export default function SystemDesigner() {
     try {
       setSaving(true)
       const res = await fetch(`/api/system-designer/designs?id=${designId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: await getAuthHeaderOnly()
       })
 
       if (res.ok) {
@@ -390,6 +419,7 @@ export default function SystemDesigner() {
       
       const uploadRes = await fetch('/api/system-designer/upload-image', {
         method: 'POST',
+        headers: await getAuthHeaderOnly(),
         body: formData
       })
 
@@ -407,7 +437,7 @@ export default function SystemDesigner() {
       // Update design
       const updateRes = await fetch('/api/system-designer/designs', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           id: currentDesign.id,
           image_url: uploadData.url,
@@ -435,7 +465,7 @@ export default function SystemDesigner() {
     try {
       const res = await fetch('/api/system-designer/placements', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           system_design_id: currentDesign.id,
           camera_type: selectedCameraType,
@@ -465,7 +495,7 @@ export default function SystemDesigner() {
     try {
       const res = await fetch('/api/system-designer/placements', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({ id, ...updates })
       })
 
@@ -485,7 +515,8 @@ export default function SystemDesigner() {
   const handleDeletePlacement = async (id: string) => {
     try {
       const res = await fetch(`/api/system-designer/placements?id=${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: await getAuthHeaderOnly()
       })
 
       if (res.ok) {

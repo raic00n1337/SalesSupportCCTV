@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
+import { requireAuth } from '../../../lib/apiAuth'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -13,9 +14,17 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
  * POST: Create a new design
  * PUT: Update an existing design
  * DELETE: Delete a design
+ *
+ * Requires a logged-in user (mirrors the "authenticated" RLS policies
+ * defined for system_designs in supabase/migrations/add_system_designer.sql).
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req
+
+  const user = await requireAuth(req, res)
+  if (!user) {
+    return
+  }
 
   try {
     switch (method) {

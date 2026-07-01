@@ -11,9 +11,13 @@ Wichtig:
 - Supabase Service Role Key darf niemals im Browser landen; nur in serverseitigen API Routes.
 
 ### Supabase ENV (verwende Platzhalter)
-Public Key:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2cnpvcXRybHhidWtwcHV5enBjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5ODUzNzIsImV4cCI6MjA4MzU2MTM3Mn0.-5I-WB9tMo7Bq7Umi-tlVSkqYqvmkBkM10cPDGyf_SQ 
-Service Role Secret:eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2cnpvcXRybHhidWtwcHV5enBjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Nzk4NTM3MiwiZXhwIjoyMDgzNTYxMzcyfQ.tb2D1-Td-2nLQc1mrARKfo6M4M7gAtKGPtHm-OxQJMw
-Project URL: https://lvrzoqtrlxbukppuyzpc.supabase.co
+> ⚠️ Hier standen zuvor die echten Keys im Klartext (öffentliches Repo!). Wurden
+> entfernt und müssen im Supabase Dashboard rotiert werden. Nur Platzhalter unten,
+> echte Werte gehören ausschließlich in `.env.local` / Netlify Env Vars.
+
+Public Key: <NEXT_PUBLIC_SUPABASE_ANON_KEY>
+Service Role Secret: <SUPABASE_SERVICE_ROLE_KEY>
+Project URL: https://YOUR_PROJECT_REF.supabase.co
 
 ---
 

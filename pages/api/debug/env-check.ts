@@ -2,15 +2,20 @@
 // Zweck: ÃœberprÃ¼ft, ob alle benÃ¶tigten Environment Variables gesetzt sind
 
 import { NextApiRequest, NextApiResponse } from 'next'
+import { requireAdmin } from '../../../lib/apiAuth'
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Nur in Produktion erlauben, wenn User eingeloggt ist
-  // FÃ¼r jetzt: nur GET erlauben
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  // Only expose environment/infrastructure info to logged-in admins
+  const admin = await requireAdmin(req, res)
+  if (!admin) {
+    return
   }
 
   const envCheck = {

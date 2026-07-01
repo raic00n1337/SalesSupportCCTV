@@ -3,6 +3,7 @@
 
 import { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdmin } from '../../../lib/apiAuth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,6 +29,13 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Rule management (incl. viewing inactive rules & full conditions) is
+  // admin-only, mirroring the "Admins can manage rules" RLS policy.
+  const admin = await requireAdmin(req, res)
+  if (!admin) {
+    return
+  }
+
   if (req.method === 'GET') {
     return handleGet(req, res)
   } else if (req.method === 'POST') {
