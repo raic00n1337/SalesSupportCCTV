@@ -55,51 +55,9 @@ FROM (
       ELSE '❌ MISSING → Run: add_rules_table.sql'
     END as status
   
-  UNION ALL
-  
-  -- Check 4: System Designs Table
-  SELECT 
-    4 as sort_order,
-    'system_designs (table)' as check_name,
-    CASE 
-      WHEN EXISTS (
-        SELECT 1 
-        FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'system_designs'
-      ) THEN '✅ EXISTS'
-      ELSE '❌ MISSING → Run: add_system_designer.sql'
-    END as status
-  
-  UNION ALL
-  
-  -- Check 5: Camera Placements Table
-  SELECT 
-    5 as sort_order,
-    'camera_placements (table)' as check_name,
-    CASE 
-      WHEN EXISTS (
-        SELECT 1 
-        FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'camera_placements'
-      ) THEN '✅ EXISTS'
-      ELSE '❌ MISSING → Run: add_system_designer.sql'
-    END as status
-  
-  UNION ALL
-  
-  -- Check 6: Floor Plans Storage Bucket
-  SELECT 
-    6 as sort_order,
-    'floor-plans (storage bucket)' as check_name,
-    CASE 
-      WHEN EXISTS (
-        SELECT 1 
-        FROM storage.buckets 
-        WHERE id = 'floor-plans'
-      ) THEN '✅ EXISTS'
-      ELSE '❌ MISSING → Run: add_system_designer.sql'
-    END as status
 ) as checks
 ORDER BY sort_order;
+
+-- Note: system_designs / camera_placements / floor-plans bucket were
+-- intentionally removed (see drop_system_designer.sql) after the
+-- System Designer feature was discontinued, so they're no longer checked here.
