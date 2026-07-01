@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabaseClient'
-import type { Project, Site, TierType, ManufacturerType, VideoManagementType, HanwhaSeriesType, AjaxSeriesType, CablingType, BOMItem, MountType } from '../types'
+import type { Project, Site, TierType, ManufacturerType, VideoManagementType, HanwhaSeriesType, AjaxSeriesType, MsiBrandType, CablingType, BOMItem, MountType } from '../types'
 import { validateIPv4, isValidHostIP, assignIPsToDevices, generateAllNetworkDevices, type NetworkDevice } from '../ipHelper'
 import * as XLSX from 'xlsx'
 import { generateMountingAccessories, generateMountingAccessoriesIndividual, generateSpeakerMountingAccessories } from '../mountAccessories'
@@ -40,6 +40,15 @@ const getProductForCategory = (
     bheTime: 45,
     manufacturer: manufacturer || 'Unknown' // Fallback zum Projekt-Hersteller
   }
+}
+
+// MSI ist nur der Distributor für Avigilon/Pelco - für Produkt-/Regel-Matching
+// muss die tatsächliche Marke (msiBrand) verwendet werden, nicht "MSI" selbst.
+const resolveManufacturerBrand = (project: Partial<Project>): string | undefined => {
+  if (project.manufacturer === 'MSI') {
+    return project.msiBrand
+  }
+  return project.manufacturer
 }
 
 export default function Configurator() {
@@ -131,6 +140,7 @@ export default function Configurator() {
           manufacturer: dbProject.manufacturer as ManufacturerType,
           hanwhaSeries: dbProject.hanwha_series as HanwhaSeriesType,
           ajaxSeries: dbProject.ajax_series as AjaxSeriesType,
+          msiBrand: dbProject.msi_brand as MsiBrandType,
           videoManagement: dbProject.video_management as VideoManagementType,
           storageDays: dbProject.storage_days,
           storageHddSize: dbProject.storage_hdd_size || undefined,
@@ -218,7 +228,7 @@ export default function Configurator() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 tier: project.tier,
-                manufacturer: project.manufacturer,
+                manufacturer: resolveManufacturerBrand(project),
                 category,
                 features: {} // TODO: Add feature detection later
               })
@@ -273,7 +283,7 @@ export default function Configurator() {
     }
 
     loadConfiguratorProducts()
-  }, [project.tier, project.manufacturer]) // Also reload when manufacturer changes
+  }, [project.tier, project.manufacturer, project.msiBrand]) // Also reload when manufacturer/brand changes
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -319,6 +329,7 @@ export default function Configurator() {
             manufacturer: project.manufacturer,
             hanwha_series: project.hanwhaSeries,
             ajax_series: project.ajaxSeries,
+            msi_brand: project.msiBrand ?? null,
             video_management: project.videoManagement,
             storage_days: project.storageDays,
             storage_hdd_size: project.storageHddSize,
@@ -408,6 +419,7 @@ export default function Configurator() {
             manufacturer: project.manufacturer || 'Hanwha',
             hanwha_series: project.hanwhaSeries,
             ajax_series: project.ajaxSeries,
+            msi_brand: project.msiBrand ?? null,
             video_management: project.videoManagement || 'nvr',
             storage_days: project.storageDays || 2,
             storage_hdd_size: project.storageHddSize,
@@ -534,6 +546,8 @@ export default function Configurator() {
         if (project.manufacturer === 'Hanwha' && !project.hanwhaSeries) return false
         // If AJAX is selected, series must be selected
         if (project.manufacturer === 'AJAX' && !project.ajaxSeries) return false
+        // If MSI is selected, brand (Avigilon/Pelco) must be selected
+        if (project.manufacturer === 'MSI' && !project.msiBrand) return false
         return true
       case 4:
         return true
@@ -850,7 +864,8 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
     { value: 'AXIS', label: 'AXIS' },
     { value: 'Hanwha', label: 'Hanwha' },
     { value: 'AJAX', label: 'AJAX' },
-    { value: 'Keenfinity', label: 'Keenfinity' }
+    { value: 'IQSIGHT', label: 'IQSIGHT (ex Bosch)' },
+    { value: 'MSI', label: 'MSI (Avigilon/Pelco)' }
   ]
 
   // Filter manufacturers: For ECO tier, only show Hanwha and AJAX
@@ -942,6 +957,9 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                 }
                 if (manufacturer.value !== 'AJAX') {
                   updates.ajaxSeries = undefined
+                }
+                if (manufacturer.value !== 'MSI') {
+                  updates.msiBrand = undefined
                 }
                 
                 updateProject(updates)
@@ -1044,6 +1062,38 @@ const Step3TierAndManufacturer = ({ project, updateProject }: { project: Partial
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* MSI Brand Selection (Avigilon / Pelco) */}
+        {project.manufacturer === 'MSI' && (
+          <div className="mt-6 p-6 bg-gray-50 dark:bg-slate-700 rounded-lg border-2 border-primary-200 dark:border-primary-800">
+            <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">
+              Marke wählen *
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { value: 'Avigilon' as MsiBrandType, label: 'Avigilon', description: 'Motorola Solutions - Avigilon-Portfolio' },
+                { value: 'Pelco' as MsiBrandType, label: 'Pelco', description: 'Motorola Solutions - Pelco-Portfolio' }
+              ].map((brand) => (
+                <button
+                  key={brand.value}
+                  onClick={() => updateProject({ msiBrand: brand.value })}
+                  className={`p-4 rounded-lg border-2 text-left transition-all cursor-pointer ${
+                    project.msiBrand === brand.value
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                      : 'border-gray-300 dark:border-slate-600 bg-ci-light dark:bg-slate-800 text-gray-900 dark:text-white hover:border-primary-500 dark:hover:border-primary-400 hover:bg-gray-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <div className="font-semibold">
+                    {brand.label}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {brand.description}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -3614,6 +3664,7 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
                 {project.manufacturer || '-'}
                 {project.manufacturer === 'Hanwha' && project.hanwhaSeries && ` (${project.hanwhaSeries})`}
                 {project.manufacturer === 'AJAX' && project.ajaxSeries && ` (${project.ajaxSeries})`}
+                {project.manufacturer === 'MSI' && project.msiBrand && ` (${project.msiBrand})`}
               </dd>
             </div>
             <div className="flex justify-between">

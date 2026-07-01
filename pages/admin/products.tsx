@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import RouteGuard from '../../components/RouteGuard';
 import AdminLayout from '../../components/AdminLayout';
 import { supabase } from '../../lib/supabaseClient';
+import { getManufacturerLink } from '../../lib/manufacturerLinks';
 
 interface Manufacturer {
   id: string;
@@ -20,6 +21,7 @@ interface Product {
   uvp_cents: number;
   tags: string[];
   is_active: boolean;
+  manufacturer_url?: string | null;
   created_at: string;
   manufacturers?: {
     name: string;
@@ -548,6 +550,23 @@ ${firstSlug};switch;SAMPLE-SW-001;ESO999003;Beispiel PoE Switch;8 Port PoE+ Swit
                             <code className="text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-slate-700 px-1 py-0.5 rounded">
                               {product.sku}
                             </code>
+                            {(() => {
+                              const link = product.manufacturer_url
+                                ? { url: product.manufacturer_url, exact: true }
+                                : getManufacturerLink(product.manufacturers?.slug || '', product.sku);
+                              if (!link) return null;
+                              return (
+                                <a
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={link.exact ? 'Zur Produktseite beim Hersteller' : 'Suche auf der Herstellerseite (kein exakter Link)'}
+                                  className="ml-1 text-primary-600 dark:text-primary-400 hover:underline"
+                                >
+                                  {link.exact ? '🔗' : '🔍'}
+                                </a>
+                              );
+                            })()}
                             <br />
                             <code className="text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-slate-700 px-1 py-0.5 rounded">
                               {product.eso_number}

@@ -61,7 +61,8 @@ Pro Projekt oder Standort auswählbar:
 - **AXIS**
 - **Hanwha**
 - **AJAX**
-- **Keenfinity**
+- **IQSIGHT** (ex Bosch)
+- **MSI** (Avigilon/Pelco)
 
 Die Auswahl beeinflusst:
 - verfügbare Produkte

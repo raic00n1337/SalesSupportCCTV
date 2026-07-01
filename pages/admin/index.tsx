@@ -11,6 +11,7 @@ export default function AdminDashboard() {
     totalProjects: 0,
     totalManufacturers: 0,
     totalProducts: 0,
+    pendingCatalogChanges: 0,
     loading: true,
   });
 
@@ -40,11 +41,18 @@ export default function AdminDashboard() {
         .from('products')
         .select('*', { count: 'exact', head: true });
 
+      // Count pending catalog changes (price/sortiment monitor)
+      const { count: pendingChangesCount } = await supabase
+        .from('catalog_changes')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
       setStats({
         totalUsers: usersCount || 0,
         totalProjects: projectsCount || 0,
         totalManufacturers: manufacturersCount || 0,
         totalProducts: productsCount || 0,
+        pendingCatalogChanges: pendingChangesCount || 0,
         loading: false,
       });
     } catch (err) {
@@ -63,6 +71,17 @@ export default function AdminDashboard() {
           <p className="text-gray-600 dark:text-gray-400 mb-8">
             Willkommen zurück, {user?.email}
           </p>
+
+          {!stats.loading && stats.pendingCatalogChanges > 0 && (
+            <a
+              href="/admin/catalog-changes"
+              className="block mb-8 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+            >
+              <p className="text-amber-800 dark:text-amber-200 font-semibold">
+                💶 {stats.pendingCatalogChanges} offene Preis-/Sortiments-Änderung{stats.pendingCatalogChanges === 1 ? '' : 'en'} warten auf Freigabe →
+              </p>
+            </a>
+          )}
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -92,6 +111,13 @@ export default function AdminDashboard() {
               icon="📦"
               loading={stats.loading}
               href="/admin/products"
+            />
+            <StatCard
+              title="Offene Preis-Änderungen"
+              value={stats.pendingCatalogChanges}
+              icon="💶"
+              loading={stats.loading}
+              href="/admin/catalog-changes"
             />
           </div>
 
@@ -130,6 +156,16 @@ export default function AdminDashboard() {
                 title="Produkt-Regeln"
                 icon="⚡"
                 href="/admin/rules"
+              />
+              <QuickActionCard
+                title="Preis-/Sortiments-Monitor"
+                icon="💶"
+                href="/admin/catalog-changes"
+              />
+              <QuickActionCard
+                title="Preisliste importieren"
+                icon="📥"
+                href="/admin/import-compiler"
               />
             </div>
           </div>

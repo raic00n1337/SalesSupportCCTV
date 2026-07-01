@@ -33,9 +33,10 @@ CREATE TABLE IF NOT EXISTS public.projects (
   owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
   tier TEXT CHECK (tier IN ('eco', 'premium', 'high-risk')) NOT NULL,
-  manufacturer TEXT CHECK (manufacturer IN ('AXIS', 'Hanwha', 'AJAX', 'Keenfinity')) NOT NULL,
+  manufacturer TEXT CHECK (manufacturer IN ('AXIS', 'Hanwha', 'AJAX', 'IQSIGHT', 'MSI')) NOT NULL,
   hanwha_series TEXT CHECK (hanwha_series IN ('A-Series', 'Q/X-Series')),
   ajax_series TEXT CHECK (ajax_series IN ('Baseline', 'Superior')),
+  msi_brand TEXT CHECK (msi_brand IS NULL OR msi_brand IN ('Avigilon', 'Pelco')), -- MSI ist nur der Distributor für Avigilon/Pelco
   video_management TEXT CHECK (video_management IN ('nvr', 'vms')) NOT NULL,
   storage_days INT NOT NULL DEFAULT 3,
   storage_hdd_size INT,
@@ -366,7 +367,9 @@ INSERT INTO public.manufacturers (name, slug, is_active) VALUES
   ('AXIS', 'axis', true),
   ('Hanwha', 'hanwha', true),
   ('AJAX', 'ajax', true),
-  ('Keenfinity', 'keenfinity', true)
+  ('IQSIGHT', 'iqsight', true), -- ehemals Bosch Video Systems (Holding: Keenfinity Group)
+  ('Avigilon', 'avigilon', true), -- verbaut über Distributor MSI
+  ('Pelco', 'pelco', true) -- verbaut über Distributor MSI
 ON CONFLICT (slug) DO NOTHING;
 
 COMMENT ON TABLE public.profiles IS 'User profiles extending auth.users';

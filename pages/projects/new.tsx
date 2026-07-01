@@ -69,7 +69,8 @@ export default function NewProject() {
     { value: 'AXIS', label: 'AXIS' },
     { value: 'Hanwha', label: 'Hanwha' },
     { value: 'AJAX', label: 'AJAX' },
-    { value: 'Keenfinity', label: 'Keenfinity' }
+    { value: 'IQSIGHT', label: 'IQSIGHT (ex Bosch)' },
+    { value: 'MSI', label: 'MSI (Avigilon/Pelco)' }
   ]
 
   // Filter manufacturers based on tier

@@ -2,11 +2,17 @@
 
 export type TierType = 'eco' | 'premium' | 'high-risk';
 
-export type ManufacturerType = 'AXIS' | 'Hanwha' | 'AJAX' | 'Keenfinity';
+// Die 5 tatsächlich verbauten Marken. "IQSIGHT" ist die 2025/26 eingeführte
+// Nachfolgemarke von Bosch Video Systems (Holding: Keenfinity Group).
+// "MSI" ist der Distributor für Avigilon/Pelco (Motorola Solutions) - welche
+// der beiden Marken tatsächlich verbaut wird, steht in `msiBrand`.
+export type ManufacturerType = 'AXIS' | 'Hanwha' | 'AJAX' | 'IQSIGHT' | 'MSI';
 
 export type HanwhaSeriesType = 'A-Series' | 'Q/X-Series';
 
 export type AjaxSeriesType = 'Baseline' | 'Superior';
+
+export type MsiBrandType = 'Avigilon' | 'Pelco';
 
 export type LensType = 'fixed' | 'vario';
 
@@ -78,6 +84,7 @@ export interface Project {
   manufacturer: ManufacturerType;
   hanwhaSeries?: HanwhaSeriesType;
   ajaxSeries?: AjaxSeriesType;
+  msiBrand?: MsiBrandType;
   videoManagement: VideoManagementType;
   sites: Site[];
   storageDays: number;

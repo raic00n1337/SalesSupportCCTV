@@ -134,6 +134,7 @@ export const TARGET_COLUMNS = [
   { name: 'is_active', required: false, type: 'boolean' },
   { name: 'manufacturer_slug', required: true, type: 'string' },
   { name: 'slug', required: false, type: 'string' },
+  { name: 'manufacturer_url', required: false, type: 'string' },
 ];
 
 /**
@@ -148,4 +149,5 @@ export const COLUMN_NAME_ALIASES: Record<string, string[]> = {
   description: ['description', 'beschreibung', 'details', 'info'],
   is_active: ['active', 'aktiv', 'status', 'enabled'],
   manufacturer_slug: ['manufacturer', 'hersteller', 'brand', 'marke'],
+  manufacturer_url: ['url', 'link', 'product url', 'produktlink', 'webseite', 'produktseite'],
 };

@@ -87,7 +87,7 @@ App läuft auf: **http://localhost:3000**
 
 ### 3. Paket & Hersteller wählen
 - Paket: Eco / Premium / High-Risk
-- Hersteller: AXIS / Hanwha / AJAX / Keenfinity
+- Hersteller: AXIS / Hanwha / AJAX / IQSIGHT (ex Bosch) / MSI (Avigilon/Pelco)
 - Video-Management: NVR oder VMS
 - Speicherdauer: 1-90 Tage
 

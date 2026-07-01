@@ -17,6 +17,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Produkte', href: '/admin/products', icon: '📦' },
     { name: 'Tier-Defaults', href: '/admin/tier-defaults', icon: '⚙️' },
     { name: 'Regeln', href: '/admin/rules', icon: '📋' },
+    { name: 'Preis-Monitor', href: '/admin/catalog-changes', icon: '💶' },
+    { name: 'Import-Compiler', href: '/admin/import-compiler', icon: '📥' },
   ];
 
   const isActive = (href: string) => {

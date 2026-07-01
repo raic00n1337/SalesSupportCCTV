@@ -55,9 +55,10 @@ export interface Database {
           owner_id: string
           name: string
           tier: 'eco' | 'premium' | 'high-risk'
-          manufacturer: 'AXIS' | 'Hanwha' | 'AJAX' | 'Keenfinity'
+          manufacturer: 'AXIS' | 'Hanwha' | 'AJAX' | 'IQSIGHT' | 'MSI'
           hanwha_series: 'A-Series' | 'Q/X-Series' | null
           ajax_series: 'Baseline' | 'Superior' | null
+          msi_brand: 'Avigilon' | 'Pelco' | null
           video_management: 'nvr' | 'vms'
           storage_days: number
           storage_hdd_size: number | null
@@ -75,9 +76,10 @@ export interface Database {
           owner_id: string
           name: string
           tier: 'eco' | 'premium' | 'high-risk'
-          manufacturer: 'AXIS' | 'Hanwha' | 'AJAX' | 'Keenfinity'
+          manufacturer: 'AXIS' | 'Hanwha' | 'AJAX' | 'IQSIGHT' | 'MSI'
           hanwha_series?: 'A-Series' | 'Q/X-Series' | null
           ajax_series?: 'Baseline' | 'Superior' | null
+          msi_brand?: 'Avigilon' | 'Pelco' | null
           video_management: 'nvr' | 'vms'
           storage_days: number
           storage_hdd_size?: number | null
@@ -95,9 +97,10 @@ export interface Database {
           owner_id?: string
           name?: string
           tier?: 'eco' | 'premium' | 'high-risk'
-          manufacturer?: 'AXIS' | 'Hanwha' | 'AJAX' | 'Keenfinity'
+          manufacturer?: 'AXIS' | 'Hanwha' | 'AJAX' | 'IQSIGHT' | 'MSI'
           hanwha_series?: 'A-Series' | 'Q/X-Series' | null
           ajax_series?: 'Baseline' | 'Superior' | null
+          msi_brand?: 'Avigilon' | 'Pelco' | null
           video_management?: 'nvr' | 'vms'
           storage_days?: number
           storage_hdd_size?: number | null

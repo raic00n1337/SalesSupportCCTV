@@ -20,8 +20,8 @@ Der Video-System-Konfigurator ist vollständig funktionsfähig und einsatzbereit
 
 #### **Step 3: Paket & Hersteller**
 - Pakete: Eco, Premium, High-Risk
-- Hersteller: AXIS, Hanwha, AJAX, Keenfinity
-- Sub-Menüs für Hanwha (A-Series, Q/X-Series) und AJAX (Baseline, Superior)
+- Hersteller: AXIS, Hanwha, AJAX, IQSIGHT (ex Bosch), MSI (Avigilon/Pelco)
+- Sub-Menüs für Hanwha (A-Series, Q/X-Series), AJAX (Baseline, Superior) und MSI (Avigilon, Pelco)
 - Video-Management: NVR/VMS
 - NVR: HDD-Auswahl (2-12TB) + Anzahl der Platten
 - Speicherdauer: 1-90 Tage mit DSGVO-Warnung
@@ -115,7 +115,7 @@ SalesSupportCCTV/
 {
   name: string
   tier: 'eco' | 'premium' | 'high-risk'
-  manufacturer: 'AXIS' | 'Hanwha' | 'AJAX' | 'Keenfinity'
+  manufacturer: 'AXIS' | 'Hanwha' | 'AJAX' | 'IQSIGHT' | 'MSI'
   hanwhaSeries?: 'A-Series' | 'Q/X-Series'
   ajaxSeries?: 'Baseline' | 'Superior'
   videoManagement: 'nvr' | 'vms'
