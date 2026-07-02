@@ -3,6 +3,7 @@ import RouteGuard from '../../components/RouteGuard';
 import AdminLayout from '../../components/AdminLayout';
 import { supabase } from '../../lib/supabaseClient';
 import { getManufacturerLink } from '../../lib/manufacturerLinks';
+import { fetchAllRows } from '../../lib/supabasePagination';
 
 interface Manufacturer {
   id: string;
@@ -91,20 +92,21 @@ export default function AdminProducts() {
       if (mfgError) throw mfgError;
       setManufacturers(mfgData || []);
 
-      // Load products with manufacturer data
-      const { data: prodData, error: prodError } = await supabase
-        .from('products')
-        .select(`
-          *,
-          manufacturers (
-            name,
-            slug
-          )
-        `)
-        .order('name', { ascending: true });
-
-      if (prodError) throw prodError;
-      setProducts(prodData || []);
+      // Load products with manufacturer data (paged - see fetchAllRows).
+      const prodData = await fetchAllRows<Product>((from, to) =>
+        supabase
+          .from('products')
+          .select(`
+            *,
+            manufacturers (
+              name,
+              slug
+            )
+          `)
+          .order('name', { ascending: true })
+          .range(from, to)
+      );
+      setProducts(prodData);
     } catch (err: any) {
       console.error('Error loading data:', err);
       setError(err.message || 'Fehler beim Laden der Daten');

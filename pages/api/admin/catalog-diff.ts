@@ -12,6 +12,7 @@ import { compileFile, decodeUploadedFileContent } from '../../../lib/csvCompiler
 import { computeCatalogDiff, type CatalogDiffRow, type ExistingCatalogProduct } from '../../../lib/catalogDiff';
 import { getManufacturerLink } from '../../../lib/manufacturerLinks';
 import { FORMAT_PROFILES } from '../../../lib/formatProfiles';
+import { fetchAllRows } from '../../../lib/supabasePagination';
 import type { CompilerOptions } from '../../../lib/csvCompilerTypes';
 
 export const config = {
@@ -79,13 +80,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const { data: existingProducts, error: productsError } = await supabaseAdmin
-      .from('products')
-      .select('id, sku, name, uvp_cents, is_active')
-      .eq('manufacturer_id', (manufacturer as any).id);
-
-    if (productsError) {
-      return res.status(500).json({ error: 'Fehler beim Laden des bestehenden Katalogs', details: productsError.message });
+    // Manufacturers like AXIS and Hanwha already have well over 1000 products,
+    // so this must be paged (see fetchAllRows) - otherwise the diff would
+    // silently ignore everything past the cutoff, making existing products
+    // look "new" and missing price changes/discontinuations.
+    let existingProducts: ExistingCatalogProduct[];
+    try {
+      existingProducts = await fetchAllRows<ExistingCatalogProduct>((from, to) =>
+        supabaseAdmin
+          .from('products')
+          .select('id, sku, name, uvp_cents, is_active')
+          .eq('manufacturer_id', (manufacturer as any).id)
+          .range(from, to)
+      );
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Fehler beim Laden des bestehenden Katalogs', details: err.message });
     }
 
     const diffRows: CatalogDiffRow[] = compileResult.transformedData
@@ -101,11 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         raw: row,
       }));
 
-    const diff = computeCatalogDiff(
-      diffRows,
-      (existingProducts || []) as ExistingCatalogProduct[],
-      Boolean(isFullCatalog)
-    );
+    const diff = computeCatalogDiff(diffRows, existingProducts, Boolean(isFullCatalog));
 
     // Persist as a batch + pending change rows for manual review.
     const { data: batch, error: batchError } = await supabaseAdmin

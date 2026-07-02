@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import RouteGuard from '../../components/RouteGuard';
 import AdminLayout from '../../components/AdminLayout';
 import { supabase } from '../../lib/supabaseClient';
+import { fetchAllRows } from '../../lib/supabasePagination';
 
 type TierType = 'eco' | 'premium' | 'high-risk';
 
@@ -94,25 +95,26 @@ export default function AdminTierDefaults() {
       if (mfgError) throw mfgError;
       setManufacturers(mfgData || []);
 
-      // Load products
-      const { data: prodData, error: prodError } = await supabase
-        .from('products')
-        .select(`
-          id,
-          sku,
-          name,
-          category,
-          manufacturer_id,
-          manufacturers (
+      // Load products (paged - see fetchAllRows, catalog has 2000+ products)
+      const prodData = await fetchAllRows<Product>((from, to) =>
+        supabase
+          .from('products')
+          .select(`
+            id,
+            sku,
             name,
-            slug
-          )
-        `)
-        .eq('is_active', true)
-        .order('name', { ascending: true });
-
-      if (prodError) throw prodError;
-      setProducts(prodData || []);
+            category,
+            manufacturer_id,
+            manufacturers (
+              name,
+              slug
+            )
+          `)
+          .eq('is_active', true)
+          .order('name', { ascending: true })
+          .range(from, to)
+      );
+      setProducts(prodData);
 
       // Load tier defaults
       const { data: tierData, error: tierError } = await supabase

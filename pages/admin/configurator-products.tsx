@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../../lib/AuthContext'
 import { supabase } from '../../lib/supabaseClient'
+import { fetchAllRows } from '../../lib/supabasePagination'
 import Link from 'next/link'
 import type { ConfiguratorProduct } from '../api/configurator/products'
 
@@ -98,25 +99,27 @@ export default function ConfiguratorProductsPage() {
 
   const handleLoadAllProducts = async () => {
     try {
-      const { data, error: fetchError } = await supabase
-        .from('products')
-        .select(`
-          id,
-          name,
-          sku,
-          eso_number,
-          manufacturer_id,
-          manufacturers (
+      // Paged - see fetchAllRows, catalog has 2000+ products
+      const data = await fetchAllRows<Product>((from, to) =>
+        supabase
+          .from('products')
+          .select(`
+            id,
             name,
-            slug
-          )
-        `)
-        .eq('is_active', true)
-        .order('name', { ascending: true })
+            sku,
+            eso_number,
+            manufacturer_id,
+            manufacturers (
+              name,
+              slug
+            )
+          `)
+          .eq('is_active', true)
+          .order('name', { ascending: true })
+          .range(from, to)
+      )
 
-      if (fetchError) throw fetchError
-
-      setAllProducts(data as Product[])
+      setAllProducts(data)
     } catch (err: any) {
       console.error('Error loading all products:', err)
     }
