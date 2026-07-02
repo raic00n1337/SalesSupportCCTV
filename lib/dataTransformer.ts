@@ -188,6 +188,20 @@ export function cleanData(rows: any[]): any[] {
       cleaned.slug = generateSlug(cleaned.name, cleaned.manufacturer_slug);
     }
 
+    // Most manufacturer price lists don't include a clean EAN/GTIN column,
+    // but `products.eso_number` is NOT NULL + UNIQUE in the DB - fall back
+    // to the SKU rather than leaving it empty (same fallback already used
+    // in pages/api/admin/catalog-changes.ts when approving new products).
+    if (cleaned.sku && !cleaned.eso_number) {
+      cleaned.eso_number = cleaned.sku;
+    }
+
+    // `products.category` is NOT NULL too; not every profile can derive one
+    // (e.g. a flat price list with no category column/sheet).
+    if (!cleaned.category) {
+      cleaned.category = 'Sonstiges';
+    }
+
     return cleaned;
   });
 }

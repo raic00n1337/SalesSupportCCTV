@@ -11,6 +11,7 @@ import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 import { compileFile, decodeUploadedFileContent } from '../../../lib/csvCompiler';
 import { computeCatalogDiff, type CatalogDiffRow, type ExistingCatalogProduct } from '../../../lib/catalogDiff';
 import { getManufacturerLink } from '../../../lib/manufacturerLinks';
+import { FORMAT_PROFILES } from '../../../lib/formatProfiles';
 import type { CompilerOptions } from '../../../lib/csvCompilerTypes';
 
 export const config = {
@@ -56,11 +57,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: `Unknown manufacturer slug: ${manufacturerSlug}` });
     }
 
+    // Prefer the manufacturer's own format profile (real sheet/header/column
+    // layout) over generic auto-detection whenever we have one - the admin
+    // already told us the manufacturer via the dropdown, so there's no need
+    // to guess from column headers, which is fragile for messy real-world
+    // workbooks (multiple sheets, title rows, unlabeled columns, etc.).
+    const resolvedFormatProfile = formatProfile || (FORMAT_PROFILES[manufacturerSlug] ? manufacturerSlug : undefined);
+
     const compilerOptions: CompilerOptions = {
       autoDetect: true,
       validateData: true,
       dryRun: true,
-      formatProfile,
+      formatProfile: resolvedFormatProfile,
     };
 
     const compileResult = await compileFile(decodedContent, fileName, compilerOptions);

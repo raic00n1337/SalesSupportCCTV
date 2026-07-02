@@ -30,10 +30,23 @@ export function parseLocalizedNumber(value: unknown): number | null {
       str = str.replace(/,/g, '');
     }
   } else if (lastComma !== -1) {
-    // Only a comma: German-style decimal separator.
-    str = str.replace(',', '.');
+    // Only a comma. A decimal separator is virtually always followed by
+    // exactly 2 digits (cents), e.g. "459,99". Some price lists (e.g. AXIS'
+    // EU export) instead use a bare comma as a thousands separator with no
+    // decimals at all, e.g. "19,999" meaning 19999 - which a 2-digit check
+    // would otherwise misread as 19.999.
+    const digitsAfterComma = str.length - lastComma - 1;
+    str = digitsAfterComma === 2 ? str.replace(',', '.') : str.replace(/,/g, '');
+  } else if (lastDot !== -1) {
+    // Only a dot. Same ambiguity as above, mirrored: 2 trailing digits reads
+    // as a decimal ("459.99"), anything else (e.g. German-style "19.999"
+    // thousands grouping with no decimals) is stripped as a thousands
+    // separator.
+    const digitsAfterDot = str.length - lastDot - 1;
+    if (digitsAfterDot !== 2) {
+      str = str.replace(/\./g, '');
+    }
   }
-  // Only a dot (or neither): already a valid decimal string.
 
   str = str.replace(/[^\d.-]/g, '');
   const num = parseFloat(str);
