@@ -142,6 +142,38 @@ describe('Preislisten-Import: Hanwha (unbeschriftete Kategorie-Spalte + Trennzei
   });
 });
 
+function buildIqsightWorkbook(): ArrayBuffer {
+  const sheet = XLSX.utils.aoa_to_sheet([
+    ['Typ (CTN)', 'SAP-Nr.', 'EAN-Code', 'Kurzbezeichnung', 'Langtext', 'Listpreis 1Stk', 'Index', 'LKat', 'RKat', 'Ursprungsland', 'Stat. Warennr.', 'Garantie'],
+    ['NDP-5522-Z30', 'F.01U.421.002', '4060039191953', 'AUTODOME starlight 5000i', 'AUTODOME starlight 5000i | 2Mp60', 2136.3, '', 'A', '1A', 'PT', '8525890000', '5/3'],
+    ['MIC-7803S-Z30B', 'F.01U.420.017', '4060039190901', 'MIC starlight 7100s', 'MIC starlight 7100s | 4Mp60', 6798, 'neu', 'A', '1A', 'PT', '8525890000', '5/3'],
+    ['NDM-7702-A', 'F.01U.360.599', '4060039119599', 'FLEXIDOME multi 7000i (EOL)', 'FLEXIDOME multi 7000i | 4x 3Mp30', 2054.8, 'AP', 'A', '1A', 'PT', '8525890000', '5/3'],
+  ]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Preisliste');
+  const buffer: Buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+}
+
+describe('Preislisten-Import: IQSIGHT (Bosch Videosysteme)', () => {
+  it('liest SKU, EAN als eso_number und erkennt "AP" (Auslaufprodukt) als inaktiv', async () => {
+    const result = await compileFile(buildIqsightWorkbook(), 'iqsight-preisliste.xlsx', {
+      ...options,
+      formatProfile: 'iqsight',
+    });
+
+    expect(result.transformedData).toHaveLength(3);
+
+    const active = result.transformedData.find((r: any) => r.sku === 'NDP-5522-Z30');
+    expect(active.uvp_cents).toBe(213630);
+    expect(active.eso_number).toBe('4060039191953');
+    expect(active.is_active).toBe(true);
+
+    const eol = result.transformedData.find((r: any) => r.sku === 'NDM-7702-A');
+    expect(eol.is_active).toBe(false);
+  });
+});
+
 describe('Preislisten-Import: Excel-Upload (Base64-Pfad wie im Browser)', () => {
   it('dekodiert eine base64-kodierte .xlsx-Datei korrekt und kompiliert sie über das AXIS-Profil', async () => {
     // Simulates what lib/readFileForUpload.ts produces client-side for .xlsx

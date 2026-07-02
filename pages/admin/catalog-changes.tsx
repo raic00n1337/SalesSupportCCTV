@@ -50,6 +50,14 @@ export default function CatalogChangesPage() {
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const [completionMessage, setCompletionMessage] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState('');
+
+  // Batches requests so hundreds of selected rows don't turn into hundreds of
+  // sequential round-trips, while still giving the progress bar something to
+  // move on between batches.
+  const REVIEW_BATCH_SIZE = 25;
 
   const loadManufacturers = useCallback(async () => {
     const { data } = await supabase.from('manufacturers').select('id, name, slug').eq('is_active', true).order('name');
@@ -120,53 +128,83 @@ export default function CatalogChangesPage() {
     }
   };
 
-  const reviewChanges = async (ids: string[], action: 'approve' | 'reject') => {
-    setError('');
+  interface ReviewResult {
+    id: string;
+    success: boolean;
+    error?: string;
+  }
+
+  // Submits one batch of ids and returns the per-item results. Throws only
+  // on total failure (network error, auth, etc.) - partial per-item failures
+  // come back as `success: false` entries instead so the caller can keep
+  // going with the rest of the batch.
+  const submitReviewBatch = async (ids: string[], action: 'approve' | 'reject'): Promise<ReviewResult[]> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Nicht angemeldet');
+
+    const res = await fetch('/api/admin/catalog-changes', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ ids, action }),
+    });
+
+    const data = await res.json();
+    if (!res.ok && res.status !== 207) throw new Error(data.error || 'Aktion fehlgeschlagen');
+
+    return (data.results as ReviewResult[]) || [];
+  };
+
+  const runReview = async (ids: string[], action: 'approve' | 'reject') => {
+    setReviewError('');
+    setCompletionMessage(null);
+    setBulkProgress({ done: 0, total: ids.length });
+
+    let succeededCount = 0;
+    const failedMessages: string[] = [];
+
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Nicht angemeldet');
+      for (let i = 0; i < ids.length; i += REVIEW_BATCH_SIZE) {
+        const batch = ids.slice(i, i + REVIEW_BATCH_SIZE);
+        const results = await submitReviewBatch(batch, action);
 
-      const res = await fetch('/api/admin/catalog-changes', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ ids, action }),
-      });
+        const succeededIds = new Set(results.filter((r) => r.success).map((r) => r.id));
+        succeededCount += succeededIds.size;
+        results.filter((r) => !r.success).forEach((r) => r.error && failedMessages.push(r.error));
 
-      const data = await res.json();
-      if (!res.ok && res.status !== 207) throw new Error(data.error || 'Aktion fehlgeschlagen');
+        setChanges((prev) => prev.filter((c) => !succeededIds.has(c.id)));
+        setSelectedIds((prev) => new Set(Array.from(prev).filter((id) => !succeededIds.has(id))));
+        setBulkProgress({ done: Math.min(i + batch.length, ids.length), total: ids.length });
+      }
 
-      const results: { id: string; success: boolean; error?: string }[] = data.results || [];
-      const succeededIds = new Set(results.filter((r) => r.success).map((r) => r.id));
-      const failed = results.filter((r) => !r.success);
-
-      setChanges((prev) => prev.filter((c) => !succeededIds.has(c.id)));
-      setSelectedIds((prev) => new Set(Array.from(prev).filter((id) => !succeededIds.has(id))));
-
-      if (failed.length > 0) {
-        setError(
-          failed.length === results.length
-            ? `Aktion fehlgeschlagen: ${failed[0].error}`
-            : `${failed.length} von ${results.length} Änderungen konnten nicht verarbeitet werden: ${failed[0].error}`
-        );
+      const actionLabel = action === 'approve' ? 'übernommen' : 'verworfen';
+      if (failedMessages.length === 0) {
+        setCompletionMessage(`✅ ${succeededCount} von ${ids.length} Änderung${ids.length === 1 ? '' : 'en'} erfolgreich ${actionLabel}.`);
+      } else if (succeededCount === 0) {
+        setReviewError(`Aktion fehlgeschlagen: ${failedMessages[0]}`);
+      } else {
+        setCompletionMessage(`⚠️ ${succeededCount} von ${ids.length} erfolgreich ${actionLabel}, ${failedMessages.length} fehlgeschlagen.`);
+        setReviewError(failedMessages[0]);
       }
     } catch (err: any) {
-      setError(err.message || 'Fehler bei der Freigabe');
+      setReviewError(err.message || 'Fehler bei der Freigabe');
+    } finally {
+      setBulkProgress(null);
     }
   };
 
   const handleReview = async (id: string, action: 'approve' | 'reject') => {
     setReviewingId(id);
-    await reviewChanges([id], action);
+    await runReview([id], action);
     setReviewingId(null);
   };
 
   const handleBulkReview = async (action: 'approve' | 'reject') => {
     if (selectedIds.size === 0) return;
     setBulkAction(action);
-    await reviewChanges(Array.from(selectedIds), action);
+    await runReview(Array.from(selectedIds), action);
     setBulkAction(null);
   };
 
@@ -315,6 +353,47 @@ export default function CatalogChangesPage() {
               </div>
             )}
           </div>
+
+          {reviewError && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200 text-sm flex items-center justify-between gap-3">
+              <span>{reviewError}</span>
+              <button
+                onClick={() => setReviewError('')}
+                className="text-red-700 dark:text-red-300 hover:opacity-70"
+                aria-label="Meldung schließen"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {bulkProgress && (
+            <div className="mb-4">
+              <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
+                <span>{bulkAction === 'reject' ? 'Verwerfe' : 'Übernehme'} Änderungen...</span>
+                <span>{bulkProgress.done} / {bulkProgress.total}</span>
+              </div>
+              <div className="w-full h-2.5 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary-600 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${Math.round((bulkProgress.done / Math.max(bulkProgress.total, 1)) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {completionMessage && !bulkProgress && (
+            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200 text-sm flex items-center justify-between gap-3">
+              <span>{completionMessage}</span>
+              <button
+                onClick={() => setCompletionMessage(null)}
+                className="text-green-700 dark:text-green-300 hover:opacity-70"
+                aria-label="Meldung schließen"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           {loadingChanges ? (
             <p className="text-gray-500 dark:text-gray-400">Lade...</p>

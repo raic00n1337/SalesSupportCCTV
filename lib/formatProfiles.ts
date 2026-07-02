@@ -115,6 +115,40 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
     },
   },
 
+  // IQSIGHT Format - based on the real
+  // "IQSIGHT-Videosysteme-Preisliste_09-2026_V1.xlsx" export (IQSIGHT is the
+  // 2025/26 rebrand of Bosch Video Systems - hence Bosch model names like
+  // AUTODOME/FLEXIDOME/MIC). Much cleaner than AXIS/Hanwha: a single
+  // "Preisliste" sheet with the header directly on row 0, no title rows or
+  // section dividers. "EAN-Code" gives us a real eso_number for once. The
+  // "Index" column marks upcoming items ("neu", or a "MM/YY" planned
+  // availability date) and uses "AP" ("Auslaufprodukt") for items being
+  // phased out - everything else counts as active.
+  iqsight: {
+    name: 'IQSIGHT (Bosch Videosysteme)',
+    manufacturer: 'IQSIGHT',
+    delimiter: ',',
+    encoding: 'utf-8',
+    hasHeader: true,
+    columnMap: {
+      'Typ (CTN)': 'sku',
+      'EAN-Code': 'eso_number',
+      'Kurzbezeichnung': 'name',
+      'Langtext': 'description',
+      'Listpreis 1Stk': 'uvp_cents',
+      'Index': 'is_active',
+    },
+    transformations: {
+      uvp_cents: (value: string) => parsePriceToCents(value) ?? 0,
+      is_active: (value: unknown) => (value ?? '').toString().trim().toUpperCase() !== 'AP',
+    },
+    excel: {
+      sheetNames: ['Preisliste'],
+      headerKeywords: ['Typ (CTN)', 'EAN-Code', 'Listpreis'],
+      maxHeaderSearchRows: 5,
+    },
+  },
+
   // Generic/Default Format (Our format)
   generic: {
     name: 'Generic Format',
