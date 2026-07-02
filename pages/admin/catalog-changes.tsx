@@ -359,8 +359,22 @@ export default function CatalogChangesPage() {
                       <td className="px-4 py-2 whitespace-nowrap">{CHANGE_TYPE_LABEL[c.change_type]}</td>
                       <td className="px-4 py-2">{c.manufacturers?.name || '-'}</td>
                       <td className="px-4 py-2">
-                        <div className="font-medium text-gray-900 dark:text-white">{c.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{c.sku}</div>
+                        {/* Hanwha's "name" is often just a generic type label
+                            shared across many SKUs (e.g. "Barcode Reader
+                            Camera" for 3+ different model codes) - the model
+                            code is the actually distinguishing identifier
+                            there, so show it as the headline instead. */}
+                        {c.manufacturers?.slug === 'hanwha' ? (
+                          <>
+                            <div className="font-medium text-gray-900 dark:text-white">{c.sku}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{c.name}</div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="font-medium text-gray-900 dark:text-white">{c.name}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{c.sku}</div>
+                          </>
+                        )}
                       </td>
                       <td className="px-4 py-2 text-right">{formatCents(c.old_price_cents)}</td>
                       <td className="px-4 py-2 text-right font-semibold">{formatCents(c.new_price_cents)}</td>
