@@ -280,8 +280,22 @@ export default function AdminTierDefaults() {
     return true;
   });
 
-  // Get unique categories
-  const categories = Array.from(new Set(products.map(p => p.category))).sort();
+  // Get unique categories for a given manufacturer slug (or all, when empty)
+  // so category dropdowns don't drown in categories from every other
+  // manufacturer (e.g. AJAX alone contributes ~50 of its own). Used
+  // separately for the table filter and the create/edit modal, since each
+  // has its own manufacturer selection.
+  const categoriesForManufacturer = (manufacturerSlug: string) =>
+    Array.from(
+      new Set(
+        products
+          .filter(p => !manufacturerSlug || p.manufacturers?.slug === manufacturerSlug)
+          .map(p => p.category)
+      )
+    ).sort();
+
+  const categories = categoriesForManufacturer(filterManufacturer);
+  const modalCategories = categoriesForManufacturer(modalForm.manufacturerSlug);
 
   // Get filtered products for modal
   const filteredProducts = products.filter(p => {
@@ -372,7 +386,13 @@ export default function AdminTierDefaults() {
               </label>
               <select
                 value={filterManufacturer}
-                onChange={(e) => setFilterManufacturer(e.target.value)}
+                onChange={(e) => {
+                  setFilterManufacturer(e.target.value);
+                  // The previously selected category may not exist for the
+                  // newly chosen manufacturer - reset it rather than silently
+                  // filtering the table down to zero results.
+                  setFilterCategory('');
+                }}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
               >
                 <option value="">Alle Hersteller</option>
@@ -574,7 +594,7 @@ export default function AdminTierDefaults() {
                     <select
                       required
                       value={modalForm.manufacturerSlug}
-                      onChange={(e) => setModalForm({ ...modalForm, manufacturerSlug: e.target.value, productSku: '' })}
+                      onChange={(e) => setModalForm({ ...modalForm, manufacturerSlug: e.target.value, category: '', productSku: '' })}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                     >
                       <option value="">-- Auswählen --</option>
@@ -595,7 +615,7 @@ export default function AdminTierDefaults() {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                     >
                       <option value="">-- Auswählen --</option>
-                      {categories.map(cat => (
+                      {modalCategories.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>

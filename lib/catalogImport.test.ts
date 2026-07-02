@@ -172,6 +172,126 @@ describe('Preislisten-Import: IQSIGHT (Bosch Videosysteme)', () => {
     const eol = result.transformedData.find((r: any) => r.sku === 'NDM-7702-A');
     expect(eol.is_active).toBe(false);
   });
+
+  it('löst eine wiederverwendete EAN über Nachfolgemodelle per SKU-Fallback auf, statt die Zeile zu verwerfen', async () => {
+    // Real-world quirk seen in the actual IQSIGHT price list: a discontinued
+    // model and its successor(s) sometimes share the exact same EAN-Code.
+    // `products.eso_number` is UNIQUE, so the 2nd+ row must fall back to its
+    // (already-unique) SKU rather than failing the DB insert or being
+    // dropped outright - these are genuinely different products.
+    const sheet = XLSX.utils.aoa_to_sheet([
+      ['Typ (CTN)', 'SAP-Nr.', 'EAN-Code', 'Kurzbezeichnung', 'Langtext', 'Listpreis 1Stk', 'Index'],
+      ['NDM-7703-A', 'F.01U.389.263', '4060039119605', 'FLEXIDOME multi 7000i', 'altes Modell', 2610.2, 'AP'],
+      ['NMM-7703-A', 'F.01U.423.943', '4060039119605', 'FLEXIDOME Multi+ 7100i', 'Nachfolgemodell', 2998, ''],
+      ['NMM-7703-AL', 'F.01U.423.944', '4060039119605', 'FLEXIDOME Multi+ 7100i IR', 'Nachfolgemodell IR', 3237, ''],
+    ]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Preisliste');
+    const buffer: Buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+
+    const result = await compileFile(arrayBuffer, 'iqsight-ean-collision.xlsx', {
+      ...options,
+      formatProfile: 'iqsight',
+    });
+
+    expect(result.transformedData).toHaveLength(3);
+    const eol = result.transformedData.find((r: any) => r.sku === 'NDM-7703-A');
+    const successor1 = result.transformedData.find((r: any) => r.sku === 'NMM-7703-A');
+    const successor2 = result.transformedData.find((r: any) => r.sku === 'NMM-7703-AL');
+
+    expect(eol.eso_number).toBe('4060039119605'); // first occurrence keeps the real EAN
+    expect(successor1.eso_number).toBe('NMM-7703-A'); // later occurrences fall back to their own SKU
+    expect(successor2.eso_number).toBe('NMM-7703-AL');
+
+    const esoValues = result.transformedData.map((r: any) => r.eso_number);
+    expect(new Set(esoValues).size).toBe(esoValues.length); // all unique
+  });
+});
+
+function buildAjaxWorkbook(): ArrayBuffer {
+  const workbook = XLSX.utils.book_new();
+
+  // "Intrusion protection | Superior" - repeats header+category block twice,
+  // includes the marketing blurb + "Superior" banner that must be ignored as
+  // section titles, and one G3 item that must be pulled into its own group.
+  const intrusionSuperior = XLSX.utils.aoa_to_sheet([
+    ['', 'New generation of wireless security systems', '', '', '', '', '', '', ''],
+    ['Currency: EUR', '', '', '', '', '', '', '', ''],
+    ['Superior', '', '', '', '', '', '', '', ''],
+    [
+      'Superior and Fibra product lines are merging into the Superior product line in the Intrusion protection product category, this is a very long marketing sentence that must not be mistaken for a real section title because real category names are always short.',
+      '', '', '', '', '', '', '', '',
+    ],
+    ['Control panels', '', '', '', '', '', '', '', ''],
+    ['TDS', 'EAN', 'Article', 'Code', 'Item', 'Color', 'Type of connection', 'UVP (VAT not included)', 'Masterbox'],
+    ['Link', 4823114078705, '143565.111.BL1', 143565, 'Superior Hub Hybrid (2G)', 'black', 'Hybrid', 578.66, 5],
+    ['Link', 4823114078712, '143566.111.WH1', 143566, 'Superior Hub Hybrid (2G)', 'white', 'Hybrid', 578.66, 5],
+    ['', '', '', '', '', '', '', '', ''],
+    ['Range extenders', '', '', '', '', '', '', '', ''],
+    ['TDS', 'EAN', 'Article', 'Code', 'Item', 'Color', 'Type of connection', 'UVP (VAT not included)', 'Masterbox'],
+    ['Link', 4823114036234, '148937.362.BL1', 148937, 'Superior Hub G3 Jeweller', 'black', 'Wireless', 738.57, 8],
+  ]);
+  XLSX.utils.book_append_sheet(workbook, intrusionSuperior, 'Intrusion protection | Superior');
+
+  const intrusionBaseline = XLSX.utils.aoa_to_sheet([
+    ['Currency: EUR', '', '', '', '', '', ''],
+    ['Baseline', '', '', '', '', '', ''],
+    ['Control panels', '', '', '', '', '', ''],
+    ['TDS', 'EAN', 'Article', 'Code', 'Item', 'Color', 'UVP (VAT not included)'],
+    // Price uses US-style thousands grouping ("1,240.65") like the real file.
+    ['Link', 4823114015212, '38236.01.BL1', 38236, 'Hub (2G) Jeweller', 'black', '1,240.65'],
+  ]);
+  XLSX.utils.book_append_sheet(workbook, intrusionBaseline, 'Intrusion protection | Baseline');
+
+  // No Superior/Baseline split at all - and a duplicate SKU also present on
+  // the Superior sheet above, which must be deduped (first occurrence wins).
+  const comfort = XLSX.utils.aoa_to_sheet([
+    ['Currency: EUR', '', '', '', '', ''],
+    ['Water leak detectors', '', '', '', '', ''],
+    ['TDS', 'EAN', 'Article', 'Code', 'Item', 'UVP (VAT not included)'],
+    ['Link', 4823114008254, '38254.08.BL1', 38254, 'LeaksProtect', 72.46],
+    ['Link', 4823114078705, '143565.111.BL1', 143565, 'Superior Hub Hybrid (2G)', 578.66], // duplicate SKU - must be dropped
+  ]);
+  XLSX.utils.book_append_sheet(workbook, comfort, 'Comfort & automation');
+
+  const buffer: Buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+}
+
+describe('Preislisten-Import: AJAX (wiederholte Kopfzeilen/Kategorie-Abschnitte pro Sheet)', () => {
+  it('trennt Superior/Baseline, hebt G3-Artikel in einer eigenen Gruppe hervor und dedupliziert SKUs sheet-übergreifend', async () => {
+    const result = await compileFile(buildAjaxWorkbook(), 'ajax-preisliste.xlsx', {
+      ...options,
+      formatProfile: 'ajax',
+    });
+
+    const bySku = (sku: string) => result.transformedData.find((r: any) => r.sku === sku);
+
+    const superiorHub = bySku('143565.111.BL1');
+    expect(superiorHub.name).toBe('Superior Hub Hybrid (2G) (black)');
+    expect(superiorHub.category).toBe('Intrusion protection Superior – Control panels');
+    expect(superiorHub.tags).toEqual(expect.arrayContaining(['ajax', 'superior', 'hybrid']));
+    expect(superiorHub.uvp_cents).toBe(57866);
+
+    const g3Item = bySku('148937.362.BL1');
+    expect(g3Item.category).toBe('G3 (EN Grad 3)');
+    expect(g3Item.tags).toEqual(expect.arrayContaining(['ajax', 'superior', 'g3', 'wireless']));
+
+    const baselineHub = bySku('38236.01.BL1');
+    expect(baselineHub.category).toBe('Intrusion protection Baseline – Control panels');
+    expect(baselineHub.tags).toEqual(expect.arrayContaining(['ajax', 'baseline']));
+    expect(baselineHub.uvp_cents).toBe(124065); // US-style "1,240.65" parsed correctly
+
+    const comfortItem = bySku('38254.08.BL1');
+    expect(comfortItem.category).toBe('Comfort & automation – Water leak detectors');
+    expect(comfortItem.tags).toEqual(['ajax']);
+
+    // The cross-listed SKU only appears once (first occurrence from the
+    // Superior sheet), not duplicated via the Comfort sheet.
+    expect(result.transformedData.filter((r: any) => r.sku === '143565.111.BL1')).toHaveLength(1);
+    expect(result.transformedData).toHaveLength(5);
+  });
 });
 
 describe('Preislisten-Import: Excel-Upload (Base64-Pfad wie im Browser)', () => {

@@ -179,6 +179,7 @@ async function applyChange(change: any): Promise<void> {
         uvp_cents: change.new_price_cents,
         is_active: raw.is_active ?? true,
         manufacturer_url: raw.manufacturer_url || null,
+        tags: Array.isArray(raw.tags) ? raw.tags : [],
       } as any);
       if (error) throw new Error(error.message);
       return;

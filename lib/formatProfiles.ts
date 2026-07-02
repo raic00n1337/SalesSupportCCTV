@@ -1,6 +1,56 @@
 // Format Profiles for different manufacturers
-import type { FormatProfile } from './csvCompilerTypes';
+import type { ExcelRowContext, FormatProfile } from './csvCompilerTypes';
 import { parsePriceToCents } from './priceParsing';
+
+// AJAX groups its 7 sheets into a "{group} | Superior"/"{group} | Baseline"
+// pair for Intrusion protection and Video surveillance, but not for the
+// other 3 sheets (which aren't split into two product lines at all). Kept as
+// an explicit lookup (rather than parsed from the sheet name at runtime) so
+// a typo in the source file's sheet name ("Fire & life safet") doesn't leak
+// into our category strings.
+const AJAX_SHEET_GROUPS: Record<string, { group: string; series?: 'Superior' | 'Baseline' }> = {
+  'Intrusion protection | Superior': { group: 'Intrusion protection', series: 'Superior' },
+  'Intrusion protection | Baseline': { group: 'Intrusion protection', series: 'Baseline' },
+  'Video surveillance | Superior': { group: 'Video surveillance', series: 'Superior' },
+  'Video surveillance | Baseline': { group: 'Video surveillance', series: 'Baseline' },
+  'Residential | Fire & life safet': { group: 'Fire & life safety (Residential)' },
+  'EN54  | Fire & life safety': { group: 'Fire & life safety (EN54)' },
+  'Comfort & automation': { group: 'Comfort & automation' },
+};
+
+function ajaxPostProcessRow(row: Record<string, any>, ctx: ExcelRowContext): void {
+  const sheetInfo = ctx.sheetName ? AJAX_SHEET_GROUPS[ctx.sheetName] : undefined;
+  const group = sheetInfo?.group ?? ctx.sheetName ?? 'AJAX';
+  const series = sheetInfo?.series;
+
+  // Same item + color are two separate SKUs/rows (e.g. "Superior Hub Hybrid
+  // (2G)" in black and white) - fold the color into the name so they stay
+  // distinguishable without a dedicated `color` column in the catalog.
+  if (typeof row.name === 'string' && row.color && row.color !== '-') {
+    row.name = `${row.name.trim()} (${row.color})`;
+  }
+
+  // EN 50131 Grade 3 devices ("Superior Hub G3 Jeweller", "Superior ReX G3
+  // Jeweller", ...) only exist within Intrusion protection | Superior, but
+  // are pulled into their own dedicated group here regardless of which
+  // sub-section (Control panels, Range extenders, ...) they came from - the
+  // higher security grade matters more than the device type for sales.
+  const isG3 = typeof row.name === 'string' && /\bg3\b/i.test(row.name);
+
+  if (isG3) {
+    row.category = 'G3 (EN Grad 3)';
+  } else if (ctx.sectionCategory) {
+    row.category = series ? `${group} ${series} – ${ctx.sectionCategory}` : `${group} – ${ctx.sectionCategory}`;
+  } else if (!row.category) {
+    row.category = series ? `${group} ${series}` : group;
+  }
+
+  const tags = ['ajax'];
+  if (series) tags.push(series.toLowerCase());
+  if (isG3) tags.push('g3');
+  if (row.connection_type) tags.push(row.connection_type.toString().toLowerCase());
+  row.tags = tags;
+}
 
 /**
  * Predefined format profiles for common manufacturers
@@ -146,6 +196,48 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
       sheetNames: ['Preisliste'],
       headerKeywords: ['Typ (CTN)', 'EAN-Code', 'Listpreis'],
       maxHeaderSearchRows: 5,
+    },
+  },
+
+  // AJAX Format - based on the real "DACH PRICE - UVP - NEW 2026.xlsx"
+  // export. 7 sheets (2 Superior/Baseline pairs for Intrusion protection and
+  // Video surveillance, plus Residential Fire, EN54 Fire and Comfort &
+  // automation), each of which repeats a mini-header + lone-cell category
+  // title ("Control panels", "Range extenders", ...) many times over rather
+  // than having one header for the whole sheet. `ajaxPostProcessRow` (above)
+  // builds the final category from the sheet's Superior/Baseline series +
+  // that section title, and pulls every EN 50131 Grade 3 device ("... G3
+  // Jeweller/Fibra" in the name) into its own dedicated "G3 (EN Grad 3)"
+  // group regardless of section. Prices are US-formatted ("1,240.65") but
+  // `parsePriceToCents` already handles that unambiguously.
+  ajax: {
+    name: 'AJAX Systems (DACH)',
+    manufacturer: 'AJAX',
+    delimiter: ',',
+    encoding: 'utf-8',
+    hasHeader: true,
+    columnMap: {
+      Article: 'sku',
+      EAN: 'eso_number',
+      Item: 'name',
+      Color: 'color',
+      'Type of connection': 'connection_type',
+      'UVP (VAT not included)': 'uvp_cents',
+    },
+    transformations: {
+      uvp_cents: (value: string) => parsePriceToCents(value) ?? 0,
+    },
+    excel: {
+      readAllSheets: true,
+      headerKeywords: ['EAN', 'Article', 'Item', 'UVP'],
+      repeatingSections: true,
+      sectionTitleIgnore: [
+        'Superior',
+        'Baseline',
+        'The following items can be ordered in multiple colors',
+        'Applicable both for smart light switches and outlets',
+      ],
+      postProcessRow: ajaxPostProcessRow,
     },
   },
 

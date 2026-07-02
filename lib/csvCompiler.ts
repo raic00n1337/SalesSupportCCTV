@@ -77,11 +77,16 @@ function findHeaderRowIndex(grid: any[][], keywords: string[], maxRows: number):
 
 /**
  * Resolves which sheet(s) of the workbook to read for a given profile.
- * - `sheetNames` (explicit include list) takes priority.
+ * - `readAllSheets` wins outright.
+ * - `sheetNames` (explicit include list) takes priority over exclude.
  * - `excludeSheetNames` reads every sheet except the given ones.
- * - Neither set -> legacy behavior: just the first sheet.
+ * - None set -> legacy behavior: just the first sheet.
  */
 function resolveExcelSheetNames(allSheetNames: string[], config?: ExcelProfileConfig): string[] {
+  if (config?.readAllSheets) {
+    return allSheetNames;
+  }
+
   if (config?.sheetNames && config.sheetNames.length > 0) {
     const resolved = config.sheetNames
       .map((wanted) => allSheetNames.find((s) => s.toLowerCase() === wanted.toLowerCase()))
@@ -96,6 +101,89 @@ function resolveExcelSheetNames(allSheetNames: string[], config?: ExcelProfileCo
   }
 
   return allSheetNames.slice(0, 1);
+}
+
+/** Applies `blankHeaderLabels` overrides and trims every header cell to a string. */
+function normalizeHeaderRow(rawHeader: any[], excelConfig?: ExcelProfileConfig): string[] {
+  const header = [...rawHeader];
+  if (excelConfig?.blankHeaderLabels) {
+    for (const [indexStr, label] of Object.entries(excelConfig.blankHeaderLabels)) {
+      const index = Number(indexStr);
+      if (!header[index] || header[index].toString().trim() === '') {
+        header[index] = label;
+      }
+    }
+  }
+  return header.map((h) => (h ?? '').toString().trim());
+}
+
+/** True when every given keyword appears (case-insensitive substring) in at
+ *  least one cell of the row - used to recognize a header row wherever it
+ *  occurs, not just near the top of the sheet. */
+function rowMatchesAllKeywords(rowCells: string[], keywords: string[]): boolean {
+  if (keywords.length === 0) return false;
+  const lower = rowCells.map((c) => c.toLowerCase());
+  return keywords.every((keyword) => {
+    const needle = keyword.toLowerCase();
+    return lower.some((cell) => cell.includes(needle));
+  });
+}
+
+/**
+ * Parses a sheet that repeats its header (and a lone-cell category title
+ * above it) many times over instead of having a single header for the whole
+ * sheet - e.g. AJAX's price list, which groups every sheet into named
+ * sub-sections ("Control panels", "Range extenders", ...) each with their
+ * own header row. Every returned row carries a non-enumerable
+ * `__sectionCategory` with the nearest title seen above it.
+ */
+function parseSheetWithRepeatingSections(
+  grid: any[][],
+  excelConfig: ExcelProfileConfig
+): { header: string[]; rows: any[] } {
+  const maxTitleLength = excelConfig.sectionTitleMaxLength ?? 80;
+  const ignoredTitles = new Set((excelConfig.sectionTitleIgnore ?? []).map((s) => s.trim().toLowerCase()));
+
+  let currentHeader: string[] | null = null;
+  let currentCategory: string | undefined;
+  let firstHeader: string[] = [];
+  const rows: any[] = [];
+
+  for (const rawRow of grid) {
+    const row = rawRow || [];
+    const cells = row.map((c) => (c ?? '').toString().trim());
+    const nonEmptyCells = cells.filter((c) => c !== '');
+
+    if (nonEmptyCells.length === 0) continue; // blank spacer row
+
+    if (rowMatchesAllKeywords(cells, excelConfig.headerKeywords)) {
+      currentHeader = normalizeHeaderRow(row, excelConfig);
+      if (firstHeader.length === 0) firstHeader = currentHeader;
+      continue;
+    }
+
+    if (nonEmptyCells.length === 1) {
+      const title = nonEmptyCells[0];
+      const isNoise =
+        title.length > maxTitleLength ||
+        ignoredTitles.has(title.toLowerCase()) ||
+        /^currency\s*:/i.test(title);
+      if (!isNoise) currentCategory = title;
+      continue; // a lone-cell row is always a title/banner, never product data
+    }
+
+    if (!currentHeader) continue; // data appearing before any header - can't map it, skip
+
+    const obj: any = {};
+    currentHeader.forEach((col, i) => {
+      if (!col) return;
+      obj[col] = row[i];
+    });
+    Object.defineProperty(obj, '__sectionCategory', { value: currentCategory, enumerable: false });
+    rows.push(obj);
+  }
+
+  return { header: firstHeader, rows };
 }
 
 /**
@@ -123,20 +211,21 @@ export function parseExcelWithProfile(
     const grid: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
     if (grid.length === 0) continue;
 
+    if (excelConfig?.repeatingSections) {
+      const { header, rows: sectionRows } = parseSheetWithRepeatingSections(grid, excelConfig);
+      if (sourceColumns.length === 0) sourceColumns = header;
+      for (const obj of sectionRows) {
+        Object.defineProperty(obj, '__sheetName', { value: sheetName, enumerable: false });
+        rows.push(obj);
+      }
+      continue;
+    }
+
     const headerRowIndex = excelConfig
       ? findHeaderRowIndex(grid, excelConfig.headerKeywords, maxHeaderSearchRows)
       : 0;
 
-    const header = [...(grid[headerRowIndex] || [])];
-    if (excelConfig?.blankHeaderLabels) {
-      for (const [indexStr, label] of Object.entries(excelConfig.blankHeaderLabels)) {
-        const index = Number(indexStr);
-        if (!header[index] || header[index].toString().trim() === '') {
-          header[index] = label;
-        }
-      }
-    }
-    const cleanHeader = header.map((h) => (h ?? '').toString().trim());
+    const cleanHeader = normalizeHeaderRow(grid[headerRowIndex] || [], excelConfig);
 
     if (sourceColumns.length === 0) sourceColumns = cleanHeader;
 
@@ -341,14 +430,23 @@ export async function compileFile(
 
     // For profiles without a dedicated category column (e.g. AXIS, which
     // splits its price list into one sheet per category instead), fall back
-    // to the source sheet name captured during parsing. Do this before the
-    // structural-row filter below since it relies on index alignment with
-    // `parsedData`.
-    if (profile?.excel?.useSheetNameAsCategory) {
+    // to the source sheet name captured during parsing, and/or run the
+    // profile's own row post-processing (e.g. AJAX's Superior/Baseline/G3
+    // grouping, which needs both the sheet name and the detected section
+    // title). Do this before the structural-row filter below since it
+    // relies on index alignment with `parsedData`.
+    if (profile?.excel) {
+      const { useSheetNameAsCategory, postProcessRow } = profile.excel;
       mappedData.forEach((row, i) => {
-        if (!row.category) {
-          const sheetName = (parsedData[i] as any)?.__sheetName;
-          if (sheetName) row.category = sheetName;
+        const sheetName = (parsedData[i] as any)?.__sheetName as string | undefined;
+        const sectionCategory = (parsedData[i] as any)?.__sectionCategory as string | undefined;
+
+        if (useSheetNameAsCategory && !row.category && sheetName) {
+          row.category = sheetName;
+        }
+
+        if (postProcessRow) {
+          postProcessRow(row, { sheetName, sectionCategory });
         }
       });
     }
@@ -360,6 +458,43 @@ export async function compileFile(
     // product with missing fields, so it's dropped silently here rather
     // than surfacing as a validation error or reaching the DB import step.
     mappedData = mappedData.filter((row) => isPresent(row.sku) || isPresent(row.uvp_cents));
+
+    // Some manufacturers cross-list the exact same SKU under more than one
+    // sheet/category (e.g. AJAX's Manual Call Point, sold for both
+    // residential and EN54-certified fire systems) - `products.sku` is
+    // UNIQUE, so keep only the first occurrence rather than letting a
+    // duplicate reach the DB insert and fail there instead.
+    const seenSkus = new Set<string>();
+    mappedData = mappedData.filter((row) => {
+      if (!isPresent(row.sku)) return true; // let validation report missing SKUs, not this filter
+      if (seenSkus.has(row.sku)) return false;
+      seenSkus.add(row.sku);
+      return true;
+    });
+
+    // Some manufacturers reuse the same EAN/eso_number across genuinely
+    // different SKUs - e.g. IQSIGHT gives a discontinued model's successor
+    // the identical EAN as a "Nachfolgemodell" marker. Unlike the SKU dedup
+    // above these are real, distinct products that must NOT be dropped, but
+    // `products.eso_number` is UNIQUE too - fall back to the (already
+    // SKU-deduped, guaranteed unique) SKU for every row after the first to
+    // claim a given eso_number, rather than letting the DB insert fail.
+    const seenEsoNumbers = new Set<string>();
+    mappedData = mappedData.map((row) => {
+      if (!isPresent(row.sku) || !isPresent(row.eso_number)) return row;
+      const eso = String(row.eso_number);
+      if (!seenEsoNumbers.has(eso)) {
+        seenEsoNumbers.add(eso);
+        return row;
+      }
+      let fallback = String(row.sku);
+      let suffix = 2;
+      while (seenEsoNumbers.has(fallback)) {
+        fallback = `${row.sku}-${suffix++}`;
+      }
+      seenEsoNumbers.add(fallback);
+      return { ...row, eso_number: fallback };
+    });
 
     // Transform data
     const { transformedRows, errors: transformErrors } = transformData(mappedData, profile);

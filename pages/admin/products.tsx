@@ -30,9 +30,27 @@ interface Product {
   };
 }
 
+// The product catalog has grown well past 3,500 rows since the AJAX/IQSIGHT
+// imports - loading the entire table into the browser on every page view
+// (and rendering it all into one unvirtualized <table>) is what actually
+// makes this page slow, regardless of which Postgres instance is behind it.
+// Filtering/searching/paging server-side keeps each request small no matter
+// how large the catalog gets.
+const PAGE_SIZE = 50;
+
+// `.or()` filter strings are comma-separated, and `%`/`_` are ILIKE
+// wildcards - strip anything that would otherwise break the query or search
+// the DB instead of respecting the exact search term.
+function sanitizeForIlike(value: string): string {
+  return value.replace(/[%_,()]/g, ' ').trim();
+}
+
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -40,6 +58,8 @@ export default function AdminProducts() {
   const [filterManufacturer, setFilterManufacturer] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  // Debounced so typing a search term doesn't fire a request per keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Create/Edit modal
   const [showModal, setShowModal] = useState(false);
@@ -73,47 +93,124 @@ export default function AdminProducts() {
   const [deleteName, setDeleteName] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const loadManufacturers = async () => {
+    const { data, error: mfgError } = await supabase
+      .from('manufacturers')
+      .select('id, name, slug')
+      .eq('is_active', true)
+      .order('name', { ascending: true });
 
-  const loadData = async () => {
+    if (mfgError) {
+      console.error('Error loading manufacturers:', mfgError);
+      return;
+    }
+    setManufacturers(data || []);
+  };
+
+  // Only the `category` column, scoped to the selected manufacturer, so the
+  // filter dropdown doesn't require pulling every full product row (with its
+  // manufacturer join) just to find the distinct values.
+  const loadCategories = async (manufacturerId: string) => {
+    try {
+      const rows = await fetchAllRows<{ category: string }>((from, to) => {
+        let query = supabase.from('products').select('category').range(from, to);
+        if (manufacturerId) query = query.eq('manufacturer_id', manufacturerId);
+        return query;
+      });
+      setCategories(Array.from(new Set(rows.map((r) => r.category))).sort());
+    } catch (err) {
+      console.error('Error loading categories:', err);
+    }
+  };
+
+  const loadProducts = async (opts?: {
+    manufacturerId?: string;
+    category?: string;
+    search?: string;
+    page?: number;
+  }) => {
     setLoading(true);
     setError('');
 
+    const mfg = opts?.manufacturerId ?? filterManufacturer;
+    const cat = opts?.category ?? filterCategory;
+    const search = opts?.search ?? debouncedSearch;
+    const pageIndex = opts?.page ?? page;
+
     try {
-      // Load manufacturers
-      const { data: mfgData, error: mfgError } = await supabase
-        .from('manufacturers')
-        .select('id, name, slug')
-        .eq('is_active', true)
-        .order('name', { ascending: true });
-
-      if (mfgError) throw mfgError;
-      setManufacturers(mfgData || []);
-
-      // Load products with manufacturer data (paged - see fetchAllRows).
-      const prodData = await fetchAllRows<Product>((from, to) =>
-        supabase
-          .from('products')
-          .select(`
+      let query = supabase
+        .from('products')
+        .select(
+          `
             *,
             manufacturers (
               name,
               slug
             )
-          `)
-          .order('name', { ascending: true })
-          .range(from, to)
-      );
-      setProducts(prodData);
+          `,
+          { count: 'exact' }
+        )
+        .order('name', { ascending: true })
+        .range(pageIndex * PAGE_SIZE, pageIndex * PAGE_SIZE + PAGE_SIZE - 1);
+
+      if (mfg) query = query.eq('manufacturer_id', mfg);
+      if (cat) query = query.eq('category', cat);
+
+      const term = sanitizeForIlike(search);
+      if (term) {
+        query = query.or(
+          `name.ilike.%${term}%,sku.ilike.%${term}%,eso_number.ilike.%${term}%,description.ilike.%${term}%`
+        );
+      }
+
+      const { data, error: prodError, count } = await query;
+      if (prodError) throw prodError;
+
+      setProducts((data as any) || []);
+      setTotalCount(count || 0);
     } catch (err: any) {
-      console.error('Error loading data:', err);
-      setError(err.message || 'Fehler beim Laden der Daten');
+      console.error('Error loading products:', err);
+      setError(err.message || 'Fehler beim Laden der Produkte');
     } finally {
       setLoading(false);
     }
   };
+
+  // Reloads the current page/filters plus the category list (a mutation may
+  // have introduced or removed a category), used after create/edit/delete.
+  const refresh = async () => {
+    await Promise.all([loadProducts(), loadCategories(filterManufacturer)]);
+  };
+
+  useEffect(() => {
+    loadManufacturers();
+    loadCategories('');
+  }, []);
+
+  // Debounce the free-text search box.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(0);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    loadProducts({ manufacturerId: filterManufacturer, category: filterCategory, search: debouncedSearch, page });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterManufacturer, filterCategory, debouncedSearch, page]);
+
+  const handleManufacturerFilterChange = (manufacturerId: string) => {
+    setFilterManufacturer(manufacturerId);
+    // The previously selected category may not exist for the newly chosen
+    // manufacturer - reset it rather than silently filtering to zero results.
+    setFilterCategory('');
+    setPage(0);
+    loadCategories(manufacturerId);
+  };
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const handleOpenCreate = () => {
     setModalMode('create');
@@ -203,7 +300,7 @@ export default function AdminProducts() {
       }
 
       // Reload and close
-      await loadData();
+      await refresh();
       setShowModal(false);
       setModalForm({
         id: '',
@@ -236,7 +333,7 @@ export default function AdminProducts() {
 
       if (deleteError) throw deleteError;
 
-      await loadData();
+      await refresh();
       setShowDeleteConfirm(false);
       setDeleteId('');
       setDeleteName('');
@@ -256,7 +353,7 @@ export default function AdminProducts() {
         .eq('id', id);
 
       if (error) throw error;
-      await loadData();
+      await refresh();
     } catch (err: any) {
       console.error('Error toggling status:', err);
       alert(`Fehler: ${err.message}`);
@@ -358,7 +455,7 @@ ${firstSlug};switch;SAMPLE-SW-001;ESO999003;Beispiel PoE Switch;8 Port PoE+ Swit
       if (insertError) throw insertError;
 
       setCsvSuccess(`${productsToImport.length} Produkte erfolgreich importiert!`);
-      await loadData();
+      await refresh();
 
       // Reset form after 2 seconds
       setTimeout(() => {
@@ -374,25 +471,6 @@ ${firstSlug};switch;SAMPLE-SW-001;ESO999003;Beispiel PoE Switch;8 Port PoE+ Swit
       setCsvLoading(false);
     }
   };
-
-  // Filter products
-  const filteredProducts = products.filter(p => {
-    if (filterManufacturer && p.manufacturer_id !== filterManufacturer) return false;
-    if (filterCategory && p.category !== filterCategory) return false;
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        p.name.toLowerCase().includes(query) ||
-        p.sku.toLowerCase().includes(query) ||
-        p.eso_number.toLowerCase().includes(query) ||
-        (p.description && p.description.toLowerCase().includes(query))
-      );
-    }
-    return true;
-  });
-
-  // Get unique categories
-  const categories = Array.from(new Set(products.map(p => p.category))).sort();
 
   return (
     <RouteGuard requireAdmin>
@@ -421,7 +499,7 @@ ${firstSlug};switch;SAMPLE-SW-001;ESO999003;Beispiel PoE Switch;8 Port PoE+ Swit
                 ➕ Neues Produkt
               </button>
               <button
-                onClick={loadData}
+                onClick={refresh}
                 disabled={loading}
                 className="px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
               >
@@ -444,7 +522,7 @@ ${firstSlug};switch;SAMPLE-SW-001;ESO999003;Beispiel PoE Switch;8 Port PoE+ Swit
               </label>
               <select
                 value={filterManufacturer}
-                onChange={(e) => setFilterManufacturer(e.target.value)}
+                onChange={(e) => handleManufacturerFilterChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
               >
                 <option value="">Alle Hersteller</option>
@@ -460,7 +538,10 @@ ${firstSlug};switch;SAMPLE-SW-001;ESO999003;Beispiel PoE Switch;8 Port PoE+ Swit
               </label>
               <select
                 value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
+                onChange={(e) => {
+                  setFilterCategory(e.target.value);
+                  setPage(0);
+                }}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
               >
                 <option value="">Alle Kategorien</option>
@@ -491,10 +572,10 @@ ${firstSlug};switch;SAMPLE-SW-001;ESO999003;Beispiel PoE Switch;8 Port PoE+ Swit
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
                 <p className="text-gray-600 dark:text-gray-400">Lade Produkte...</p>
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : products.length === 0 ? (
               <div className="p-8 text-center">
                 <p className="text-gray-600 dark:text-gray-400">
-                  {products.length === 0 ? 'Noch keine Produkte angelegt.' : 'Keine Produkte gefunden.'}
+                  {totalCount === 0 ? 'Noch keine Produkte angelegt.' : 'Keine Produkte gefunden.'}
                 </p>
               </div>
             ) : (
@@ -526,7 +607,7 @@ ${firstSlug};switch;SAMPLE-SW-001;ESO999003;Beispiel PoE Switch;8 Port PoE+ Swit
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-slate-700">
-                    {filteredProducts.map((product) => (
+                    {products.map((product) => (
                       <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50">
                         <td className="px-6 py-4">
                           <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -627,10 +708,29 @@ ${firstSlug};switch;SAMPLE-SW-001;ESO999003;Beispiel PoE Switch;8 Port PoE+ Swit
             )}
           </div>
 
-          {/* Stats */}
+          {/* Stats & Pagination */}
           {!loading && products.length > 0 && (
-            <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-              {filteredProducts.length} von {products.length} Produkten • {products.filter(p => p.is_active).length} aktiv
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-600 dark:text-gray-400">
+              <span>
+                Zeige {page * PAGE_SIZE + 1}–{page * PAGE_SIZE + products.length} von {totalCount} Produkten
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-slate-700"
+                >
+                  ‹ Zurück
+                </button>
+                <span>Seite {page + 1} von {totalPages}</span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-slate-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-slate-700"
+                >
+                  Weiter ›
+                </button>
+              </div>
             </div>
           )}
 
