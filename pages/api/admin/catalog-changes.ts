@@ -120,22 +120,49 @@ async function reviewSingleChange(
   return { id, success: true };
 }
 
+// Some older pending changes (from early test imports, before parsing was
+// fixed) were persisted without a product_id. Passing null/undefined straight
+// into `.eq('id', ...)` produces the confusing Postgres error
+// `invalid input syntax for type uuid: "null"` instead of a useful message,
+// so resolve the product by manufacturer + SKU as a fallback before giving up.
+async function resolveProductId(change: any): Promise<string> {
+  if (change.product_id) return change.product_id;
+
+  const { data: product, error } = await supabaseAdmin
+    .from('products')
+    .select('id')
+    .eq('manufacturer_id', change.manufacturer_id)
+    .eq('sku', change.sku)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!product) {
+    throw new Error(
+      `Zugehöriges Produkt nicht gefunden (SKU "${change.sku}"). Diese Änderung ist vermutlich veraltet und sollte verworfen werden.`
+    );
+  }
+
+  return (product as any).id;
+}
+
 async function applyChange(change: any): Promise<void> {
   switch (change.change_type) {
     case 'price_change': {
+      const productId = await resolveProductId(change);
       const { error } = await supabaseAdmin
         .from('products')
         .update({ uvp_cents: change.new_price_cents } as any)
-        .eq('id', change.product_id);
+        .eq('id', productId);
       if (error) throw new Error(error.message);
       return;
     }
 
     case 'discontinued': {
+      const productId = await resolveProductId(change);
       const { error } = await supabaseAdmin
         .from('products')
         .update({ is_active: false } as any)
-        .eq('id', change.product_id);
+        .eq('id', productId);
       if (error) throw new Error(error.message);
       return;
     }
