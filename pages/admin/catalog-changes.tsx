@@ -48,6 +48,8 @@ export default function CatalogChangesPage() {
   const [changes, setChanges] = useState<CatalogChange[]>([]);
   const [loadingChanges, setLoadingChanges] = useState(true);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null);
 
   const loadManufacturers = useCallback(async () => {
     const { data } = await supabase.from('manufacturers').select('id, name, slug').eq('is_active', true).order('name');
@@ -63,7 +65,11 @@ export default function CatalogChangesPage() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const data = await res.json();
-      if (data.success) setChanges(data.changes);
+      if (data.success) {
+        setChanges(data.changes);
+        const stillPending = new Set<string>(data.changes.map((c: CatalogChange) => c.id));
+        setSelectedIds((prev) => new Set(Array.from(prev).filter((id) => stillPending.has(id))));
+      }
     } finally {
       setLoadingChanges(false);
     }
@@ -114,8 +120,7 @@ export default function CatalogChangesPage() {
     }
   };
 
-  const handleReview = async (id: string, action: 'approve' | 'reject') => {
-    setReviewingId(id);
+  const reviewChanges = async (ids: string[], action: 'approve' | 'reject') => {
     setError('');
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -127,18 +132,56 @@ export default function CatalogChangesPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ id, action }),
+        body: JSON.stringify({ ids, action }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Aktion fehlgeschlagen');
+      if (!res.ok && res.status !== 207) throw new Error(data.error || 'Aktion fehlgeschlagen');
 
-      setChanges((prev) => prev.filter((c) => c.id !== id));
+      const results: { id: string; success: boolean; error?: string }[] = data.results || [];
+      const succeededIds = new Set(results.filter((r) => r.success).map((r) => r.id));
+      const failed = results.filter((r) => !r.success);
+
+      setChanges((prev) => prev.filter((c) => !succeededIds.has(c.id)));
+      setSelectedIds((prev) => new Set(Array.from(prev).filter((id) => !succeededIds.has(id))));
+
+      if (failed.length > 0) {
+        setError(
+          failed.length === results.length
+            ? `Aktion fehlgeschlagen: ${failed[0].error}`
+            : `${failed.length} von ${results.length} Änderungen konnten nicht verarbeitet werden: ${failed[0].error}`
+        );
+      }
     } catch (err: any) {
       setError(err.message || 'Fehler bei der Freigabe');
-    } finally {
-      setReviewingId(null);
     }
+  };
+
+  const handleReview = async (id: string, action: 'approve' | 'reject') => {
+    setReviewingId(id);
+    await reviewChanges([id], action);
+    setReviewingId(null);
+  };
+
+  const handleBulkReview = async (action: 'approve' | 'reject') => {
+    if (selectedIds.size === 0) return;
+    setBulkAction(action);
+    await reviewChanges(Array.from(selectedIds), action);
+    setBulkAction(null);
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allSelected = changes.length > 0 && selectedIds.size === changes.length;
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(changes.map((c) => c.id)));
   };
 
   return (
@@ -241,11 +284,37 @@ export default function CatalogChangesPage() {
 
         {/* Pending Changes */}
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Offene Änderungen zur Freigabe {changes.length > 0 && (
-              <span className="ml-2 px-2 py-1 bg-red-600 text-white text-sm rounded-full">{changes.length}</span>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Offene Änderungen zur Freigabe {changes.length > 0 && (
+                <span className="ml-2 px-2 py-1 bg-red-600 text-white text-sm rounded-full">{changes.length}</span>
+              )}
+            </h2>
+
+            {changes.length > 0 && (
+              <div className="flex items-center gap-3">
+                {selectedIds.size > 0 && (
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {selectedIds.size} ausgewählt
+                  </span>
+                )}
+                <button
+                  onClick={() => handleBulkReview('approve')}
+                  disabled={selectedIds.size === 0 || bulkAction !== null}
+                  className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkAction === 'approve' ? 'Übernehme...' : `Ausgewählte übernehmen${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
+                </button>
+                <button
+                  onClick={() => handleBulkReview('reject')}
+                  disabled={selectedIds.size === 0 || bulkAction !== null}
+                  className="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-gray-900 dark:text-white font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bulkAction === 'reject' ? 'Verwerfe...' : 'Ausgewählte verwerfen'}
+                </button>
+              </div>
             )}
-          </h2>
+          </div>
 
           {loadingChanges ? (
             <p className="text-gray-500 dark:text-gray-400">Lade...</p>
@@ -256,6 +325,14 @@ export default function CatalogChangesPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-100 dark:bg-slate-700">
                   <tr>
+                    <th className="px-4 py-2 text-left w-8">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        aria-label="Alle auswählen"
+                      />
+                    </th>
                     <th className="px-4 py-2 text-left">Typ</th>
                     <th className="px-4 py-2 text-left">Hersteller</th>
                     <th className="px-4 py-2 text-left">SKU / Name</th>
@@ -267,7 +344,18 @@ export default function CatalogChangesPage() {
                 </thead>
                 <tbody>
                   {changes.map((c) => (
-                    <tr key={c.id} className="border-t border-gray-200 dark:border-gray-700">
+                    <tr
+                      key={c.id}
+                      className={`border-t border-gray-200 dark:border-gray-700 ${selectedIds.has(c.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}
+                    >
+                      <td className="px-4 py-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(c.id)}
+                          onChange={() => toggleSelected(c.id)}
+                          aria-label={`${c.name} auswählen`}
+                        />
+                      </td>
                       <td className="px-4 py-2 whitespace-nowrap">{CHANGE_TYPE_LABEL[c.change_type]}</td>
                       <td className="px-4 py-2">{c.manufacturers?.name || '-'}</td>
                       <td className="px-4 py-2">
@@ -282,14 +370,14 @@ export default function CatalogChangesPage() {
                       <td className="px-4 py-2 text-right whitespace-nowrap">
                         <button
                           onClick={() => handleReview(c.id, 'approve')}
-                          disabled={reviewingId === c.id}
+                          disabled={reviewingId === c.id || bulkAction !== null}
                           className="px-3 py-1 mr-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
                         >
                           Übernehmen
                         </button>
                         <button
                           onClick={() => handleReview(c.id, 'reject')}
-                          disabled={reviewingId === c.id}
+                          disabled={reviewingId === c.id || bulkAction !== null}
                           className="px-3 py-1 bg-gray-200 dark:bg-slate-600 text-gray-900 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-slate-500 disabled:opacity-50"
                         >
                           Verwerfen

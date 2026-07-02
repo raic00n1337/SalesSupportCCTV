@@ -48,13 +48,38 @@ async function handleList(req: NextApiRequest, res: NextApiResponse) {
   return res.status(200).json({ success: true, changes: data || [] });
 }
 
-async function handleReview(req: NextApiRequest, res: NextApiResponse, reviewerId: string) {
-  const { id, action } = req.body as { id: string; action: 'approve' | 'reject' };
+interface ReviewResult {
+  id: string;
+  success: boolean;
+  error?: string;
+}
 
-  if (!id || !['approve', 'reject'].includes(action)) {
-    return res.status(400).json({ error: 'Missing/invalid fields: id, action (approve|reject)' });
+async function handleReview(req: NextApiRequest, res: NextApiResponse, reviewerId: string) {
+  // Accepts either a single `id` (legacy) or an `ids` array (bulk review) -
+  // both go through the same per-item logic so partial failures (e.g. one
+  // SKU already taken) don't block the rest of the batch.
+  const { id, ids, action } = req.body as { id?: string; ids?: string[]; action: 'approve' | 'reject' };
+  const targetIds = ids && ids.length > 0 ? ids : id ? [id] : [];
+
+  if (targetIds.length === 0 || !['approve', 'reject'].includes(action)) {
+    return res.status(400).json({ error: 'Missing/invalid fields: id(s), action (approve|reject)' });
   }
 
+  const results: ReviewResult[] = [];
+
+  for (const targetId of targetIds) {
+    results.push(await reviewSingleChange(targetId, action, reviewerId));
+  }
+
+  const allSucceeded = results.every((r) => r.success);
+  return res.status(allSucceeded ? 200 : 207).json({ success: allSucceeded, results });
+}
+
+async function reviewSingleChange(
+  id: string,
+  action: 'approve' | 'reject',
+  reviewerId: string
+): Promise<ReviewResult> {
   const { data: change, error: fetchError } = await supabaseAdmin
     .from('catalog_changes')
     .select('*')
@@ -62,20 +87,20 @@ async function handleReview(req: NextApiRequest, res: NextApiResponse, reviewerI
     .single();
 
   if (fetchError || !change) {
-    return res.status(404).json({ error: 'Änderung nicht gefunden' });
+    return { id, success: false, error: 'Änderung nicht gefunden' };
   }
 
   const changeRow = change as any;
 
   if (changeRow.status !== 'pending') {
-    return res.status(409).json({ error: 'Diese Änderung wurde bereits bearbeitet' });
+    return { id, success: false, error: 'Diese Änderung wurde bereits bearbeitet' };
   }
 
   if (action === 'approve') {
     try {
       await applyChange(changeRow);
     } catch (err: any) {
-      return res.status(500).json({ error: 'Fehler beim Übernehmen der Änderung', details: err.message });
+      return { id, success: false, error: `Fehler beim Übernehmen: ${err.message}` };
     }
   }
 
@@ -89,10 +114,10 @@ async function handleReview(req: NextApiRequest, res: NextApiResponse, reviewerI
     .eq('id', id);
 
   if (updateError) {
-    return res.status(500).json({ error: 'Fehler beim Speichern des Review-Status', details: updateError.message });
+    return { id, success: false, error: `Fehler beim Speichern: ${updateError.message}` };
   }
 
-  return res.status(200).json({ success: true });
+  return { id, success: true };
 }
 
 async function applyChange(change: any): Promise<void> {
