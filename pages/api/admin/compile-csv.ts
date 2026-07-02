@@ -1,12 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
-import { compileFile, generateCSV } from '../../../lib/csvCompiler';
+import { compileFile, decodeUploadedFileContent, generateCSV } from '../../../lib/csvCompiler';
 import type { CompilerOptions, CompilerResult, ImportResult } from '../../../lib/csvCompilerTypes';
 
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '10mb', // Allow larger files
+      // Excel files are sent base64-encoded (~33% larger than the raw file).
+      sizeLimit: '15mb',
     },
   },
 };
@@ -40,11 +41,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Parse request
-    const { fileContent, fileName, options, action } = req.body as {
+    const { fileContent, fileName, options, action, isBase64 } = req.body as {
       fileContent: string;
       fileName: string;
       options: CompilerOptions;
       action: 'compile' | 'import' | 'download';
+      isBase64?: boolean;
     };
 
     if (!fileContent || !fileName) {
@@ -52,7 +54,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Compile file
-    const result: CompilerResult = await compileFile(fileContent, fileName, options);
+    const decodedContent = decodeUploadedFileContent(fileContent, Boolean(isBase64));
+    const result: CompilerResult = await compileFile(decodedContent, fileName, options);
 
     // Handle different actions
     switch (action) {

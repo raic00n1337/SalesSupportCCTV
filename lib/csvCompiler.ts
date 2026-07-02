@@ -23,6 +23,19 @@ export function parseCSV(fileContent: string): Papa.ParseResult<any> {
 }
 
 /**
+ * Decode a file payload received from the browser. Excel files are binary
+ * and cannot survive `FileReader.readAsText()` intact, so the client sends
+ * them base64-encoded (see lib/readFileForUpload.ts) and we decode that back
+ * into an ArrayBuffer here for `parseExcel`. CSV files are plain text and
+ * pass through unchanged.
+ */
+export function decodeUploadedFileContent(fileContent: string, isBase64: boolean): string | ArrayBuffer {
+  if (!isBase64) return fileContent;
+  const buffer = Buffer.from(fileContent, 'base64');
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+}
+
+/**
  * Parse Excel file
  */
 export function parseExcel(buffer: ArrayBuffer): any[] {

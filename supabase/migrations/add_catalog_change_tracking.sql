@@ -60,12 +60,16 @@ CREATE INDEX IF NOT EXISTS idx_catalog_changes_batch
 ALTER TABLE public.catalog_import_batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.catalog_changes ENABLE ROW LEVEL SECURITY;
 
+-- DROP + CREATE instead of "CREATE POLICY IF NOT EXISTS" (Postgres has no such
+-- syntax for policies), so this migration can be re-run safely.
+DROP POLICY IF EXISTS "Admins can manage catalog import batches" ON public.catalog_import_batches;
 CREATE POLICY "Admins can manage catalog import batches"
   ON public.catalog_import_batches FOR ALL
   TO authenticated
   USING (EXISTS (SELECT 1 FROM public.admin_users WHERE admin_users.user_id = auth.uid()))
   WITH CHECK (EXISTS (SELECT 1 FROM public.admin_users WHERE admin_users.user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Admins can manage catalog changes" ON public.catalog_changes;
 CREATE POLICY "Admins can manage catalog changes"
   ON public.catalog_changes FOR ALL
   TO authenticated

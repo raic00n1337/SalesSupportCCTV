@@ -1,6 +1,7 @@
 // Data Transformation Logic
 import type { FormatProfile, ValidationError } from './csvCompilerTypes';
 import { TARGET_COLUMNS } from './formatProfiles';
+import { parseLocalizedNumber, parsePriceToCents } from './priceParsing';
 
 /**
  * Transform data using format profile transformations
@@ -51,7 +52,8 @@ function applyDefaultTransformation(columnName: string, value: any): any {
 
   switch (targetCol.type) {
     case 'number':
-      return parseNumber(value);
+      // uvp_cents is stored in cents; every other numeric column stays a plain number.
+      return columnName === 'uvp_cents' ? parsePriceToCents(value) : parseLocalizedNumber(value);
     case 'boolean':
       return parseBoolean(value);
     case 'string':
@@ -59,23 +61,6 @@ function applyDefaultTransformation(columnName: string, value: any): any {
     default:
       return value;
   }
-}
-
-/**
- * Parse number from various formats
- */
-function parseNumber(value: any): number | null {
-  if (value === null || value === undefined || value === '') return null;
-
-  // Remove currency symbols and convert comma to period
-  const cleaned = value
-    .toString()
-    .replace(/[€$£¥]/g, '')
-    .replace(',', '.')
-    .trim();
-
-  const num = parseFloat(cleaned);
-  return isNaN(num) ? null : num;
 }
 
 /**

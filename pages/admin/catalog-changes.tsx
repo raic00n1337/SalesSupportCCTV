@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import RouteGuard from '../../components/RouteGuard';
 import AdminLayout from '../../components/AdminLayout';
 import { supabase } from '../../lib/supabaseClient';
+import { readFileForUpload } from '../../lib/readFileForUpload';
 
 interface Manufacturer {
   id: string;
@@ -73,14 +74,6 @@ export default function CatalogChangesPage() {
     loadPendingChanges();
   }, [loadManufacturers, loadPendingChanges]);
 
-  const readFileContent = (f: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.onerror = reject;
-      reader.readAsText(f);
-    });
-
   const handleCompare = async () => {
     if (!file || !manufacturerSlug) return;
     setLoading(true);
@@ -88,7 +81,7 @@ export default function CatalogChangesPage() {
     setSummary(null);
 
     try {
-      const fileContent = await readFileContent(file);
+      const { fileContent, isBase64 } = await readFileForUpload(file);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Nicht angemeldet');
 
@@ -100,6 +93,7 @@ export default function CatalogChangesPage() {
         },
         body: JSON.stringify({
           fileContent,
+          isBase64,
           fileName: file.name,
           manufacturerSlug,
           isFullCatalog,

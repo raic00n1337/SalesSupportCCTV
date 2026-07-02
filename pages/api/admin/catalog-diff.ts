@@ -8,7 +8,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { requireAdmin } from '../../../lib/apiAuth';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
-import { compileFile } from '../../../lib/csvCompiler';
+import { compileFile, decodeUploadedFileContent } from '../../../lib/csvCompiler';
 import { computeCatalogDiff, type CatalogDiffRow, type ExistingCatalogProduct } from '../../../lib/catalogDiff';
 import { getManufacturerLink } from '../../../lib/manufacturerLinks';
 import type { CompilerOptions } from '../../../lib/csvCompilerTypes';
@@ -16,7 +16,8 @@ import type { CompilerOptions } from '../../../lib/csvCompilerTypes';
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '10mb',
+      // Excel files are sent base64-encoded (~33% larger than the raw file).
+      sizeLimit: '15mb',
     },
   },
 };
@@ -30,17 +31,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!user) return;
 
   try {
-    const { fileContent, fileName, manufacturerSlug, isFullCatalog, formatProfile } = req.body as {
+    const { fileContent, fileName, manufacturerSlug, isFullCatalog, formatProfile, isBase64 } = req.body as {
       fileContent: string;
       fileName: string;
       manufacturerSlug: string;
       isFullCatalog: boolean;
       formatProfile?: string;
+      isBase64?: boolean;
     };
 
     if (!fileContent || !fileName || !manufacturerSlug) {
       return res.status(400).json({ error: 'Missing required fields: fileContent, fileName, manufacturerSlug' });
     }
+
+    const decodedContent = decodeUploadedFileContent(fileContent, Boolean(isBase64));
 
     const { data: manufacturer, error: manufacturerError } = await supabaseAdmin
       .from('manufacturers')
@@ -59,7 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       formatProfile,
     };
 
-    const compileResult = await compileFile(fileContent, fileName, compilerOptions);
+    const compileResult = await compileFile(decodedContent, fileName, compilerOptions);
     if (!compileResult.transformedData.length) {
       return res.status(400).json({
         error: 'Datei konnte nicht ausgewertet werden oder enthält keine Zeilen',

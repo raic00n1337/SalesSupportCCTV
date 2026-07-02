@@ -1,5 +1,6 @@
 // Format Profiles for different manufacturers
 import type { FormatProfile } from './csvCompilerTypes';
+import { parsePriceToCents } from './priceParsing';
 
 /**
  * Predefined format profiles for common manufacturers
@@ -24,11 +25,7 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
       'Status': 'is_active',
     },
     transformations: {
-      uvp_cents: (value: string) => {
-        // Convert "459.99" or "459,99" to cents
-        const num = parseFloat(value.toString().replace(',', '.').replace(/[^\d.]/g, ''));
-        return Math.round(num * 100);
-      },
+      uvp_cents: (value: string) => parsePriceToCents(value) ?? 0,
       is_active: (value: string) => {
         const str = value.toString().toLowerCase();
         return str === 'active' || str === 'yes' || str === '1' || str === 'true';
@@ -51,10 +48,7 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
       'Description': 'description',
     },
     transformations: {
-      uvp_cents: (value: string) => {
-        const num = parseFloat(value.toString().replace(',', '.').replace(/[^\d.]/g, ''));
-        return Math.round(num * 100);
-      },
+      uvp_cents: (value: string) => parsePriceToCents(value) ?? 0,
     },
   },
 
@@ -72,10 +66,7 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
       'Product Type': 'category',
     },
     transformations: {
-      uvp_cents: (value: string) => {
-        const num = parseFloat(value.toString().replace(',', '.').replace(/[^\d.]/g, ''));
-        return Math.round(num * 100);
-      },
+      uvp_cents: (value: string) => parsePriceToCents(value) ?? 0,
     },
   },
 
@@ -94,10 +85,7 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
       'Product Description': 'description',
     },
     transformations: {
-      uvp_cents: (value: string) => {
-        const num = parseFloat(value.toString().replace(',', '.').replace(/[^\d.]/g, ''));
-        return Math.round(num * 100);
-      },
+      uvp_cents: (value: string) => parsePriceToCents(value) ?? 0,
     },
   },
 

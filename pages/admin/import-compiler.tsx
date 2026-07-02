@@ -4,6 +4,7 @@ import RouteGuard from '../../components/RouteGuard';
 import { supabase } from '../../lib/supabaseClient';
 import type { CompilerResult, ColumnMapping } from '../../lib/csvCompilerTypes';
 import { FORMAT_PROFILES } from '../../lib/formatProfiles';
+import { readFileForUpload } from '../../lib/readFileForUpload';
 
 export default function ImportCompiler() {
   const { user } = useAuth();
@@ -42,7 +43,7 @@ export default function ImportCompiler() {
 
     try {
       // Read file content
-      const fileContent = await readFileContent(file);
+      const { fileContent, isBase64 } = await readFileForUpload(file);
 
       // Get auth token
       const { data: { session } } = await supabase.auth.getSession();
@@ -59,6 +60,7 @@ export default function ImportCompiler() {
         },
         body: JSON.stringify({
           fileContent,
+          isBase64,
           fileName: file.name,
           options: {
             autoDetect: true,
@@ -100,7 +102,7 @@ export default function ImportCompiler() {
     setSuccess('');
 
     try {
-      const fileContent = await readFileContent(file);
+      const { fileContent, isBase64 } = await readFileForUpload(file);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
@@ -112,6 +114,7 @@ export default function ImportCompiler() {
         },
         body: JSON.stringify({
           fileContent,
+          isBase64,
           fileName: file.name,
           options: {
             autoDetect: true,
@@ -153,7 +156,7 @@ export default function ImportCompiler() {
     setError('');
 
     try {
-      const fileContent = await readFileContent(file);
+      const { fileContent, isBase64 } = await readFileForUpload(file);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
@@ -165,6 +168,7 @@ export default function ImportCompiler() {
         },
         body: JSON.stringify({
           fileContent,
+          isBase64,
           fileName: file.name,
           options: {
             autoDetect: true,
@@ -188,15 +192,6 @@ export default function ImportCompiler() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const readFileContent = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.onerror = reject;
-      reader.readAsText(file);
-    });
   };
 
   const downloadCSV = (content: string, filename: string) => {

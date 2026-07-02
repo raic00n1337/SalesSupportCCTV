@@ -228,6 +228,7 @@ export interface Database {
           uvp_cents: number
           tags: string[]
           is_active: boolean
+          manufacturer_url: string | null
           created_at: string
           updated_at: string
         }
@@ -242,6 +243,7 @@ export interface Database {
           uvp_cents: number
           tags?: string[]
           is_active?: boolean
+          manufacturer_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -256,8 +258,100 @@ export interface Database {
           uvp_cents?: number
           tags?: string[]
           is_active?: boolean
+          manufacturer_url?: string | null
           created_at?: string
           updated_at?: string
+        }
+      }
+      catalog_import_batches: {
+        Row: {
+          id: string
+          manufacturer_id: string | null
+          source_filename: string
+          is_full_catalog: boolean
+          imported_by: string | null
+          total_rows: number
+          new_count: number
+          price_change_count: number
+          discontinued_count: number
+          unchanged_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          manufacturer_id?: string | null
+          source_filename: string
+          is_full_catalog?: boolean
+          imported_by?: string | null
+          total_rows?: number
+          new_count?: number
+          price_change_count?: number
+          discontinued_count?: number
+          unchanged_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          manufacturer_id?: string | null
+          source_filename?: string
+          is_full_catalog?: boolean
+          imported_by?: string | null
+          total_rows?: number
+          new_count?: number
+          price_change_count?: number
+          discontinued_count?: number
+          unchanged_count?: number
+          created_at?: string
+        }
+      }
+      catalog_changes: {
+        Row: {
+          id: string
+          batch_id: string
+          change_type: 'new_product' | 'price_change' | 'discontinued'
+          product_id: string | null
+          manufacturer_id: string | null
+          sku: string
+          name: string
+          old_price_cents: number | null
+          new_price_cents: number | null
+          raw_row: Json | null
+          status: 'pending' | 'approved' | 'rejected'
+          reviewed_by: string | null
+          reviewed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          batch_id: string
+          change_type: 'new_product' | 'price_change' | 'discontinued'
+          product_id?: string | null
+          manufacturer_id?: string | null
+          sku: string
+          name: string
+          old_price_cents?: number | null
+          new_price_cents?: number | null
+          raw_row?: Json | null
+          status?: 'pending' | 'approved' | 'rejected'
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          batch_id?: string
+          change_type?: 'new_product' | 'price_change' | 'discontinued'
+          product_id?: string | null
+          manufacturer_id?: string | null
+          sku?: string
+          name?: string
+          old_price_cents?: number | null
+          new_price_cents?: number | null
+          raw_row?: Json | null
+          status?: 'pending' | 'approved' | 'rejected'
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          created_at?: string
         }
       }
       tier_defaults: {
