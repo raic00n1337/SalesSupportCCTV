@@ -29,6 +29,15 @@ const CHANGE_TYPE_LABEL: Record<string, string> = {
   discontinued: '🚫 Vermutlich abgekündigt',
 };
 
+type TypeFilter = 'all' | 'new_product' | 'price_change' | 'discontinued';
+
+const TYPE_FILTER_OPTIONS: { value: TypeFilter; label: string }[] = [
+  { value: 'all', label: 'Alle' },
+  { value: 'new_product', label: '🆕 Neue Produkte' },
+  { value: 'price_change', label: '💶 Preisänderungen' },
+  { value: 'discontinued', label: '🚫 Vermutlich abgekündigt' },
+];
+
 function formatCents(cents: number | null): string {
   if (cents === null || cents === undefined) return '-';
   return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
@@ -53,6 +62,7 @@ export default function CatalogChangesPage() {
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
   const [completionMessage, setCompletionMessage] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState('');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
 
   // Batches requests so hundreds of selected rows don't turn into hundreds of
   // sequential round-trips, while still giving the progress bar something to
@@ -217,9 +227,26 @@ export default function CatalogChangesPage() {
     });
   };
 
-  const allSelected = changes.length > 0 && selectedIds.size === changes.length;
+  const typeCounts: Record<TypeFilter, number> = {
+    all: changes.length,
+    new_product: changes.filter((c) => c.change_type === 'new_product').length,
+    price_change: changes.filter((c) => c.change_type === 'price_change').length,
+    discontinued: changes.filter((c) => c.change_type === 'discontinued').length,
+  };
+
+  const filteredChanges = typeFilter === 'all' ? changes : changes.filter((c) => c.change_type === typeFilter);
+
+  const allSelected = filteredChanges.length > 0 && filteredChanges.every((c) => selectedIds.has(c.id));
   const toggleSelectAll = () => {
-    setSelectedIds(allSelected ? new Set() : new Set(changes.map((c) => c.id)));
+    setSelectedIds((prev) => {
+      if (allSelected) {
+        // Only deselect what's currently visible under the active filter.
+        const next = new Set(prev);
+        filteredChanges.forEach((c) => next.delete(c.id));
+        return next;
+      }
+      return new Set([...Array.from(prev), ...filteredChanges.map((c) => c.id)]);
+    });
   };
 
   return (
@@ -354,6 +381,22 @@ export default function CatalogChangesPage() {
             )}
           </div>
 
+          <div className="flex flex-wrap gap-2 mb-4">
+            {TYPE_FILTER_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setTypeFilter(opt.value)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  typeFilter === opt.value
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
+                }`}
+              >
+                {opt.label} ({typeCounts[opt.value]})
+              </button>
+            ))}
+          </div>
+
           {reviewError && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200 text-sm flex items-center justify-between gap-3">
               <span>{reviewError}</span>
@@ -399,6 +442,8 @@ export default function CatalogChangesPage() {
             <p className="text-gray-500 dark:text-gray-400">Lade...</p>
           ) : changes.length === 0 ? (
             <p className="text-gray-500 dark:text-gray-400">Keine offenen Änderungen. 🎉</p>
+          ) : filteredChanges.length === 0 ? (
+            <p className="text-gray-500 dark:text-gray-400">Keine offenen Änderungen für diesen Filter.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -422,7 +467,7 @@ export default function CatalogChangesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {changes.map((c) => (
+                  {filteredChanges.map((c) => (
                     <tr
                       key={c.id}
                       className={`border-t border-gray-200 dark:border-gray-700 ${selectedIds.has(c.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}
