@@ -45,6 +45,21 @@ function sanitizeForIlike(value: string): string {
   return value.replace(/[%_,()]/g, ' ').trim();
 }
 
+// Older imports persisted a best-effort Google site-search as
+// `manufacturer_url` (the only option available at the time). That's not an
+// exact product link, so don't trust it as one - recompute live via
+// `getManufacturerLink`, which may since have gained an exact pattern for
+// that manufacturer (e.g. Hanwha).
+//
+// AXIS is a special case: earlier imports built the stored URL from the SKU
+// (an internal order number, e.g. "axis-02457-001"), which looks like an
+// exact link but 404s. Those are indistinguishable from a "real" exact link
+// by shape alone, so for AXIS we always recompute from the product name
+// instead of trusting whatever is stored.
+function isSearchFallbackUrl(url: string): boolean {
+  return url.includes('google.com/search');
+}
+
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -634,9 +649,10 @@ ${firstSlug};switch;SAMPLE-SW-001;ESO999003;Beispiel PoE Switch;8 Port PoE+ Swit
                               {product.sku}
                             </code>
                             {(() => {
-                              const link = product.manufacturer_url
+                              const isAxis = product.manufacturers?.slug === 'axis';
+                              const link = product.manufacturer_url && !isSearchFallbackUrl(product.manufacturer_url) && !isAxis
                                 ? { url: product.manufacturer_url, exact: true }
-                                : getManufacturerLink(product.manufacturers?.slug || '', product.sku);
+                                : getManufacturerLink(product.manufacturers?.slug || '', product.sku, product.name);
                               if (!link) return null;
                               return (
                                 <a

@@ -137,7 +137,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const changeRows: any[] = [];
 
     for (const item of diff.newProducts) {
-      const link = item.raw.manufacturer_url || getManufacturerLink(manufacturerSlug, item.sku)?.url || null;
+      const link = item.raw.manufacturer_url || getManufacturerLink(manufacturerSlug, item.sku, item.name)?.url || null;
       changeRows.push({
         batch_id: batchId,
         change_type: 'new_product',
