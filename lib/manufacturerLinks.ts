@@ -8,15 +8,23 @@
 //   internal ordering part number (e.g. "02457-001") that never appears in
 //   the product page URL. Verified against several real product pages.
 // - Hanwha Vision's global site serves every product (cameras, recorders,
-//   accessories) at the same predictable path regardless of category -
-//   hanwhavision.com/en/products/product-details/<model> - verified against
+//   accessories) at the same predictable path (DACH/German locale) -
+//   hanwhavision.com/de/products/product-details/<model> - verified against
 //   several real SKUs, so this is treated as an exact link too.
-// - For every other manufacturer, the same pattern either doesn't exist or
-//   isn't reliably derivable from the SKU alone (varies by category, uses
-//   marketing slugs, etc. - e.g. AJAX names pages after the product family,
-//   not the ordering article number). For those we fall back to a Google
-//   site-search link, which always resolves to something useful even if it
-//   isn't the exact product page.
+// - AJAX product pages are named after the marketing name (family + model),
+//   not the ordering SKU (e.g. SKU "135577.214.BL1" is meaningless in the
+//   URL) - ajax.systems/de/products/<name-slug>/. Resolution/color
+//   annotations in the name ("(4 Mp)", "(black)") are shared variants on one
+//   page and must be dropped. Verified against several real product pages.
+// - IQSIGHT (Bosch/Keenfinity) product pages require an internal SAP
+//   article ID in the URL (.../p/<id>/) that isn't present anywhere in the
+//   price list we import (only the "Typ (CTN)" SKU and EAN are available),
+//   so an exact deep link can't be built from our data. We instead link to
+//   the manufacturer's own on-site search for the SKU, which at least stays
+//   on the correct (commerce.iqsight.com) domain instead of Google.
+// - For every other manufacturer, no reliable pattern is known, so we fall
+//   back to a Google site-search link, which always resolves to something
+//   useful even if it isn't the exact product page.
 //
 // Whenever the source price list already contains an explicit product URL
 // column, that value should be used directly instead of calling this helper
@@ -32,7 +40,9 @@ const MANUFACTURER_DOMAINS: Record<string, string> = {
   axis: 'axis.com',
   hanwha: 'hanwhavision.com',
   ajax: 'ajax.systems',
-  iqsight: 'iqsight.com',
+  // The public marketing site is iqsight.com, but the actual product
+  // catalog/shop lives on this commerce subdomain.
+  iqsight: 'commerce.iqsight.com',
   avigilon: 'avigilon.com',
   pelco: 'pelco.com',
 };
@@ -72,17 +82,38 @@ function slugifyAxisName(name: string): string {
   return `axis-${modelTokens.join('-').toLowerCase()}`;
 }
 
+/**
+ * Builds the ajax.systems product-page slug from the price list's marketing
+ * name. Resolution/color annotations ("(4 Mp)", "(black)", "(5 Mp/2.8 mm)")
+ * are stripped since those are variants selectable on one shared page, not
+ * separate URLs (e.g. "Superior DomeCam HLVF (4 Mp) (black)" and
+ * "Superior DomeCam HLVF (8 Mp) (white)" both live at
+ * ajax.systems/de/products/superior-domecam-hlvf/).
+ */
+function slugifyAjaxName(name: string): string {
+  const withoutAnnotations = name.trim().replace(/\([^)]*\)/g, ' ');
+  return withoutAnnotations
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 function siteSearchUrl(domain: string, sku: string): string {
   const query = encodeURIComponent(`site:${domain} ${sku}`);
   return `https://www.google.com/search?q=${query}`;
+}
+
+function iqsightSearchUrl(sku: string): string {
+  return `https://${MANUFACTURER_DOMAINS.iqsight}/nlexp/de/search/?text=${encodeURIComponent(sku.trim())}`;
 }
 
 /**
  * Best-effort link to a product on its manufacturer's website.
  * @param manufacturerSlug lowercase manufacturer slug, e.g. "axis", "hanwha", "avigilon"
  * @param sku the product's SKU / model number
- * @param name the product's marketing/display name, used for AXIS (whose SKU
- *   is an internal order number that doesn't appear in the product URL)
+ * @param name the product's marketing/display name, used for AXIS and AJAX
+ *   (whose SKUs are internal order numbers that don't appear in the product URL)
  */
 export function getManufacturerLink(manufacturerSlug: string, sku: string, name?: string): ManufacturerLink | null {
   const slug = manufacturerSlug?.toLowerCase().trim();
@@ -99,7 +130,19 @@ export function getManufacturerLink(manufacturerSlug: string, sku: string, name?
 
   if (slug === 'hanwha') {
     const model = encodeURIComponent(sku.trim());
-    return { url: `https://www.${MANUFACTURER_DOMAINS.hanwha}/en/products/product-details/${model}`, exact: true };
+    return { url: `https://www.${MANUFACTURER_DOMAINS.hanwha}/de/products/product-details/${model}`, exact: true };
+  }
+
+  if (slug === 'ajax') {
+    if (name && name.trim()) {
+      return { url: `https://${MANUFACTURER_DOMAINS.ajax}/de/products/${slugifyAjaxName(name)}/`, exact: true };
+    }
+    return { url: siteSearchUrl(MANUFACTURER_DOMAINS.ajax, sku), exact: false };
+  }
+
+  if (slug === 'iqsight') {
+    // No exact pattern possible - see file header comment.
+    return { url: iqsightSearchUrl(sku), exact: false };
   }
 
   const domain = MANUFACTURER_DOMAINS[slug];

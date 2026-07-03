@@ -24,9 +24,9 @@ describe('getManufacturerLink', () => {
     expect(link?.url).toContain('site%3Aaxis.com');
   });
 
-  it('builds an exact Hanwha deep link from the SKU (verified pattern: hanwhavision.com/en/products/product-details/<sku>)', () => {
+  it('builds an exact Hanwha deep link from the SKU (verified pattern: hanwhavision.com/de/products/product-details/<sku>)', () => {
     const link = getManufacturerLink('hanwha', 'XNO-6120R');
-    expect(link).toEqual({ url: 'https://www.hanwhavision.com/en/products/product-details/XNO-6120R', exact: true });
+    expect(link).toEqual({ url: 'https://www.hanwhavision.com/de/products/product-details/XNO-6120R', exact: true });
   });
 
   it('is case/whitespace-insensitive on the manufacturer slug', () => {
@@ -35,14 +35,27 @@ describe('getManufacturerLink', () => {
     expect(link?.url).toContain('QNV-7080R');
   });
 
-  it('falls back to a Google site-search for manufacturers without a known URL pattern (e.g. AJAX, IQSIGHT)', () => {
-    const ajax = getManufacturerLink('ajax', '38254.08.BL1');
-    expect(ajax?.exact).toBe(false);
-    expect(ajax?.url).toContain('site%3Aajax.systems');
+  it('builds an exact AJAX deep link from the product name, not the SKU (verified against real product pages)', () => {
+    // https://ajax.systems/de/products/en54-fire-hub-jeweller/
+    const simple = getManufacturerLink('ajax', '58610', 'EN54 Fire Hub Jeweller');
+    expect(simple).toEqual({ url: 'https://ajax.systems/de/products/en54-fire-hub-jeweller/', exact: true });
 
+    // Resolution/color annotations are variants of one shared page, not
+    // separate URLs: https://ajax.systems/de/products/superior-domecam-hlvf/
+    const withAnnotations = getManufacturerLink('ajax', '135577.214.BL1', 'Superior DomeCam HLVF (4 Mp) (black)');
+    expect(withAnnotations).toEqual({ url: 'https://ajax.systems/de/products/superior-domecam-hlvf/', exact: true });
+  });
+
+  it('falls back to a Google site-search for AJAX when no product name is available', () => {
+    const link = getManufacturerLink('ajax', '38254.08.BL1');
+    expect(link?.exact).toBe(false);
+    expect(link?.url).toContain('site%3Aajax.systems');
+  });
+
+  it('links to the IQSIGHT commerce site search instead of an exact product page (no reliable SKU->URL mapping is available - the real page requires an internal SAP article ID not present in our price list)', () => {
     const iqsight = getManufacturerLink('iqsight', 'NDP-5522-Z30');
     expect(iqsight?.exact).toBe(false);
-    expect(iqsight?.url).toContain('site%3Aiqsight.com');
+    expect(iqsight?.url).toBe('https://commerce.iqsight.com/nlexp/de/search/?text=NDP-5522-Z30');
   });
 
   it('falls back to a plain web search for a manufacturer with no domain mapping at all', () => {
