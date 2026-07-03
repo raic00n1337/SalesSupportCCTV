@@ -174,6 +174,9 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
   // "Index" column marks upcoming items ("neu", or a "MM/YY" planned
   // availability date) and uses "AP" ("Auslaufprodukt") for items being
   // phased out - everything else counts as active.
+  // "SAP-Nr." is the manufacturer's internal article ID (e.g. "F.01U.390.686")
+  // - not shown anywhere in the catalog UI, but required to build an exact
+  // commerce.iqsight.com product link (see manufacturerLinks.ts).
   iqsight: {
     name: 'IQSIGHT (Bosch Videosysteme)',
     manufacturer: 'IQSIGHT',
@@ -182,6 +185,7 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
     hasHeader: true,
     columnMap: {
       'Typ (CTN)': 'sku',
+      'SAP-Nr.': 'sap_number',
       'EAN-Code': 'eso_number',
       'Kurzbezeichnung': 'name',
       'Langtext': 'description',

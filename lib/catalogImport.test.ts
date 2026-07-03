@@ -168,6 +168,10 @@ describe('Preislisten-Import: IQSIGHT (Bosch Videosysteme)', () => {
     expect(active.uvp_cents).toBe(213630);
     expect(active.eso_number).toBe('4060039191953');
     expect(active.is_active).toBe(true);
+    // "SAP-Nr." (e.g. "F.01U.421.002") must survive the import - it's the
+    // only way to build an exact commerce.iqsight.com product link, since
+    // the site requires this internal article ID in the URL.
+    expect(active.sap_number).toBe('F.01U.421.002');
 
     const eol = result.transformedData.find((r: any) => r.sku === 'NDM-7702-A');
     expect(eol.is_active).toBe(false);

@@ -16,12 +16,15 @@
 //   URL) - ajax.systems/de/products/<name-slug>/. Resolution/color
 //   annotations in the name ("(4 Mp)", "(black)") are shared variants on one
 //   page and must be dropped. Verified against several real product pages.
-// - IQSIGHT (Bosch/Keenfinity) product pages require an internal SAP
-//   article ID in the URL (.../p/<id>/) that isn't present anywhere in the
-//   price list we import (only the "Typ (CTN)" SKU and EAN are available),
-//   so an exact deep link can't be built from our data. We instead link to
-//   the manufacturer's own on-site search for the SKU, which at least stays
-//   on the correct (commerce.iqsight.com) domain instead of Google.
+// - IQSIGHT (Bosch/Keenfinity) product pages need an internal SAP article ID
+//   in the URL (.../p/<id>/) - the price list's "SAP-Nr." column
+//   (e.g. "F.01U.390.686") gives us exactly that, mapped to `sap_number` in
+//   formatProfiles.ts. The slug segment before "/p/" is purely cosmetic -
+//   verified live that the server resolves the page from the ID alone even
+//   with a garbage slug - so we don't need to get it exactly right. Without
+//   a SAP number (e.g. a manually-added product with no import data) we
+//   fall back to the manufacturer's own on-site search for the SKU, which at
+//   least stays on the correct (commerce.iqsight.com) domain instead of Google.
 // - For every other manufacturer, no reliable pattern is known, so we fall
 //   back to a Google site-search link, which always resolves to something
 //   useful even if it isn't the exact product page.
@@ -108,14 +111,37 @@ function iqsightSearchUrl(sku: string): string {
   return `https://${MANUFACTURER_DOMAINS.iqsight}/nlexp/de/search/?text=${encodeURIComponent(sku.trim())}`;
 }
 
+/** Cosmetic-only slug for the IQSIGHT product URL (the server resolves the
+ * page purely from the "/p/<sap-number>/" ID segment - see file header). */
+function slugifyIqsightName(name: string): string {
+  const base = name.split('|')[0].trim();
+  const slug = base
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug || 'produkt';
+}
+
+function iqsightProductUrl(name: string | undefined, sapNumber: string): string {
+  const slug = name && name.trim() ? slugifyIqsightName(name) : 'produkt';
+  return `https://${MANUFACTURER_DOMAINS.iqsight}/nlexp/de/${slug}/p/${encodeURIComponent(sapNumber.trim())}/`;
+}
+
 /**
  * Best-effort link to a product on its manufacturer's website.
  * @param manufacturerSlug lowercase manufacturer slug, e.g. "axis", "hanwha", "avigilon"
  * @param sku the product's SKU / model number
  * @param name the product's marketing/display name, used for AXIS and AJAX
  *   (whose SKUs are internal order numbers that don't appear in the product URL)
+ * @param manufacturerArticleNumber manufacturer-specific internal article ID,
+ *   used for IQSIGHT (the "SAP-Nr." column, e.g. "F.01U.390.686")
  */
-export function getManufacturerLink(manufacturerSlug: string, sku: string, name?: string): ManufacturerLink | null {
+export function getManufacturerLink(
+  manufacturerSlug: string,
+  sku: string,
+  name?: string,
+  manufacturerArticleNumber?: string
+): ManufacturerLink | null {
   const slug = manufacturerSlug?.toLowerCase().trim();
   if (!slug || !sku) return null;
 
@@ -141,7 +167,9 @@ export function getManufacturerLink(manufacturerSlug: string, sku: string, name?
   }
 
   if (slug === 'iqsight') {
-    // No exact pattern possible - see file header comment.
+    if (manufacturerArticleNumber && manufacturerArticleNumber.trim()) {
+      return { url: iqsightProductUrl(name, manufacturerArticleNumber), exact: true };
+    }
     return { url: iqsightSearchUrl(sku), exact: false };
   }
 

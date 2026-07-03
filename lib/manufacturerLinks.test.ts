@@ -52,7 +52,15 @@ describe('getManufacturerLink', () => {
     expect(link?.url).toContain('site%3Aajax.systems');
   });
 
-  it('links to the IQSIGHT commerce site search instead of an exact product page (no reliable SKU->URL mapping is available - the real page requires an internal SAP article ID not present in our price list)', () => {
+  it('builds an exact IQSIGHT deep link from the SAP article number ("SAP-Nr." column) - verified live that the URL slug is cosmetic and the server resolves purely from the /p/<id>/ segment', () => {
+    const link = getManufacturerLink('iqsight', 'NBE-7702-ALX', 'DINION bullet 7100i IR | 2Mp60 | 4,7-10mm', 'F.01U.390.686');
+    expect(link).toEqual({
+      url: 'https://commerce.iqsight.com/nlexp/de/dinion-bullet-7100i-ir/p/F.01U.390.686/',
+      exact: true,
+    });
+  });
+
+  it('falls back to the IQSIGHT commerce site search when no SAP article number is available', () => {
     const iqsight = getManufacturerLink('iqsight', 'NDP-5522-Z30');
     expect(iqsight?.exact).toBe(false);
     expect(iqsight?.url).toBe('https://commerce.iqsight.com/nlexp/de/search/?text=NDP-5522-Z30');
