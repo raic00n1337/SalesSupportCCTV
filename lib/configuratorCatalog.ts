@@ -11,6 +11,13 @@ export interface CategoryDefinition {
   /** true = mehrere Kapazitäts-Stufen möglich (z.B. Switch-Ports, NVR-Kanäle) */
   banded?: boolean
   capacityUnitHint?: string
+  /**
+   * true = die Montagezeit (bhe_time_minutes) dieser Kategorie wird bereits über eine
+   * eigene, kamera-/kanalabhängige Formel im BHE-Zeitmodell berechnet (siehe
+   * docs/BHE_TIME_MODEL_VIDEO.md) und NICHT zusätzlich aus diesem Feld übernommen.
+   * Der Wert dient dann nur als Referenz/Notiz.
+   */
+  bheTimeHandledByFormula?: boolean
 }
 
 // Vollständiger Katalog aller Konfigurator-Komponenten-Kategorien, die über
@@ -18,15 +25,15 @@ export interface CategoryDefinition {
 // Wird sowohl im Admin-Bereich (Dropdowns) als auch im Konfigurator selbst
 // als Referenz genutzt.
 export const CONFIGURATOR_CATEGORY_CATALOG: CategoryDefinition[] = [
-  { value: 'camera_dome_fixed', label: 'Kamera: Dome Fixed', group: 'Kameras & Audio' },
-  { value: 'camera_dome_vario', label: 'Kamera: Dome Vario', group: 'Kameras & Audio' },
-  { value: 'camera_bullet_fixed', label: 'Kamera: Bullet Fixed', group: 'Kameras & Audio' },
-  { value: 'camera_bullet_vario', label: 'Kamera: Bullet Vario', group: 'Kameras & Audio' },
-  { value: 'camera_ptz', label: 'Kamera: PTZ', group: 'Kameras & Audio' },
-  { value: 'camera_thermal', label: 'Kamera: Thermal', group: 'Kameras & Audio' },
-  { value: 'speaker_ip', label: 'IP-Lautsprecher', group: 'Kameras & Audio' },
+  { value: 'camera_dome_fixed', label: 'Kamera: Dome Fixed', group: 'Kameras & Audio', bheTimeHandledByFormula: true },
+  { value: 'camera_dome_vario', label: 'Kamera: Dome Vario', group: 'Kameras & Audio', bheTimeHandledByFormula: true },
+  { value: 'camera_bullet_fixed', label: 'Kamera: Bullet Fixed', group: 'Kameras & Audio', bheTimeHandledByFormula: true },
+  { value: 'camera_bullet_vario', label: 'Kamera: Bullet Vario', group: 'Kameras & Audio', bheTimeHandledByFormula: true },
+  { value: 'camera_ptz', label: 'Kamera: PTZ', group: 'Kameras & Audio', bheTimeHandledByFormula: true },
+  { value: 'camera_thermal', label: 'Kamera: Thermal', group: 'Kameras & Audio', bheTimeHandledByFormula: true },
+  { value: 'speaker_ip', label: 'IP-Lautsprecher', group: 'Kameras & Audio', bheTimeHandledByFormula: true },
 
-  { value: 'network_switch', label: 'Netzwerk-Switch (nach Port-Anzahl)', group: 'Netzwerk', banded: true, capacityUnitHint: 'ports' },
+  { value: 'network_switch', label: 'Netzwerk-Switch (nach Port-Anzahl)', group: 'Netzwerk', banded: true, capacityUnitHint: 'ports', bheTimeHandledByFormula: true },
   { value: 'media_converter_fiber', label: 'Medienkonverter Set (Fiber)', group: 'Netzwerk' },
   { value: 'sfp_module', label: 'SFP-Module (Paar)', group: 'Netzwerk' },
   { value: 'wlan_bridge_kit', label: 'WLAN-Bridge Set', group: 'Netzwerk' },
@@ -39,16 +46,16 @@ export const CONFIGURATOR_CATEGORY_CATALOG: CategoryDefinition[] = [
   { value: 'ups', label: 'USV', group: 'Infrastruktur' },
   { value: 'network_cabinet_9he', label: '9 HE Netzwerkschrank', group: 'Infrastruktur' },
 
-  { value: 'nvr_channels', label: 'NVR (nach Kanal-Anzahl)', group: 'Recorder & VMS', banded: true, capacityUnitHint: 'channels' },
-  { value: 'vms_license_server', label: 'VMS Server-Lizenz', group: 'Recorder & VMS' },
-  { value: 'vms_license_camera', label: 'VMS Kamera-Lizenz', group: 'Recorder & VMS' },
-  { value: 'vms_server_hardware', label: 'VMS Server-Hardware (nach Kamera-Anzahl)', group: 'Recorder & VMS', banded: true, capacityUnitHint: 'cameras' },
-  { value: 'vms_workstation_standard', label: 'VMS Client-Workstation (Standard)', group: 'Recorder & VMS' },
-  { value: 'vms_workstation_multimonitor', label: 'VMS Client-Workstation (Multibild/RTX)', group: 'Recorder & VMS' },
-  { value: 'vms_display_27', label: 'Display 27" (Full HD)', group: 'Recorder & VMS' },
-  { value: 'vms_input_set', label: 'Maus + Tastatur Set', group: 'Recorder & VMS' },
+  { value: 'nvr_channels', label: 'NVR (nach Kanal-Anzahl)', group: 'Recorder & VMS', banded: true, capacityUnitHint: 'channels', bheTimeHandledByFormula: true },
+  { value: 'vms_license_server', label: 'VMS Server-Lizenz', group: 'Recorder & VMS', bheTimeHandledByFormula: true },
+  { value: 'vms_license_camera', label: 'VMS Kamera-Lizenz', group: 'Recorder & VMS', bheTimeHandledByFormula: true },
+  { value: 'vms_server_hardware', label: 'VMS Server-Hardware (nach Kamera-Anzahl)', group: 'Recorder & VMS', banded: true, capacityUnitHint: 'cameras', bheTimeHandledByFormula: true },
+  { value: 'vms_workstation_standard', label: 'VMS Client-Workstation (Standard)', group: 'Recorder & VMS', bheTimeHandledByFormula: true },
+  { value: 'vms_workstation_multimonitor', label: 'VMS Client-Workstation (Multibild/RTX)', group: 'Recorder & VMS', bheTimeHandledByFormula: true },
+  { value: 'vms_display_27', label: 'Display 27" (Full HD)', group: 'Recorder & VMS', bheTimeHandledByFormula: true },
+  { value: 'vms_input_set', label: 'Maus + Tastatur Set', group: 'Recorder & VMS', bheTimeHandledByFormula: true },
 
-  { value: 'lift_platform_service', label: 'Hubsteiger (Dienstleistung)', group: 'Dienstleistung' }
+  { value: 'lift_platform_service', label: 'Hubsteiger (Dienstleistung)', group: 'Dienstleistung', bheTimeHandledByFormula: true }
 ]
 
 export interface ResolvedComponent {

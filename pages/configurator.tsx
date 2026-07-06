@@ -3040,6 +3040,11 @@ const Step6Summary = ({
   // Calculate BOM based on project configuration
   const calculateBOM = () => {
     const bom: BOMItem[] = []
+    // Sammelt die Montagezeit (Minuten) für Zubehör-/Infrastruktur-Komponenten, deren
+    // bhe_time_minutes nicht bereits über eine eigene Formel im BHE-Modell abgedeckt ist
+    // (Switch/NVR/VMS-Server/-Workstation skalieren mit Kamera-/Kanalanzahl und werden
+    // weiter unten separat berechnet, um Doppelzählung zu vermeiden).
+    let accessoryInstallMinutes = 0
 
     if (!project.sites || !project.manufacturer) return bom
 
@@ -3176,6 +3181,7 @@ const Step6Summary = ({
             unitPrice: jbox.price,
             category: 'Zubehör'
           })
+          accessoryInstallMinutes += totalOutdoorCameras * jbox.bheTime
         }
       }
 
@@ -3190,6 +3196,7 @@ const Step6Summary = ({
           unitPrice: converter.price,
           category: 'Netzwerk'
         })
+        accessoryInstallMinutes += 2 * converter.bheTime
         const sfp = resolveSimpleComponent('sfp_module', configuratorProducts, { name: 'SFP-Module (Paar)', price: 79, manufacturer: 'Universal', eso: 'NET-SFP-001' })
         bom.push({
           articleName: `${sitePrefix} ${sfp.name}`,
@@ -3199,6 +3206,7 @@ const Step6Summary = ({
           unitPrice: sfp.price,
           category: 'Netzwerk'
         })
+        accessoryInstallMinutes += sfp.bheTime
       }
 
       if (site.cabling === 'wlan-bridge') {
@@ -3211,6 +3219,7 @@ const Step6Summary = ({
           unitPrice: wlanBridge.price,
           category: 'Netzwerk'
         })
+        accessoryInstallMinutes += wlanBridge.bheTime
         const enclosure = resolveSimpleComponent('wlan_outdoor_enclosure', configuratorProducts, { name: 'Outdoor-Gehäuse für WLAN', price: 69, manufacturer: 'Universal', eso: 'ACC-ENCL-001' })
         bom.push({
           articleName: `${sitePrefix} ${enclosure.name}`,
@@ -3220,6 +3229,7 @@ const Step6Summary = ({
           unitPrice: enclosure.price,
           category: 'Infrastruktur'
         })
+        accessoryInstallMinutes += 2 * enclosure.bheTime
       }
 
       // Standalone site infrastructure
@@ -3259,6 +3269,7 @@ const Step6Summary = ({
             unitPrice: cabinet.price,
             category: 'Infrastruktur'
           })
+          accessoryInstallMinutes += cabinet.bheTime
         }
 
         const psu = resolveSimpleComponent('poe_injector', configuratorProducts, { name: 'Stromversorgung / PoE-Injektor', price: 189, manufacturer: 'Universal', eso: 'INFRA-PSU-001' })
@@ -3270,6 +3281,7 @@ const Step6Summary = ({
           unitPrice: psu.price,
           category: 'Infrastruktur'
         })
+        accessoryInstallMinutes += psu.bheTime
       }
     })
 
@@ -3465,6 +3477,7 @@ const Step6Summary = ({
         unitPrice: vpnRouter.price,
         category: 'Netzwerk'
       })
+      accessoryInstallMinutes += vpnRouter.bheTime
     }
 
     // UPS
@@ -3478,6 +3491,7 @@ const Step6Summary = ({
         unitPrice: ups.price,
         category: 'Infrastruktur'
       })
+      accessoryInstallMinutes += ups.bheTime
     }
 
     // 9 HE Network Cabinet (Optional)
@@ -3491,6 +3505,7 @@ const Step6Summary = ({
         unitPrice: cabinet9he.price,
         category: 'Infrastruktur'
       })
+      accessoryInstallMinutes += cabinet9he.bheTime
     }
 
     // Lift Platform / Hubsteiger (Optional)
@@ -3633,6 +3648,13 @@ const Step6Summary = ({
     // 8. DOCUMENTATION
     // Erstellung Anlagendokumentation: 15 min pro Kanal
     totalBHEMinutes += totalCameras * 15
+
+    // 9. ZUBEHÖR / INFRASTRUKTUR-KOMPONENTEN (Junction Box, Medienkonverter, SFP,
+    // WLAN-Bridge, Outdoor-Cabinet, PoE-Injektor, VPN-Router, USV, 9HE-Schrank)
+    // Montagezeit kommt direkt vom jeweiligen configurator_products-Eintrag
+    // (admin-pflegbar unter Konfigurator-Komponenten) und wurde beim Aufbau der
+    // BOM oben bereits pro Position aufsummiert.
+    totalBHEMinutes += accessoryInstallMinutes
     
     // Convert to hours and add to BOM
     const laborRateForInstallation = configuratorSettings.labor_rate_eur_per_hour ?? 120

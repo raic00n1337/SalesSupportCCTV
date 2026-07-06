@@ -417,7 +417,12 @@ export default function ConfiguratorProductsPage() {
                     {product.capacity_value != null ? `${product.capacity_value} ${product.capacity_unit || ''}`.trim() : '—'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {product.bhe_time_minutes}
+                    {product.bhe_time_minutes} min
+                    {categories.find(c => c.value === product.category)?.bheTimeHandledByFormula && (
+                      <span className="text-xs text-gray-400 dark:text-gray-500 ml-1" title="Wird im Angebot über eine eigene Formel berechnet, nicht aus diesem Feld">
+                        (Formel)
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {product.priority}
@@ -584,6 +589,16 @@ export default function ConfiguratorProductsPage() {
                     onChange={(e) => setFormData({ ...formData, bhe_time_minutes: parseInt(e.target.value) || 0 })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
+                  {selectedCategoryDef?.bheTimeHandledByFormula ? (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      ℹ️ Nur Referenz: Bei dieser Kategorie wird die Montagezeit im Angebot über eine eigene,
+                      kamera-/kanalabhängige Formel berechnet (siehe BHE-Zeitmodell), nicht über dieses Feld.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Fließt direkt (× Menge) in die Gesamt-Montagezeit im Angebot ein.
+                    </p>
+                  )}
                 </div>
 
                 {/* Is Default */}
