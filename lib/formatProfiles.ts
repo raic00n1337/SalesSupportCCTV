@@ -12,7 +12,7 @@ import { parsePriceToCents } from './priceParsing';
 // non-bundle variant). This prefixes the SKU/model code onto the descriptive
 // name so it matches AXIS's pattern - a no-op if the description already
 // starts with (or simply equals) the SKU, which is common for accessories.
-function makeSkuLeadingName(sku: string | undefined, descriptiveName: string | undefined): string {
+export function makeSkuLeadingName(sku: string | undefined, descriptiveName: string | undefined): string {
   const trimmedSku = (sku ?? '').toString().trim();
   const trimmedName = (descriptiveName ?? '').toString().trim();
   if (!trimmedName || trimmedName.toLowerCase() === trimmedSku.toLowerCase()) return trimmedSku;
