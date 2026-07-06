@@ -336,11 +336,17 @@ describe('Preislisten-Import: Avigilon (flache CSV, Category/Subcategory-Spalten
     // The model number leads `name` so it stays unique on its own, the way
     // AXIS's marketing name already does.
     expect(camera.name).toBe('2.0C-H6A-BO1-IR 2MP H6A Bullet IR Camera with 2.8-12mm Lens');
+    // "Datasheet URL" is actually the exact product page link (not a PDF) -
+    // captured as-is so the admin UI can link directly to it instead of a
+    // best-effort site search.
+    expect(camera.manufacturer_url).toBe('https://www.avigilon.com/security-cameras/h6a-bullet');
 
     const nvr = result.transformedData.find((r: any) => r.sku === 'H4-NVR-4CH-1TB');
     expect(nvr.uvp_cents).toBe(189900);
     expect(nvr.category).toBe('Video Infrastructure – Network Video Recorder');
     expect(nvr.name).toBe('H4-NVR-4CH-1TB H4 NVR 4 channel; 1TB');
+    // No Datasheet URL for this row - must not crash and must not fabricate one.
+    expect(nvr.manufacturer_url).toBeFalsy();
   });
 
   it('nutzt Subcategory allein, wenn Category leer ist, und fällt auf "Sonstiges" zurück, wenn beide leer sind', async () => {

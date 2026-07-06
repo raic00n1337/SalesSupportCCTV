@@ -39,6 +39,15 @@ export interface ManufacturerLink {
   exact: boolean;
 }
 
+// Older imports persisted a best-effort Google site-search as
+// `manufacturer_url` (the only option available at the time). That's not an
+// exact product link, so don't trust it as one - recompute live via
+// `getManufacturerLink`, which may since have gained an exact pattern for
+// that manufacturer.
+export function isSearchFallbackUrl(url: string): boolean {
+  return url.includes('google.com/search');
+}
+
 const MANUFACTURER_DOMAINS: Record<string, string> = {
   axis: 'axis.com',
   hanwha: 'hanwhavision.com',

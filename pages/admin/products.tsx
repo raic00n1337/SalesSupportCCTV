@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import RouteGuard from '../../components/RouteGuard';
 import AdminLayout from '../../components/AdminLayout';
 import { supabase } from '../../lib/supabaseClient';
-import { getManufacturerLink } from '../../lib/manufacturerLinks';
+import { getManufacturerLink, isSearchFallbackUrl } from '../../lib/manufacturerLinks';
 import { fetchAllRows } from '../../lib/supabasePagination';
 
 interface Manufacturer {
@@ -45,20 +45,11 @@ function sanitizeForIlike(value: string): string {
   return value.replace(/[%_,()]/g, ' ').trim();
 }
 
-// Older imports persisted a best-effort Google site-search as
-// `manufacturer_url` (the only option available at the time). That's not an
-// exact product link, so don't trust it as one - recompute live via
-// `getManufacturerLink`, which may since have gained an exact pattern for
-// that manufacturer (e.g. Hanwha).
-//
 // AXIS is a special case: earlier imports built the stored URL from the SKU
 // (an internal order number, e.g. "axis-02457-001"), which looks like an
 // exact link but 404s. Those are indistinguishable from a "real" exact link
 // by shape alone, so for AXIS we always recompute from the product name
-// instead of trusting whatever is stored.
-function isSearchFallbackUrl(url: string): boolean {
-  return url.includes('google.com/search');
-}
+// instead of trusting whatever is stored (see `isSearchFallbackUrl` import).
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -90,6 +81,7 @@ export default function AdminProducts() {
     uvpCents: '',
     tags: '',
     isActive: true,
+    manufacturerUrl: '',
   });
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState('');
@@ -240,6 +232,7 @@ export default function AdminProducts() {
       uvpCents: '',
       tags: '',
       isActive: true,
+      manufacturerUrl: '',
     });
     setModalError('');
     setShowModal(true);
@@ -258,6 +251,7 @@ export default function AdminProducts() {
       uvpCents: (product.uvp_cents / 100).toFixed(2), // Convert cents to euros
       tags: product.tags.join(', '),
       isActive: product.is_active,
+      manufacturerUrl: (product.manufacturer_url && !isSearchFallbackUrl(product.manufacturer_url)) ? product.manufacturer_url : '',
     });
     setModalError('');
     setShowModal(true);
@@ -297,6 +291,7 @@ export default function AdminProducts() {
         uvp_cents: uvpCents,
         tags,
         is_active: modalForm.isActive,
+        manufacturer_url: modalForm.manufacturerUrl.trim() || null,
       };
 
       if (modalMode === 'create') {
@@ -328,6 +323,7 @@ export default function AdminProducts() {
         uvpCents: '',
         tags: '',
         isActive: true,
+        manufacturerUrl: '',
       });
     } catch (err: any) {
       console.error('Error saving product:', err);
@@ -890,6 +886,24 @@ ${firstSlug};switch;SAMPLE-SW-001;ESO999003;Beispiel PoE Switch;8 Port PoE+ Swit
                       className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                       placeholder="z.B. dome, outdoor, 4k"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Produktseite-URL (optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={modalForm.manufacturerUrl}
+                      onChange={(e) => setModalForm({ ...modalForm, manufacturerUrl: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                      placeholder="z.B. https://www.avigilon.com/de/security-cameras/h6a-bullet"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Direkter Link zur Produktseite beim Hersteller. Wenn leer, wird beim 🔗-Icon
+                      in der Tabelle automatisch eine Herstellersuche verwendet (falls für die Marke
+                      ein Muster bekannt ist).
+                    </p>
                   </div>
 
                   <div className="flex items-center">

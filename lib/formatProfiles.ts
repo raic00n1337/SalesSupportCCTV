@@ -322,6 +322,13 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
       'Subcategory': '_subcategory',
       'Description (for prices starting on July 06 2026)': 'description',
       'MSRP (EUR)': 'uvp_cents',
+      // Despite the column name, this is the direct link to the product's
+      // page on avigilon.com (e.g. https://www.avigilon.com/security-cameras/h6a-bullet),
+      // not a PDF - stored as-is in `products.manufacturer_url` and used to
+      // link directly to the product instead of a best-effort site search
+      // (see lib/manufacturerLinks.ts). Many accessory rows leave this blank,
+      // which is fine - `manufacturer_url` is optional.
+      'Datasheet URL': 'manufacturer_url',
     },
     transformations: {
       uvp_cents: (value: string) => parsePriceToCents(value) ?? 0,

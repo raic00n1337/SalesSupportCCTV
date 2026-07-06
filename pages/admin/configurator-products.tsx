@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { fetchAllRows } from '../../lib/supabasePagination'
 import AdminLayout from '../../components/AdminLayout'
 import { CONFIGURATOR_CATEGORY_CATALOG } from '../../lib/configuratorCatalog'
+import { getManufacturerLink, isSearchFallbackUrl } from '../../lib/manufacturerLinks'
 import type { ConfiguratorProduct } from '../api/configurator/products'
 
 interface Product {
@@ -19,6 +20,7 @@ interface Product {
   sku: string
   eso_number: string
   manufacturer_id: string
+  manufacturer_url?: string | null
   manufacturers: {
     name: string
     slug: string
@@ -93,6 +95,7 @@ export default function ConfiguratorProductsPage() {
             sku,
             eso_number,
             manufacturer_id,
+            manufacturer_url,
             manufacturers (
               name,
               slug
@@ -437,6 +440,26 @@ export default function ConfiguratorProductsPage() {
                     <div>{product.products?.name}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       SKU: {product.products?.sku} | {product.products?.manufacturers?.name}
+                      {(() => {
+                        const p = product.products
+                        if (!p) return null
+                        const isAxis = p.manufacturers?.slug === 'axis'
+                        const link = p.manufacturer_url && !isSearchFallbackUrl(p.manufacturer_url) && !isAxis
+                          ? { url: p.manufacturer_url, exact: true }
+                          : getManufacturerLink(p.manufacturers?.slug || '', p.sku, p.name)
+                        if (!link) return null
+                        return (
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={link.exact ? 'Zur Produktseite beim Hersteller' : 'Suche auf der Herstellerseite (kein exakter Link)'}
+                            className="ml-1 text-primary-600 dark:text-primary-400 hover:underline"
+                          >
+                            {link.exact ? '🔗' : '🔍'}
+                          </a>
+                        )
+                      })()}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
