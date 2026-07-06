@@ -2,6 +2,29 @@
 import type { ExcelRowContext, FormatProfile } from './csvCompilerTypes';
 import { parsePriceToCents } from './priceParsing';
 
+// AXIS's marketing "Product Name" (e.g. "AXIS M3057-PLR Mk II DOME CAMERA")
+// already leads with its model number, so it's a distinguishing "main name"
+// wherever `products.name` alone is shown (admin lists, rule picker, ...).
+// Hanwha's "Short description" and Avigilon's "Name" aren't as reliable -
+// both are sometimes a generic label reused across several SKUs (e.g.
+// Hanwha's "Barcode Reader Camera" for 3+ different model codes; Avigilon's
+// "4MP H6A Outdoor IR Dome Camera with 4.4-9.3mm Lens" for both a bundle and
+// non-bundle variant). This prefixes the SKU/model code onto the descriptive
+// name so it matches AXIS's pattern - a no-op if the description already
+// starts with (or simply equals) the SKU, which is common for accessories.
+function makeSkuLeadingName(sku: string | undefined, descriptiveName: string | undefined): string {
+  const trimmedSku = (sku ?? '').toString().trim();
+  const trimmedName = (descriptiveName ?? '').toString().trim();
+  if (!trimmedName || trimmedName.toLowerCase() === trimmedSku.toLowerCase()) return trimmedSku;
+  if (trimmedName.toLowerCase().startsWith(trimmedSku.toLowerCase())) return trimmedName;
+  return trimmedSku ? `${trimmedSku} ${trimmedName}` : trimmedName;
+}
+
+function hanwhaPostProcessRow(row: Record<string, any>): void {
+  row.name = makeSkuLeadingName(row.sku, row._shortDescription);
+  delete row._shortDescription;
+}
+
 // AJAX groups its 7 sheets into a "{group} | Superior"/"{group} | Baseline"
 // pair for Intrusion protection and Video surveillance, but not for the
 // other 3 sheets (which aren't split into two product lines at all). Kept as
@@ -69,6 +92,14 @@ function avigilonPostProcessRow(row: Record<string, any>): void {
   } else if (subcategory && !category) {
     row.category = subcategory;
   }
+
+  // "Name" is a real distinguishing marketing name for most cameras (e.g.
+  // "2MP H6A Bullet IR Camera with 2.8-12mm Lens") but is a couple of things
+  // for accessories - either identical to "Model No." already (~35% of
+  // rows, a no-op below) or, rarer, the exact same generic label shared by a
+  // bundle/non-bundle variant pair (e.g. two different "-B" suffix SKUs).
+  // Prefixing the model number makes every row's name unique either way.
+  row.name = makeSkuLeadingName(row.sku, row.name);
 }
 
 /**
@@ -159,7 +190,11 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
   // like "Camera - Network", "NVRs", "Speaker"), and thousands of section-
   // divider rows (e.g. "4K Cameras & up") that have a category but no model
   // code or price - those are automatically dropped since the diff pipeline
-  // only keeps rows with both a sku and a price.
+  // only keeps rows with both a sku and a price. "Short description" is
+  // often a generic type label reused across several model codes (e.g.
+  // "Barcode Reader Camera") rather than a distinguishing name, so it's
+  // routed to the scratch field `_shortDescription` and `hanwhaPostProcessRow`
+  // (above) prefixes the model code onto it to build the real `name`.
   hanwha: {
     name: 'Hanwha Vision',
     manufacturer: 'Hanwha',
@@ -167,7 +202,7 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
     encoding: 'utf-8',
     hasHeader: true,
     columnMap: {
-      'Short description': 'name',
+      'Short description': '_shortDescription',
       'Model code': 'sku',
       'Full Description': 'description',
       'MSRP, €': 'uvp_cents',
@@ -181,6 +216,7 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
       headerKeywords: ['Model code', 'MSRP', 'Short description'],
       maxHeaderSearchRows: 15,
       blankHeaderLabels: { 1: 'Category' },
+      postProcessRow: hanwhaPostProcessRow,
     },
   },
 

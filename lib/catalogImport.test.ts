@@ -135,10 +135,16 @@ describe('Preislisten-Import: Hanwha (unbeschriftete Kategorie-Spalte + Trennzei
     const qno = result.transformedData.find((r: any) => r.sku === 'QNO-7012R');
     expect(qno.uvp_cents).toBe(34950);
     expect(qno.category).toBe('Camera - Network');
+    // "Short description" alone ("4K Outdoor-Dome") is reused across
+    // several model codes and isn't a distinguishing name by itself - the
+    // model code must lead `name`, mirroring how AXIS's own marketing name
+    // already leads with its model number.
+    expect(qno.name).toBe('QNO-7012R 4K Outdoor-Dome');
 
     const xno = result.transformedData.find((r: any) => r.sku === 'XNO-6120R');
     expect(xno.uvp_cents).toBe(119990);
     expect(xno.category).toBe('Camera - Network');
+    expect(xno.name).toBe('XNO-6120R 2MP Bullet mit IR');
   });
 });
 
@@ -327,10 +333,14 @@ describe('Preislisten-Import: Avigilon (flache CSV, Category/Subcategory-Spalten
     // fallback (dataTransformer.cleanData) must fill eso_number instead of
     // leaving the NOT NULL + UNIQUE DB column empty.
     expect(camera.eso_number).toBe('2.0C-H6A-BO1-IR');
+    // The model number leads `name` so it stays unique on its own, the way
+    // AXIS's marketing name already does.
+    expect(camera.name).toBe('2.0C-H6A-BO1-IR 2MP H6A Bullet IR Camera with 2.8-12mm Lens');
 
     const nvr = result.transformedData.find((r: any) => r.sku === 'H4-NVR-4CH-1TB');
     expect(nvr.uvp_cents).toBe(189900);
     expect(nvr.category).toBe('Video Infrastructure – Network Video Recorder');
+    expect(nvr.name).toBe('H4-NVR-4CH-1TB H4 NVR 4 channel; 1TB');
   });
 
   it('nutzt Subcategory allein, wenn Category leer ist, und fällt auf "Sonstiges" zurück, wenn beide leer sind', async () => {
@@ -348,6 +358,29 @@ describe('Preislisten-Import: Avigilon (flache CSV, Category/Subcategory-Spalten
 
     const subOnly = result.transformedData.find((r: any) => r.sku === 'AVG-LIC-1');
     expect(subOnly.category).toBe('Software');
+  });
+
+  it('lässt den Namen unverändert, wenn er die SKU schon enthält, und macht per-SKU eindeutig sonst identische Namen wieder unterscheidbar', async () => {
+    const csv = buildAvigilonCsv([
+      // Accessories where "Name" is literally just the model number again -
+      // ~35% of the real file - must not become "SKU SKU".
+      'Video Surveillance,Accessories,Camera Accessories,,,AVO-FE-ACC-KIT,AVO-FE-ACC-KIT,13.14,"Install Accy Kit",,',
+      // Two genuinely different bundle/non-bundle SKUs sharing the exact
+      // same generic "Name" text in the real file - must stay distinguishable.
+      'Video Surveillance,Camera,Dome,,,4.0C-H6A-DO1-IR,"4MP H6A Outdoor IR Dome Camera with 4.4-9.3mm Lens",679.00,"desc",,',
+      'Video Surveillance,Camera,Dome,,,4.0C-H6A-DO1-IR-B,"4MP H6A Outdoor IR Dome Camera with 4.4-9.3mm Lens",699.00,"desc",,',
+    ]);
+
+    const result = await compileFile(csv, 'avigilon-preisliste-3.csv', { ...options, formatProfile: 'avigilon' });
+
+    const accessory = result.transformedData.find((r: any) => r.sku === 'AVO-FE-ACC-KIT');
+    expect(accessory.name).toBe('AVO-FE-ACC-KIT');
+
+    const plain = result.transformedData.find((r: any) => r.sku === '4.0C-H6A-DO1-IR');
+    const bundle = result.transformedData.find((r: any) => r.sku === '4.0C-H6A-DO1-IR-B');
+    expect(plain.name).not.toBe(bundle.name);
+    expect(plain.name).toBe('4.0C-H6A-DO1-IR 4MP H6A Outdoor IR Dome Camera with 4.4-9.3mm Lens');
+    expect(bundle.name).toBe('4.0C-H6A-DO1-IR-B 4MP H6A Outdoor IR Dome Camera with 4.4-9.3mm Lens');
   });
 });
 
