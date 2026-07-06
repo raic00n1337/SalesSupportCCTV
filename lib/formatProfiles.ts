@@ -52,6 +52,25 @@ function ajaxPostProcessRow(row: Record<string, any>, ctx: ExcelRowContext): voi
   row.tags = tags;
 }
 
+// Avigilon's flat "Category"/"Subcategory" pair (e.g. "Camera"/"Bullet",
+// "Video Infrastructure"/"Network Video Recorder") is far more useful
+// combined than either column alone - "Camera" by itself covers >300 very
+// different products. `columnMap` can't merge two source columns into one
+// target itself (and mapping both to `category` would trip the "mapped
+// multiple times" validation), so `Subcategory` is routed to the scratch
+// field `_subcategory` here and folded in below, then discarded.
+function avigilonPostProcessRow(row: Record<string, any>): void {
+  const category = typeof row.category === 'string' ? row.category.trim() : '';
+  const subcategory = typeof row._subcategory === 'string' ? row._subcategory.trim() : '';
+  delete row._subcategory;
+
+  if (category && subcategory && subcategory.toLowerCase() !== category.toLowerCase()) {
+    row.category = `${category} – ${subcategory}`;
+  } else if (subcategory && !category) {
+    row.category = subcategory;
+  }
+}
+
 /**
  * Predefined format profiles for common manufacturers
  * These can be extended and saved by users
@@ -242,6 +261,39 @@ export const FORMAT_PROFILES: Record<string, FormatProfile> = {
         'Applicable both for smart light switches and outlets',
       ],
       postProcessRow: ajaxPostProcessRow,
+    },
+  },
+
+  // Avigilon Format - based on the real "Avigilon - Unity Video - DE Price
+  // List - MSRP - EUR.csv" export. A clean flat CSV (no title rows, no
+  // sheets, no repeating headers) but every header cell except the first
+  // has a leading space from the source's ", " column separator - harmless
+  // since `parseCSV` already trims headers. No EAN/GTIN column exists;
+  // `cleanData`'s generic sku->eso_number fallback covers that. Prices are
+  // always plain "1234.56" (never thousands separators), so
+  // `parsePriceToCents` handles them unambiguously. `avigilonPostProcessRow`
+  // (above) merges "Category" + "Subcategory" into one useful category.
+  avigilon: {
+    name: 'Avigilon (Unity Video)',
+    manufacturer: 'Avigilon',
+    delimiter: ',',
+    encoding: 'utf-8',
+    hasHeader: true,
+    columnMap: {
+      'Model No.': 'sku',
+      'Name': 'name',
+      'Category': 'category',
+      'Subcategory': '_subcategory',
+      'Description (for prices starting on July 06 2026)': 'description',
+      'MSRP (EUR)': 'uvp_cents',
+    },
+    transformations: {
+      uvp_cents: (value: string) => parsePriceToCents(value) ?? 0,
+    },
+    excel: {
+      headerKeywords: ['Model No.', 'MSRP (EUR)', 'Category'],
+      maxHeaderSearchRows: 5,
+      postProcessRow: avigilonPostProcessRow,
     },
   },
 

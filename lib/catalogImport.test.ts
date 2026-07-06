@@ -298,6 +298,59 @@ describe('Preislisten-Import: AJAX (wiederholte Kopfzeilen/Kategorie-Abschnitte 
   });
 });
 
+// Plain CSV (no title rows, no sheets) - but every header cell except the
+// first has a leading space from the source's ", " separator, and the price
+// column even has two ("  MSRP (EUR)"). `parseCSV`'s `transformHeader` trims
+// that away, so the columnMap keys below intentionally have NO leading
+// spaces even though the raw file does.
+function buildAvigilonCsv(rows: string[]): string {
+  const header =
+    'Product Line, Category, Subcategory, Family, Series, Model No., Name,  MSRP (EUR), Description (for prices starting on July 06 2026), Datasheet URL, Product Image Link';
+  return [header, ...rows].join('\n');
+}
+
+describe('Preislisten-Import: Avigilon (flache CSV, Category/Subcategory-Spalten)', () => {
+  it('kombiniert Category + Subcategory zu einer Kategorie und parst den Preis korrekt', async () => {
+    const csv = buildAvigilonCsv([
+      'Video Surveillance,Camera,Bullet,Bullet Analytics,H6A,2.0C-H6A-BO1-IR,"2MP H6A Bullet IR Camera with 2.8-12mm Lens",1166.50,"2MP H6A Bullet IR Camera",https://www.avigilon.com/security-cameras/h6a-bullet,',
+      'Video Surveillance,Video Infrastructure,Network Video Recorder,,,H4-NVR-4CH-1TB,"H4 NVR 4 channel; 1TB",1899.00,"4-Kanal NVR mit 1TB",,',
+    ]);
+
+    const result = await compileFile(csv, 'avigilon-preisliste.csv', { ...options, formatProfile: 'avigilon' });
+
+    expect(result.transformedData).toHaveLength(2);
+
+    const camera = result.transformedData.find((r: any) => r.sku === '2.0C-H6A-BO1-IR');
+    expect(camera.uvp_cents).toBe(116650);
+    expect(camera.category).toBe('Camera – Bullet');
+    // No EAN/GTIN column exists in this price list - the generic sku
+    // fallback (dataTransformer.cleanData) must fill eso_number instead of
+    // leaving the NOT NULL + UNIQUE DB column empty.
+    expect(camera.eso_number).toBe('2.0C-H6A-BO1-IR');
+
+    const nvr = result.transformedData.find((r: any) => r.sku === 'H4-NVR-4CH-1TB');
+    expect(nvr.uvp_cents).toBe(189900);
+    expect(nvr.category).toBe('Video Infrastructure – Network Video Recorder');
+  });
+
+  it('nutzt Subcategory allein, wenn Category leer ist, und fällt auf "Sonstiges" zurück, wenn beide leer sind', async () => {
+    const csv = buildAvigilonCsv([
+      // Real-world quirk: some genuine camera rows ship with both Category
+      // and Subcategory blank (only Family/Series hint at what they are).
+      'Video Surveillance,,,,,4.0C-H6A-D1-B,"4MP H6A Indoor Dome Camera",679.00,"4MP H6A Indoor Dome Camera",,',
+      'Video Surveillance,,Software,,,AVG-LIC-1,"1 Camera License",250.00,"Lizenz",,',
+    ]);
+
+    const result = await compileFile(csv, 'avigilon-preisliste-2.csv', { ...options, formatProfile: 'avigilon' });
+
+    const noCategory = result.transformedData.find((r: any) => r.sku === '4.0C-H6A-D1-B');
+    expect(noCategory.category).toBe('Sonstiges');
+
+    const subOnly = result.transformedData.find((r: any) => r.sku === 'AVG-LIC-1');
+    expect(subOnly.category).toBe('Software');
+  });
+});
+
 describe('Preislisten-Import: Excel-Upload (Base64-Pfad wie im Browser)', () => {
   it('dekodiert eine base64-kodierte .xlsx-Datei korrekt und kompiliert sie über das AXIS-Profil', async () => {
     // Simulates what lib/readFileForUpload.ts produces client-side for .xlsx
