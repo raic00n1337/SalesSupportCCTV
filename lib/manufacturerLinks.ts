@@ -11,11 +11,10 @@
 //   accessories) at the same predictable path (DACH/German locale) -
 //   hanwhavision.com/de/products/product-details/<model> - verified against
 //   several real SKUs, so this is treated as an exact link too.
-// - AJAX product pages are named after the marketing name (family + model),
-//   not the ordering SKU (e.g. SKU "135577.214.BL1" is meaningless in the
-//   URL) - ajax.systems/de/products/<name-slug>/. Resolution/color
-//   annotations in the name ("(4 Mp)", "(black)") are shared variants on one
-//   page and must be dropped. Verified against several real product pages.
+// - AJAX: a name-derived ajax.systems/de/products/<name-slug>/ pattern was
+//   tried, but turned out to 404 across the board once checked against the
+//   live site - not just a few edge cases. There's no reliable pattern, so
+//   AJAX falls back to a site search like every other unmapped manufacturer.
 // - IQSIGHT (Bosch/Keenfinity) product pages need an internal SAP article ID
 //   in the URL (.../p/<id>/) - the price list's "SAP-Nr." column
 //   (e.g. "F.01U.390.686") gives us exactly that, mapped to `sap_number` in
@@ -94,23 +93,6 @@ function slugifyAxisName(name: string): string {
   return `axis-${modelTokens.join('-').toLowerCase()}`;
 }
 
-/**
- * Builds the ajax.systems product-page slug from the price list's marketing
- * name. Resolution/color annotations ("(4 Mp)", "(black)", "(5 Mp/2.8 mm)")
- * are stripped since those are variants selectable on one shared page, not
- * separate URLs (e.g. "Superior DomeCam HLVF (4 Mp) (black)" and
- * "Superior DomeCam HLVF (8 Mp) (white)" both live at
- * ajax.systems/de/products/superior-domecam-hlvf/).
- */
-function slugifyAjaxName(name: string): string {
-  const withoutAnnotations = name.trim().replace(/\([^)]*\)/g, ' ');
-  return withoutAnnotations
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
 function siteSearchUrl(domain: string, sku: string): string {
   const query = encodeURIComponent(`site:${domain} ${sku}`);
   return `https://www.google.com/search?q=${query}`;
@@ -140,8 +122,8 @@ function iqsightProductUrl(name: string | undefined, sapNumber: string): string 
  * Best-effort link to a product on its manufacturer's website.
  * @param manufacturerSlug lowercase manufacturer slug, e.g. "axis", "hanwha", "avigilon"
  * @param sku the product's SKU / model number
- * @param name the product's marketing/display name, used for AXIS and AJAX
- *   (whose SKUs are internal order numbers that don't appear in the product URL)
+ * @param name the product's marketing/display name, used for AXIS (whose
+ *   SKU is an internal order number that doesn't appear in the product URL)
  * @param manufacturerArticleNumber manufacturer-specific internal article ID,
  *   used for IQSIGHT (the "SAP-Nr." column, e.g. "F.01U.390.686")
  */
@@ -166,13 +148,6 @@ export function getManufacturerLink(
   if (slug === 'hanwha') {
     const model = encodeURIComponent(sku.trim());
     return { url: `https://www.${MANUFACTURER_DOMAINS.hanwha}/de/products/product-details/${model}`, exact: true };
-  }
-
-  if (slug === 'ajax') {
-    if (name && name.trim()) {
-      return { url: `https://${MANUFACTURER_DOMAINS.ajax}/de/products/${slugifyAjaxName(name)}/`, exact: true };
-    }
-    return { url: siteSearchUrl(MANUFACTURER_DOMAINS.ajax, sku), exact: false };
   }
 
   if (slug === 'iqsight') {

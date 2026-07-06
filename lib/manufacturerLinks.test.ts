@@ -35,21 +35,14 @@ describe('getManufacturerLink', () => {
     expect(link?.url).toContain('QNV-7080R');
   });
 
-  it('builds an exact AJAX deep link from the product name, not the SKU (verified against real product pages)', () => {
-    // https://ajax.systems/de/products/en54-fire-hub-jeweller/
-    const simple = getManufacturerLink('ajax', '58610', 'EN54 Fire Hub Jeweller');
-    expect(simple).toEqual({ url: 'https://ajax.systems/de/products/en54-fire-hub-jeweller/', exact: true });
+  it('falls back to a Google site-search for AJAX (the name-derived slug pattern turned out to 404 in practice)', () => {
+    const withName = getManufacturerLink('ajax', '58610', 'EN54 Fire Hub Jeweller');
+    expect(withName?.exact).toBe(false);
+    expect(withName?.url).toContain('site%3Aajax.systems');
 
-    // Resolution/color annotations are variants of one shared page, not
-    // separate URLs: https://ajax.systems/de/products/superior-domecam-hlvf/
-    const withAnnotations = getManufacturerLink('ajax', '135577.214.BL1', 'Superior DomeCam HLVF (4 Mp) (black)');
-    expect(withAnnotations).toEqual({ url: 'https://ajax.systems/de/products/superior-domecam-hlvf/', exact: true });
-  });
-
-  it('falls back to a Google site-search for AJAX when no product name is available', () => {
-    const link = getManufacturerLink('ajax', '38254.08.BL1');
-    expect(link?.exact).toBe(false);
-    expect(link?.url).toContain('site%3Aajax.systems');
+    const withoutName = getManufacturerLink('ajax', '38254.08.BL1');
+    expect(withoutName?.exact).toBe(false);
+    expect(withoutName?.url).toContain('site%3Aajax.systems');
   });
 
   it('builds an exact IQSIGHT deep link from the SAP article number ("SAP-Nr." column) - verified live that the URL slug is cosmetic and the server resolves purely from the /p/<id>/ segment', () => {
