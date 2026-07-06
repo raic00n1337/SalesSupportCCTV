@@ -28,6 +28,12 @@ export interface ConfiguratorProduct {
   tags?: string[]
   capacity_value?: number | null
   capacity_unit?: string | null
+  /**
+   * Expliziter Hersteller-Geltungsbereich dieser Zuordnung (admin-pflegbar,
+   * unabhängig von der Marke des verknüpften Produkts). NULL/undefined =
+   * gilt für alle Hersteller. Siehe add_configurator_product_manufacturer_scope.sql.
+   */
+  scope_manufacturer_slug?: string | null
 }
 
 export default async function handler(
@@ -71,6 +77,7 @@ export default async function handler(
         required_accessories,
         capacity_value,
         capacity_unit,
+        manufacturer_slug,
         products (
           name,
           sku,
@@ -114,7 +121,8 @@ export default async function handler(
       description: cp.products.description,
       tags: cp.products.tags || [],
       capacity_value: cp.capacity_value,
-      capacity_unit: cp.capacity_unit
+      capacity_unit: cp.capacity_unit,
+      scope_manufacturer_slug: cp.manufacturer_slug ?? null
     }))
 
     return res.status(200).json({

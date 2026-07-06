@@ -78,7 +78,11 @@ export interface ComponentFallback {
 /**
  * Wählt aus mehreren Kapazitäts-Stufen einer Kategorie (z.B. Switch-Ports,
  * NVR-Kanäle, VMS-Server-Kapazität) die kleinste Stufe, die den Bedarf deckt.
- * Bevorzugt dabei - falls vorhanden - Produkte des passenden Herstellers.
+ * Berücksichtigt dabei den expliziten Hersteller-Geltungsbereich (siehe
+ * ComponentFallback/scope_manufacturer_slug): Einträge, die exklusiv einem
+ * ANDEREN Hersteller zugeordnet sind, werden hart ausgeschlossen; Einträge
+ * ohne Geltungsbereich (universal) sowie zusätzlich die Marke des Produkts
+ * selbst werden nur als Soft-Preference genutzt.
  * Gibt es keine ausreichende Stufe, wird die größte verfügbare als
  * Best-Effort-Fallback zurückgegeben.
  */
@@ -89,13 +93,20 @@ export function pickBandedProduct(
 ): ConfiguratorProduct | undefined {
   if (!items || items.length === 0) return undefined
 
-  const withCapacity = items.filter((i) => typeof i.capacity_value === 'number')
-  const pool = withCapacity.length > 0 ? withCapacity : items
+  const scoped = manufacturerSlug
+    ? items.filter((i) => !i.scope_manufacturer_slug || i.scope_manufacturer_slug === manufacturerSlug)
+    : items
+  const scopedPool = scoped.length > 0 ? scoped : items
+
+  const withCapacity = scopedPool.filter((i) => typeof i.capacity_value === 'number')
+  const pool = withCapacity.length > 0 ? withCapacity : scopedPool
 
   const preferManufacturer = (list: ConfiguratorProduct[]) => {
     if (!manufacturerSlug) return list
-    const matching = list.filter((i) => i.manufacturer_slug === manufacturerSlug)
-    return matching.length > 0 ? matching : list
+    const scopedMatch = list.filter((i) => i.scope_manufacturer_slug === manufacturerSlug)
+    if (scopedMatch.length > 0) return scopedMatch
+    const brandMatch = list.filter((i) => i.manufacturer_slug === manufacturerSlug)
+    return brandMatch.length > 0 ? brandMatch : list
   }
 
   const sufficient = pool.filter((i) => (i.capacity_value ?? 0) >= requiredCapacity)

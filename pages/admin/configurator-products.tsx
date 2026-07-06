@@ -25,6 +25,11 @@ interface Product {
   }
 }
 
+// Hinweis: Diese Seite fragt configurator_products direkt per Supabase-Query ab
+// (nicht über die API-Route), daher entspricht `manufacturer_slug` hier der
+// rohen DB-Spalte = expliziter Hersteller-Geltungsbereich dieser Zuordnung.
+// Die Marke des verknüpften Produkts selbst liegt (wie name/sku) verschachtelt
+// unter `products.manufacturers.slug`.
 interface ConfiguratorProductFull extends ConfiguratorProduct {
   products: Product
 }
@@ -58,7 +63,9 @@ export default function ConfiguratorProductsPage() {
     bhe_time_minutes: 45,
     required_accessories: [] as string[],
     capacity_value: '' as number | '',
-    capacity_unit: ''
+    capacity_unit: '',
+    // Expliziter Hersteller-Geltungsbereich ('' = gilt für alle Hersteller/Universal-Fallback)
+    manufacturer_slug: ''
   })
 
   useEffect(() => {
@@ -148,13 +155,21 @@ export default function ConfiguratorProductsPage() {
 
   const productOptionsForModal = useMemo(() => {
     const search = productSearch.trim().toLowerCase()
-    if (!search) return allProducts
-    return allProducts.filter((p) =>
-      p.name.toLowerCase().includes(search) ||
-      p.sku.toLowerCase().includes(search) ||
-      p.manufacturers?.name.toLowerCase().includes(search)
-    )
-  }, [allProducts, productSearch])
+    const filtered = !search
+      ? allProducts
+      : allProducts.filter((p) =>
+          p.name.toLowerCase().includes(search) ||
+          p.sku.toLowerCase().includes(search) ||
+          p.manufacturers?.name.toLowerCase().includes(search)
+        )
+    // Aktuell zugeordnetes Produkt immer sichtbar halten, auch außerhalb der
+    // Suche/500er-Anzeigegrenze (relevant beim Bearbeiten bestehender Zuordnungen).
+    if (formData.product_id && !filtered.some((p) => p.id === formData.product_id)) {
+      const current = allProducts.find((p) => p.id === formData.product_id)
+      if (current) return [current, ...filtered]
+    }
+    return filtered
+  }, [allProducts, productSearch, formData.product_id])
 
   const handleOpenModal = (product?: ConfiguratorProductFull) => {
     if (product) {
@@ -168,7 +183,8 @@ export default function ConfiguratorProductsPage() {
         bhe_time_minutes: product.bhe_time_minutes,
         required_accessories: product.required_accessories || [],
         capacity_value: product.capacity_value ?? '',
-        capacity_unit: product.capacity_unit || ''
+        capacity_unit: product.capacity_unit || '',
+        manufacturer_slug: product.manufacturer_slug || ''
       })
     } else {
       setEditingProduct(null)
@@ -181,7 +197,8 @@ export default function ConfiguratorProductsPage() {
         bhe_time_minutes: 45,
         required_accessories: [],
         capacity_value: '',
-        capacity_unit: ''
+        capacity_unit: '',
+        manufacturer_slug: ''
       })
     }
     setProductSearch('')
@@ -201,6 +218,7 @@ export default function ConfiguratorProductsPage() {
       }
 
       const payload: any = {
+        product_id: formData.product_id,
         tier: formData.tier,
         category: formData.category,
         priority: formData.priority,
@@ -208,7 +226,8 @@ export default function ConfiguratorProductsPage() {
         bhe_time_minutes: formData.bhe_time_minutes,
         required_accessories: formData.required_accessories,
         capacity_value: formData.capacity_value === '' ? null : Number(formData.capacity_value),
-        capacity_unit: formData.capacity_value === '' ? null : (formData.capacity_unit || selectedCategoryDef?.capacityUnitHint || null)
+        capacity_unit: formData.capacity_value === '' ? null : (formData.capacity_unit || selectedCategoryDef?.capacityUnitHint || null),
+        manufacturer_slug: formData.manufacturer_slug || null
       }
 
       if (editingProduct) {
@@ -221,7 +240,7 @@ export default function ConfiguratorProductsPage() {
       } else {
         const { error: insertError } = await (supabase
           .from('configurator_products') as any)
-          .insert({ product_id: formData.product_id, ...payload })
+          .insert(payload)
 
         if (insertError) throw insertError
       }
@@ -255,7 +274,11 @@ export default function ConfiguratorProductsPage() {
   const filteredProducts = products.filter(p => {
     if (filterTier !== 'all' && p.tier !== filterTier) return false
     if (filterCategory !== 'all' && p.category !== filterCategory) return false
-    if (filterManufacturer !== 'all' && p.products?.manufacturers?.slug !== filterManufacturer) return false
+    if (
+      filterManufacturer !== 'all' &&
+      p.products?.manufacturers?.slug !== filterManufacturer &&
+      p.manufacturer_slug !== filterManufacturer
+    ) return false
     return true
   })
 
@@ -330,7 +353,7 @@ export default function ConfiguratorProductsPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Hersteller
+              Hersteller (Produktmarke oder Geltungsbereich)
             </label>
             <select
               value={filterManufacturer}
@@ -376,6 +399,9 @@ export default function ConfiguratorProductsPage() {
                   Produkt
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Geltungsbereich
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Kapazität
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -408,10 +434,19 @@ export default function ConfiguratorProductsPage() {
                     {categories.find(c => c.value === product.category)?.label || product.category}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                    <div>{product.name}</div>
+                    <div>{product.products?.name}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      SKU: {product.sku} | {product.manufacturer}
+                      SKU: {product.products?.sku} | {product.products?.manufacturers?.name}
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {product.manufacturer_slug ? (
+                      <span className="px-2 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                        {manufacturerOptions.find(([slug]) => slug === product.manufacturer_slug)?.[1] || product.manufacturer_slug}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400 dark:text-gray-500">Alle Hersteller</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {product.capacity_value != null ? `${product.capacity_value} ${product.capacity_unit || ''}`.trim() : '—'}
@@ -488,43 +523,41 @@ export default function ConfiguratorProductsPage() {
                 </div>
 
                 {/* Product Selection */}
-                {!editingProduct && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Produkt *
-                    </label>
-                    <input
-                      type="text"
-                      value={productSearch}
-                      onChange={(e) => setProductSearch(e.target.value)}
-                      placeholder="Produkt suchen (Name, SKU, Hersteller)..."
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-2"
-                    />
-                    <select
-                      value={formData.product_id}
-                      onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      size={8}
-                    >
-                      <option value="">Bitte wählen...</option>
-                      {productOptionsForModal.slice(0, 500).map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({p.sku}) - {p.manufacturers?.name}
-                        </option>
-                      ))}
-                    </select>
-                    {productOptionsForModal.length > 500 && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {productOptionsForModal.length} Treffer, zeige die ersten 500 - Suche eingrenzen für mehr Präzision.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Tier */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Tier *
+                    Produkt *
+                  </label>
+                  <input
+                    type="text"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Produkt suchen (Name, SKU, Hersteller)..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-2"
+                  />
+                  <select
+                    value={formData.product_id}
+                    onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    size={8}
+                  >
+                    <option value="">Bitte wählen...</option>
+                    {productOptionsForModal.slice(0, 500).map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.sku}) - {p.manufacturers?.name}
+                      </option>
+                    ))}
+                  </select>
+                  {productOptionsForModal.length > 500 && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {productOptionsForModal.length} Treffer, zeige die ersten 500 - Suche eingrenzen für mehr Präzision.
+                    </p>
+                  )}
+                </div>
+
+                {/* Tier (Risikostufe) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Tier (Risikostufe) *
                   </label>
                   <select
                     value={formData.tier}
@@ -535,6 +568,31 @@ export default function ConfiguratorProductsPage() {
                     <option value="premium">Premium</option>
                     <option value="high-risk">High-Risk</option>
                   </select>
+                </div>
+
+                {/* Hersteller-Geltungsbereich */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Geltungsbereich (Hersteller)
+                  </label>
+                  <select
+                    value={formData.manufacturer_slug}
+                    onChange={(e) => setFormData({ ...formData, manufacturer_slug: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Alle Hersteller (Universal-Fallback)</option>
+                    {manufacturerOptions.map(([slug, name]) => (
+                      <option key={slug} value={slug}>{name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Optional einschränken, für welchen Hersteller diese Zuordnung gilt - unabhängig
+                    von der Marke des gewählten Produkts. Legst du für dieselbe Kategorie/denselben
+                    Tier mehrere Zuordnungen mit unterschiedlichem Geltungsbereich an (z.B. AXIS und
+                    Hanwha), wählt der Konfigurator automatisch die zum Projekt-Hersteller passende
+                    aus - z.B. für unterschiedliche VMS-Lizenzen je Hersteller. &quot;Alle Hersteller&quot;
+                    dient als Fallback, falls für den Projekt-Hersteller keine eigene Zuordnung existiert.
+                  </p>
                 </div>
 
                 {/* Capacity (nur relevant für gestaffelte Kategorien, aber immer editierbar) */}

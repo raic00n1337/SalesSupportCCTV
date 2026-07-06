@@ -19,7 +19,8 @@ function makeProduct(overrides: Partial<ConfiguratorProduct>): ConfiguratorProdu
     eso_number: overrides.eso_number,
     tags: overrides.tags,
     capacity_value: overrides.capacity_value,
-    capacity_unit: overrides.capacity_unit
+    capacity_unit: overrides.capacity_unit,
+    scope_manufacturer_slug: overrides.scope_manufacturer_slug ?? null
   };
 }
 
@@ -55,6 +56,21 @@ describe('pickBandedProduct', () => {
     expect(pickBandedProduct(mixed, 5, 'axis')?.sku).toBe('SW-8-AXIS');
     // Für 16 Ports gibt es keinen AXIS-Eintrag -> Fallback auf verfügbare (universal)
     expect(pickBandedProduct(mixed, 9, 'axis')?.sku).toBe('SW-16-UNI');
+  });
+
+  it('schließt Einträge mit explizitem Hersteller-Geltungsbereich für ANDERE Hersteller hart aus', () => {
+    const mixed = [
+      makeProduct({ sku: 'VMS-AXIS', capacity_value: 16, scope_manufacturer_slug: 'axis' }),
+      makeProduct({ sku: 'VMS-HANWHA', capacity_value: 16, scope_manufacturer_slug: 'hanwha' }),
+      makeProduct({ sku: 'VMS-UNIVERSAL', capacity_value: 16, scope_manufacturer_slug: null })
+    ];
+    // AXIS-Projekt: nur der AXIS-Eintrag und der Universal-Fallback sind zulässig,
+    // der AXIS-Eintrag gewinnt.
+    expect(pickBandedProduct(mixed, 10, 'axis')?.sku).toBe('VMS-AXIS');
+    // Hanwha-Projekt: analog der Hanwha-Eintrag.
+    expect(pickBandedProduct(mixed, 10, 'hanwha')?.sku).toBe('VMS-HANWHA');
+    // AJAX-Projekt: kein passender Geltungsbereich -> Universal-Fallback.
+    expect(pickBandedProduct(mixed, 10, 'ajax')?.sku).toBe('VMS-UNIVERSAL');
   });
 });
 

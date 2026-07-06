@@ -55,6 +55,7 @@ export default async function handler(
         required_accessories,
         capacity_value,
         capacity_unit,
+        manufacturer_slug,
         products (
           name,
           sku,
@@ -105,7 +106,8 @@ export default async function handler(
       description: cp.products.description,
       tags: cp.products.tags || [],
       capacity_value: cp.capacity_value,
-      capacity_unit: cp.capacity_unit
+      capacity_unit: cp.capacity_unit,
+      scope_manufacturer_slug: cp.manufacturer_slug ?? null
     }))
 
     // Alle Produkte pro Kategorie gruppiert (für Kapazitäts-Staffelung nötig)
@@ -115,12 +117,31 @@ export default async function handler(
       byCategory[p.category].push(p)
     })
 
-    // Ein "Default" je Kategorie ermitteln: Hersteller-Treffer bevorzugt vor
-    // "universal", Default-Flag bevorzugt vor Priorität.
+    // Ein "Default" je Kategorie ermitteln.
+    // 1. Expliziter Hersteller-Geltungsbereich (admin-pflegbar über
+    //    scope_manufacturer_slug, siehe add_configurator_product_manufacturer_scope.sql)
+    //    ist ein HARTER Filter: Einträge, die exklusiv einem ANDEREN Hersteller
+    //    zugeordnet sind, werden komplett ausgeschlossen (nicht nur nachrangig),
+    //    damit z.B. bei AXIS nie versehentlich eine für Hanwha gedachte VMS-Lizenz
+    //    gewählt wird. Einträge ohne Geltungsbereich (NULL) gelten für alle.
+    // 2. Danach: Marke des verknüpften Produkts bevorzugt (Soft-Preference),
+    //    Default-Flag, Priorität.
     const defaultsMap: Record<string, ConfiguratorProduct> = {}
     for (const [category, items] of Object.entries(byCategory)) {
-      const sorted = [...items].sort((a, b) => {
+      const eligible = manufacturerSlug
+        ? items.filter((i) => !i.scope_manufacturer_slug || i.scope_manufacturer_slug === manufacturerSlug)
+        : items
+      // Sicherheitsnetz: Falls eine Kategorie ausschließlich anders-zugeordnete
+      // Einträge hat (Konfigurationsfehler), lieber Best-Effort-Fallback zeigen
+      // als die Kategorie komplett leer zu lassen.
+      const pool = eligible.length > 0 ? eligible : items
+
+      const sorted = [...pool].sort((a, b) => {
         if (manufacturerSlug) {
+          const aScoped = a.scope_manufacturer_slug === manufacturerSlug ? 1 : 0
+          const bScoped = b.scope_manufacturer_slug === manufacturerSlug ? 1 : 0
+          if (aScoped !== bScoped) return bScoped - aScoped
+
           const aMatch = a.manufacturer_slug === manufacturerSlug ? 1 : 0
           const bMatch = b.manufacturer_slug === manufacturerSlug ? 1 : 0
           if (aMatch !== bMatch) return bMatch - aMatch
