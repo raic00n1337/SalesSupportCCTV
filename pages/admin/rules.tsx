@@ -59,6 +59,7 @@ export default function AdminRules() {
   const [showModal, setShowModal] = useState(false)
   const [editingRule, setEditingRule] = useState<Rule | null>(null)
   const [priorityInput, setPriorityInput] = useState<string>('0')
+  const [productSearch, setProductSearch] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -191,6 +192,7 @@ export default function AdminRules() {
         target_product_id: ''
       })
     }
+    setProductSearch('')
     setShowModal(true)
   }
 
@@ -198,7 +200,34 @@ export default function AdminRules() {
     setShowModal(false)
     setEditingRule(null)
     setPriorityInput('0')
+    setProductSearch('')
   }
+
+  // Changing the manufacturer filter should re-filter the target product
+  // list (see filteredProducts below) - if the currently selected product
+  // no longer matches, clear it instead of silently keeping an invisible
+  // selection the admin can't see/change in the dropdown anymore.
+  const handleManufacturerChange = (manufacturerSlug: string) => {
+    const selected = allProducts.find(p => p.id === formData.target_product_id)
+    const stillMatches = !selected || !manufacturerSlug || selected.manufacturers?.slug === manufacturerSlug
+    setFormData({
+      ...formData,
+      manufacturer: manufacturerSlug,
+      target_product_id: stillMatches ? formData.target_product_id : ''
+    })
+  }
+
+  const filteredProducts = allProducts.filter(p => {
+    // Always keep the currently selected product visible/selectable, even if
+    // it no longer matches the filters below (e.g. stale/inconsistent data
+    // on an existing rule) - otherwise the dropdown would silently show a
+    // blank selection for a rule that actually has a target product.
+    if (p.id === formData.target_product_id) return true
+    if (formData.manufacturer && p.manufacturers?.slug !== formData.manufacturer) return false
+    const query = productSearch.trim().toLowerCase()
+    if (!query) return true
+    return p.name.toLowerCase().includes(query) || p.sku.toLowerCase().includes(query)
+  })
 
   // The /api/rules endpoint requires admin authentication (server-side check).
   // Attach the current session's access token to every mutating request.
@@ -574,7 +603,7 @@ export default function AdminRules() {
                         </label>
                         <select
                           value={formData.manufacturer}
-                          onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
+                          onChange={(e) => handleManufacturerChange(e.target.value)}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         >
                           <option value="">Alle Hersteller</option>
@@ -609,18 +638,29 @@ export default function AdminRules() {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Zielprodukt *
                       </label>
+                      <input
+                        type="text"
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        placeholder="Produkt suchen (Name oder SKU)..."
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-2"
+                      />
                       <select
                         value={formData.target_product_id}
                         onChange={(e) => setFormData({ ...formData, target_product_id: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       >
                         <option value="">Bitte wählen...</option>
-                        {allProducts.map(p => (
+                        {filteredProducts.map(p => (
                           <option key={p.id} value={p.id}>
                             {p.name} ({p.sku}) - {(p.uvp_cents / 100).toFixed(2)}€
                           </option>
                         ))}
                       </select>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {filteredProducts.length} von {allProducts.length} Produkten
+                        {formData.manufacturer && ` (gefiltert nach Hersteller)`}
+                      </p>
                     </div>
 
                     {/* Active */}
