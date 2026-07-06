@@ -10,6 +10,8 @@ import * as XLSX from 'xlsx'
 import { generateMountingAccessories, generateMountingAccessoriesIndividual, generateSpeakerMountingAccessories } from '../mountAccessories'
 import { generatePDF } from '../pdfExport'
 import type { ConfiguratorProduct } from './api/configurator/products'
+import { CONFIGURATOR_SETTINGS_FALLBACK } from './api/configurator/settings'
+import { resolveSimpleComponent, resolveBandedComponent } from '../lib/configuratorCatalog'
 
 // Helper: Get product for category with fallback to hardcoded values
 // This is defined outside the component so it can be used by Step6Summary
@@ -73,6 +75,13 @@ export default function Configurator() {
 
   // State für DB-Produkte (loaded based on tier)
   const [configuratorProducts, setConfiguratorProducts] = useState<Record<string, ConfiguratorProduct>>({})
+  // Alle Produkte je Kategorie (für kapazitäts-gestaffelte Komponenten wie Switch/NVR/VMS-Server)
+  const [configuratorProductsByCategory, setConfiguratorProductsByCategory] = useState<Record<string, ConfiguratorProduct[]>>({})
+  // Nur die per Regel (Feature-/Hersteller-spezifisch) gematchten Produkte - überstimmen bei
+  // kapazitäts-gestaffelten Kategorien (z.B. NVR) die automatische Kapazitäts-Auswahl.
+  const [ruleMatchedProducts, setRuleMatchedProducts] = useState<Record<string, ConfiguratorProduct>>({})
+  // Formel-Parameter (Stundensatz, Anfahrtspauschale, Doku-%, etc.) - admin-pflegbar
+  const [configuratorSettings, setConfiguratorSettings] = useState<Record<string, number>>(CONFIGURATOR_SETTINGS_FALLBACK)
   const [loadingProducts, setLoadingProducts] = useState(false)
 
   const totalSteps = 6
@@ -206,21 +215,24 @@ export default function Configurator() {
       console.log(`🔄 Loading products for tier: ${project.tier}`)
 
       try {
-        // Step 1: Try to load from Rules first (for each category)
-        const categories = [
+        // Step 1: Try to load from Rules first (nur für Kamera/Lautsprecher-Kategorien -
+        // Feature-basiertes Matching macht für Infrastruktur-Komponenten aktuell keinen Sinn)
+        const ruleEligibleCategories = [
           'camera_dome_fixed',
           'camera_dome_vario',
           'camera_bullet_fixed',
           'camera_bullet_vario',
           'camera_ptz',
           'camera_thermal',
-          'speaker_ip'
+          'speaker_ip',
+          'nvr_channels'
         ]
 
         const productsMap: Record<string, ConfiguratorProduct> = {}
+        const ruleMatches: Record<string, ConfiguratorProduct> = {}
         let rulesMatchedCount = 0
 
-        for (const category of categories) {
+        for (const category of ruleEligibleCategories) {
           try {
             // Try to evaluate rule for this category
             const ruleRes = await fetch('/api/rules/evaluate', {
@@ -239,6 +251,7 @@ export default function Configurator() {
               if (ruleData.success && ruleData.matched && ruleData.product) {
                 // Rule matched! Use this product
                 productsMap[category] = ruleData.product
+                ruleMatches[category] = ruleData.product
                 rulesMatchedCount++
                 console.log(`⚡ Rule matched for ${category}: ${ruleData.rule.name}`)
                 continue
@@ -249,9 +262,12 @@ export default function Configurator() {
             console.log(`No rule matched for ${category}, using tier-default`)
           }
         }
+        setRuleMatchedProducts(ruleMatches)
 
-        // Step 2: Load Tier-Defaults for categories without rule matches
-        const res = await fetch(`/api/configurator/defaults?tier=${project.tier}`)
+        // Step 2: Load ALL configurator_products for this tier (Defaults + volle
+        // Kapazitäts-Staffelung für Switch/NVR/VMS-Server etc.), Hersteller-präferiert
+        const manufacturerSlug = resolveManufacturerBrand(project)?.toLowerCase() || ''
+        const res = await fetch(`/api/configurator/defaults?tier=${project.tier}&manufacturer=${manufacturerSlug}`)
         
         if (!res.ok) {
           throw new Error(`Failed to load products: ${res.statusText}`)
@@ -269,6 +285,7 @@ export default function Configurator() {
           }
           
           setConfiguratorProducts(productsMap)
+          setConfiguratorProductsByCategory(data.byCategory || {})
           console.log(`✅ Loaded ${Object.keys(productsMap).length} products (${rulesMatchedCount} from rules, ${Object.keys(productsMap).length - rulesMatchedCount} from tier-defaults)`)
         } else {
           throw new Error(data.error || 'Unknown error')
@@ -277,6 +294,8 @@ export default function Configurator() {
         console.error('Error loading configurator products:', err)
         // Fallback: continue with empty products (will use hardcoded values)
         setConfiguratorProducts({})
+        setConfiguratorProductsByCategory({})
+        setRuleMatchedProducts({})
       } finally {
         setLoadingProducts(false)
       }
@@ -284,6 +303,22 @@ export default function Configurator() {
 
     loadConfiguratorProducts()
   }, [project.tier, project.manufacturer, project.msiBrand]) // Also reload when manufacturer/brand changes
+
+  // Formel-Parameter (Stundensatz, Anfahrtspauschale, Doku-%, etc.) einmalig laden
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/configurator/settings')
+        const data = await res.json()
+        if (data.success && data.settings) {
+          setConfiguratorSettings({ ...CONFIGURATOR_SETTINGS_FALLBACK, ...data.settings })
+        }
+      } catch (err) {
+        console.error('Error loading configurator settings, using fallback values:', err)
+      }
+    }
+    loadSettings()
+  }, [])
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -527,7 +562,7 @@ export default function Configurator() {
       case 5:
         return <Step5NetworkAndCabling project={project} updateProject={updateProject} />
       case 6:
-        return <Step6Summary project={project} configuratorProducts={configuratorProducts} />
+        return <Step6Summary project={project} configuratorProducts={configuratorProducts} configuratorProductsByCategory={configuratorProductsByCategory} configuratorSettings={configuratorSettings} ruleMatchedProducts={ruleMatchedProducts} />
       default:
         return null
     }
@@ -2843,7 +2878,19 @@ const Step5NetworkAndCabling = ({ project, updateProject }: { project: Partial<P
 }
 
 // Step 6: Summary
-const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Project>; configuratorProducts: Record<string, ConfiguratorProduct> }) => {
+const Step6Summary = ({
+  project,
+  configuratorProducts,
+  configuratorProductsByCategory,
+  configuratorSettings,
+  ruleMatchedProducts
+}: {
+  project: Partial<Project>
+  configuratorProducts: Record<string, ConfiguratorProduct>
+  configuratorProductsByCategory: Record<string, ConfiguratorProduct[]>
+  configuratorSettings: Record<string, number>
+  ruleMatchedProducts: Record<string, ConfiguratorProduct>
+}) => {
   // State for editable device labels
   const [editableDevices, setEditableDevices] = useState<Record<string, Record<string, string>>>({})
   
@@ -3120,12 +3167,13 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
           site.cameras.ptz.quantity + 
           site.cameras.thermal.quantity
         if (totalOutdoorCameras > 0) {
+          const jbox = resolveSimpleComponent('junction_box_outdoor', configuratorProducts, { name: 'Junction Box (Outdoor)', price: 29, manufacturer: 'Universal', eso: 'ACC-JBOX-001' })
           bom.push({
-            articleName: `${sitePrefix} Junction Box (Outdoor)`,
-            manufacturer: 'Universal',
-            esoArticleNumber: 'ACC-JBOX-001',
+            articleName: `${sitePrefix} ${jbox.name}`,
+            manufacturer: jbox.manufacturer,
+            esoArticleNumber: jbox.eso,
             quantity: totalOutdoorCameras,
-            unitPrice: 29,
+            unitPrice: jbox.price,
             category: 'Zubehör'
           })
         }
@@ -3133,39 +3181,43 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
 
       // Network & Cabling
       if (site.cabling === 'fiber') {
+        const converter = resolveSimpleComponent('media_converter_fiber', configuratorProducts, { name: 'Medienkonverter Set', price: 189, manufacturer: 'Universal', eso: 'NET-CONV-001' })
         bom.push({
-          articleName: `${sitePrefix} Medienkonverter Set`,
-          manufacturer: 'Universal',
-          esoArticleNumber: 'NET-CONV-001',
+          articleName: `${sitePrefix} ${converter.name}`,
+          manufacturer: converter.manufacturer,
+          esoArticleNumber: converter.eso,
           quantity: 2,
-          unitPrice: 189,
+          unitPrice: converter.price,
           category: 'Netzwerk'
         })
+        const sfp = resolveSimpleComponent('sfp_module', configuratorProducts, { name: 'SFP-Module (Paar)', price: 79, manufacturer: 'Universal', eso: 'NET-SFP-001' })
         bom.push({
-          articleName: `${sitePrefix} SFP-Module (Paar)`,
-          manufacturer: 'Universal',
-          esoArticleNumber: 'NET-SFP-001',
+          articleName: `${sitePrefix} ${sfp.name}`,
+          manufacturer: sfp.manufacturer,
+          esoArticleNumber: sfp.eso,
           quantity: 1,
-          unitPrice: 79,
+          unitPrice: sfp.price,
           category: 'Netzwerk'
         })
       }
 
       if (site.cabling === 'wlan-bridge') {
+        const wlanBridge = resolveSimpleComponent('wlan_bridge_kit', configuratorProducts, { name: 'WLAN-Bridge Set', price: 449, manufacturer: 'Universal', eso: 'NET-WLAN-001' })
         bom.push({
-          articleName: `${sitePrefix} WLAN-Bridge Set`,
-          manufacturer: 'Universal',
-          esoArticleNumber: 'NET-WLAN-001',
+          articleName: `${sitePrefix} ${wlanBridge.name}`,
+          manufacturer: wlanBridge.manufacturer,
+          esoArticleNumber: wlanBridge.eso,
           quantity: 1,
-          unitPrice: 449,
+          unitPrice: wlanBridge.price,
           category: 'Netzwerk'
         })
+        const enclosure = resolveSimpleComponent('wlan_outdoor_enclosure', configuratorProducts, { name: 'Outdoor-Gehäuse für WLAN', price: 69, manufacturer: 'Universal', eso: 'ACC-ENCL-001' })
         bom.push({
-          articleName: `${sitePrefix} Outdoor-Gehäuse für WLAN`,
-          manufacturer: 'Universal',
-          esoArticleNumber: 'ACC-ENCL-001',
+          articleName: `${sitePrefix} ${enclosure.name}`,
+          manufacturer: enclosure.manufacturer,
+          esoArticleNumber: enclosure.eso,
           quantity: 2,
-          unitPrice: 69,
+          unitPrice: enclosure.price,
           category: 'Infrastruktur'
         })
       }
@@ -3180,36 +3232,44 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
           site.cameras.ptz.quantity +
           site.cameras.thermal.quantity +
           site.cameras.ipSpeakers.quantity
-        const switchPorts = Math.max(8, Math.ceil(totalDevices / 8) * 8)
-        
+        const requiredSwitchPorts = Math.max(8, Math.ceil(totalDevices / 8) * 8)
+        const netSwitch = resolveBandedComponent(
+          'network_switch',
+          configuratorProductsByCategory,
+          requiredSwitchPorts,
+          { name: `Netzwerk-Switch ${requiredSwitchPorts}-Port PoE+`, price: requiredSwitchPorts === 8 ? 299 : requiredSwitchPorts === 16 ? 599 : 899, manufacturer: 'Universal', eso: `NET-SW-${requiredSwitchPorts}P-001` }
+        )
+
         bom.push({
-          articleName: `${sitePrefix} Netzwerk-Switch ${switchPorts}-Port PoE+`,
-          manufacturer: 'Universal',
-          esoArticleNumber: `NET-SW-${switchPorts}P-001`,
+          articleName: `${sitePrefix} ${netSwitch.name}`,
+          manufacturer: netSwitch.manufacturer,
+          esoArticleNumber: netSwitch.eso,
           quantity: 1,
-          unitPrice: switchPorts === 8 ? 299 : switchPorts === 16 ? 599 : 899,
+          unitPrice: netSwitch.price,
           category: 'Netzwerk'
         })
 
         if (site.outdoor) {
+          const cabinet = resolveSimpleComponent('outdoor_cabinet', configuratorProducts, { name: 'Outdoor-Cabinet', price: 449, manufacturer: 'Universal', eso: 'INFRA-CAB-001' })
           bom.push({
-            articleName: `${sitePrefix} Outdoor-Cabinet`,
-            manufacturer: 'Universal',
-            esoArticleNumber: 'INFRA-CAB-001',
+            articleName: `${sitePrefix} ${cabinet.name}`,
+            manufacturer: cabinet.manufacturer,
+            esoArticleNumber: cabinet.eso,
             quantity: 1,
-            unitPrice: 449,
+            unitPrice: cabinet.price,
             category: 'Infrastruktur'
           })
         }
 
+        const psu = resolveSimpleComponent('poe_injector', configuratorProducts, { name: 'Stromversorgung / PoE-Injektor', price: 189, manufacturer: 'Universal', eso: 'INFRA-PSU-001' })
         bom.push({
-          articleName: `${sitePrefix} Stromversorgung / PoE-Injektor`,
-          manufacturer: 'Universal',
-          esoArticleNumber: 'INFRA-PSU-001',
+          articleName: `${sitePrefix} ${psu.name}`,
+          manufacturer: psu.manufacturer,
+          esoArticleNumber: psu.eso,
           quantity: 1,
-          unitPrice: 189,
+          unitPrice: psu.price,
           category: 'Infrastruktur'
-          })
+        })
       }
     })
 
@@ -3224,6 +3284,8 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
       site.cameras.thermal.quantity +
       site.cameras.ipSpeakers.quantity,
     0)
+
+    const manufacturerSlug = resolveManufacturerBrand(project)?.toLowerCase()
 
     if (project.videoManagement === 'nvr') {
       // Automatische Reserve: Immer nächstgrößere Gerätegröße
@@ -3240,92 +3302,133 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
       
       // For ECO tier with PoE, use NVR with integrated PoE
       const isEcoWithPoE = project.tier === 'eco'
-      
+
+      const nvr = resolveBandedComponent(
+        'nvr_channels',
+        configuratorProductsByCategory,
+        channels,
+        {
+          name: `NVR ${channels}-Kanal${isEcoWithPoE ? ' mit PoE' : ''}`,
+          price: channels === 8 ? (isEcoWithPoE ? 999 : 899) : channels === 16 ? 1499 : 2499,
+          manufacturer: project.manufacturer,
+          eso: `${project.manufacturer}-NVR-${channels}CH${isEcoWithPoE ? '-POE' : ''}`
+        },
+        manufacturerSlug,
+        ruleMatchedProducts['nvr_channels']
+      )
+
       bom.push({
-        articleName: `NVR ${channels}-Kanal${isEcoWithPoE ? ' mit PoE' : ''}`,
-        manufacturer: project.manufacturer!,
-        esoArticleNumber: `${project.manufacturer}-NVR-${channels}CH${isEcoWithPoE ? '-POE' : ''}`,
+        articleName: nvr.name,
+        manufacturer: nvr.manufacturer,
+        esoArticleNumber: nvr.eso,
         quantity: 1,
-        unitPrice: channels === 8 ? (isEcoWithPoE ? 999 : 899) : channels === 16 ? 1499 : 2499,
+        unitPrice: nvr.price,
         category: 'Recorder/VMS'
       })
     } else {
       // VMS
+      const vmsServerLicense = resolveSimpleComponent('vms_license_server', configuratorProducts, { name: 'VMS Server-Lizenz', price: 1299, manufacturer: project.manufacturer, eso: `${project.manufacturer}-VMS-SRV` })
       bom.push({
-        articleName: 'VMS Server-Lizenz',
-        manufacturer: project.manufacturer!,
-        esoArticleNumber: `${project.manufacturer}-VMS-SRV`,
+        articleName: vmsServerLicense.name,
+        manufacturer: vmsServerLicense.manufacturer,
+        esoArticleNumber: vmsServerLicense.eso,
         quantity: 1,
-        unitPrice: 1299,
+        unitPrice: vmsServerLicense.price,
         category: 'Lizenzen'
       })
+      const vmsCameraLicense = resolveSimpleComponent('vms_license_camera', configuratorProducts, { name: 'VMS Kamera-Lizenz', price: 49, manufacturer: project.manufacturer, eso: `${project.manufacturer}-VMS-CAM` })
       bom.push({
-        articleName: 'VMS Kamera-Lizenz',
-        manufacturer: project.manufacturer!,
-        esoArticleNumber: `${project.manufacturer}-VMS-CAM`,
+        articleName: vmsCameraLicense.name,
+        manufacturer: vmsCameraLicense.manufacturer,
+        esoArticleNumber: vmsCameraLicense.eso,
         quantity: totalCameras,
-        unitPrice: 49,
+        unitPrice: vmsCameraLicense.price,
         category: 'Lizenzen'
       })
       
       // VMS Server Hardware (dimensioniert nach Kamera-Anzahl)
-      let serverSpec = ''
-      let serverPrice = 0
+      let serverSpecFallback = ''
+      let serverPriceFallback = 0
       if (totalCameras <= 16) {
-        serverSpec = 'Entry (bis 16 Kameras)'
-        serverPrice = 1899
+        serverSpecFallback = 'VMS Server Entry (bis 16 Kameras)'
+        serverPriceFallback = 1899
       } else if (totalCameras <= 32) {
-        serverSpec = 'Standard (bis 32 Kameras)'
-        serverPrice = 2899
+        serverSpecFallback = 'VMS Server Standard (bis 32 Kameras)'
+        serverPriceFallback = 2899
       } else if (totalCameras <= 64) {
-        serverSpec = 'Professional (bis 64 Kameras)'
-        serverPrice = 4499
+        serverSpecFallback = 'VMS Server Professional (bis 64 Kameras)'
+        serverPriceFallback = 4499
       } else {
-        serverSpec = 'Enterprise (64+ Kameras)'
-        serverPrice = 6999
+        serverSpecFallback = 'VMS Server Enterprise (64+ Kameras)'
+        serverPriceFallback = 6999
       }
-      
+
+      const vmsServer = resolveBandedComponent(
+        'vms_server_hardware',
+        configuratorProductsByCategory,
+        totalCameras,
+        {
+          name: serverSpecFallback,
+          price: serverPriceFallback,
+          manufacturer: 'Universal',
+          eso: `VMS-SERVER-${totalCameras <= 16 ? 'E' : totalCameras <= 32 ? 'S' : totalCameras <= 64 ? 'P' : 'ENT'}`
+        }
+      )
+
       bom.push({
-        articleName: `VMS Server ${serverSpec}`,
-        manufacturer: 'Universal',
-        esoArticleNumber: `VMS-SERVER-${totalCameras <= 16 ? 'E' : totalCameras <= 32 ? 'S' : totalCameras <= 64 ? 'P' : 'ENT'}`,
+        articleName: vmsServer.name,
+        manufacturer: vmsServer.manufacturer,
+        esoArticleNumber: vmsServer.eso,
         quantity: 1,
-        unitPrice: serverPrice,
+        unitPrice: vmsServer.price,
         category: 'Hardware'
       })
       
       // VMS: Automatisch Client-Workstation, Display, Maus+Tastatur
       const isMultiMonitor = project.vmsMultiMonitor || false
-      
+
+      const workstation = resolveSimpleComponent(
+        isMultiMonitor ? 'vms_workstation_multimonitor' : 'vms_workstation_standard',
+        configuratorProducts,
+        {
+          name: `VMS Client-Workstation${isMultiMonitor ? ' (RTX-Grafikkarte)' : ''}`,
+          price: isMultiMonitor ? 1899 : 1299,
+          manufacturer: 'Universal',
+          eso: isMultiMonitor ? 'VMS-WS-RTX-001' : 'VMS-WS-STD-001'
+        }
+      )
       bom.push({
-        articleName: `VMS Client-Workstation${isMultiMonitor ? ' (RTX-Grafikkarte)' : ''}`,
-        manufacturer: 'Universal',
-        esoArticleNumber: isMultiMonitor ? 'VMS-WS-RTX-001' : 'VMS-WS-STD-001',
+        articleName: workstation.name,
+        manufacturer: workstation.manufacturer,
+        esoArticleNumber: workstation.eso,
         quantity: 1,
-        unitPrice: isMultiMonitor ? 1899 : 1299,
+        unitPrice: workstation.price,
         category: 'Hardware'
       })
-      
+
+      const display = resolveSimpleComponent('vms_display_27', configuratorProducts, { name: 'Display 27" (Full HD)', price: 299, manufacturer: 'Universal', eso: 'VMS-MON-27-001' })
       bom.push({
-        articleName: 'Display 27" (Full HD)',
-        manufacturer: 'Universal',
-        esoArticleNumber: 'VMS-MON-27-001',
+        articleName: display.name,
+        manufacturer: display.manufacturer,
+        esoArticleNumber: display.eso,
         quantity: isMultiMonitor ? 2 : 1,
-        unitPrice: 299,
+        unitPrice: display.price,
         category: 'Hardware'
       })
-      
+
+      const inputSet = resolveSimpleComponent('vms_input_set', configuratorProducts, { name: 'Maus + Tastatur Set', price: 49, manufacturer: 'Universal', eso: 'VMS-INPUT-001' })
       bom.push({
-        articleName: 'Maus + Tastatur Set',
-        manufacturer: 'Universal',
-        esoArticleNumber: 'VMS-INPUT-001',
+        articleName: inputSet.name,
+        manufacturer: inputSet.manufacturer,
+        esoArticleNumber: inputSet.eso,
         quantity: 1,
-        unitPrice: 49,
+        unitPrice: inputSet.price,
         category: 'Hardware'
       })
     }
 
     // Storage - Use configured HDD for NVR or calculate for VMS
+    const hddPricePerTb = configuratorSettings.storage_hdd_eur_per_tb ?? 89
     if (project.videoManagement === 'nvr' && project.storageHddSize && project.storageHddQuantity) {
       // NVR: Use configured storage
       bom.push({
@@ -3333,7 +3436,7 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
         manufacturer: 'Universal',
         esoArticleNumber: `STOR-HDD-${project.storageHddSize}TB`,
         quantity: project.storageHddQuantity,
-        unitPrice: project.storageHddSize * 89,
+        unitPrice: project.storageHddSize * hddPricePerTb,
         category: 'Speicher'
       })
     } else if (project.videoManagement === 'vms') {
@@ -3345,7 +3448,7 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
           manufacturer: 'Universal',
           esoArticleNumber: `STOR-HDD-${storageTB}TB`,
           quantity: 1,
-          unitPrice: storageTB * 89,
+          unitPrice: storageTB * hddPricePerTb,
           category: 'Speicher'
         })
       }
@@ -3353,59 +3456,65 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
 
     // Remote Access (VPN Router)
     if (project.remoteCapable) {
+      const vpnRouter = resolveSimpleComponent('vpn_router', configuratorProducts, { name: 'VPN-Router', price: 399, manufacturer: 'Universal', eso: 'NET-VPN-001' })
       bom.push({
-        articleName: 'VPN-Router',
-        manufacturer: 'Universal',
-        esoArticleNumber: 'NET-VPN-001',
+        articleName: vpnRouter.name,
+        manufacturer: vpnRouter.manufacturer,
+        esoArticleNumber: vpnRouter.eso,
         quantity: 1,
-        unitPrice: 399,
+        unitPrice: vpnRouter.price,
         category: 'Netzwerk'
       })
     }
 
     // UPS
     if (project.upsRequired) {
+      const ups = resolveSimpleComponent('ups', configuratorProducts, { name: 'USV (Unterbrechungsfreie Stromversorgung)', price: 599, manufacturer: 'Universal', eso: 'INFRA-UPS-001' })
       bom.push({
-        articleName: 'USV (Unterbrechungsfreie Stromversorgung)',
-        manufacturer: 'Universal',
-        esoArticleNumber: 'INFRA-UPS-001',
+        articleName: ups.name,
+        manufacturer: ups.manufacturer,
+        esoArticleNumber: ups.eso,
         quantity: 1,
-        unitPrice: 599,
+        unitPrice: ups.price,
         category: 'Infrastruktur'
       })
     }
 
     // 9 HE Network Cabinet (Optional)
     if (project.networkCabinet9HE) {
+      const cabinet9he = resolveSimpleComponent('network_cabinet_9he', configuratorProducts, { name: '9 HE Netzwerkschrank (Komplettset)', price: 749, manufacturer: 'Universal', eso: 'INFRA-RACK-9HE-001' })
       bom.push({
-        articleName: '9 HE Netzwerkschrank (Komplettset)',
-        manufacturer: 'Universal',
-        esoArticleNumber: 'INFRA-RACK-9HE-001',
+        articleName: cabinet9he.name,
+        manufacturer: cabinet9he.manufacturer,
+        esoArticleNumber: cabinet9he.eso,
         quantity: 1,
-        unitPrice: 749,
+        unitPrice: cabinet9he.price,
         category: 'Infrastruktur'
       })
     }
 
     // Lift Platform / Hubsteiger (Optional)
     if (project.liftPlatform) {
+      const liftPlatform = resolveSimpleComponent('lift_platform_service', configuratorProducts, { name: 'Hubsteiger max. 12m inkl. Anlieferung', price: 850, manufacturer: 'Universal', eso: 'SERVICE-LIFT-001' })
       bom.push({
-        articleName: 'Hubsteiger max. 12m inkl. Anlieferung',
-        manufacturer: 'Universal',
-        esoArticleNumber: 'SERVICE-LIFT-001',
+        articleName: liftPlatform.name,
+        manufacturer: liftPlatform.manufacturer,
+        esoArticleNumber: liftPlatform.eso,
         quantity: 1,
-        unitPrice: 850,
+        unitPrice: liftPlatform.price,
         category: 'Dienstleistung'
       })
-      // Add labor surcharge for lift platform (15 min per camera)
-      const liftPlatformMinutes = totalCameras * 15
+      // Add labor surcharge for lift platform (Minuten je Kamera, admin-pflegbar)
+      const laborRate = configuratorSettings.labor_rate_eur_per_hour ?? 120
+      const liftMinutesPerCamera = configuratorSettings.lift_platform_minutes_per_camera ?? 15
+      const liftPlatformMinutes = totalCameras * liftMinutesPerCamera
       const liftPlatformHours = liftPlatformMinutes / 60
       bom.push({
-        articleName: `Hubsteiger Montageaufschlag (${totalCameras} Kameras × 15 Min = ${liftPlatformMinutes} Min)`,
+        articleName: `Hubsteiger Montageaufschlag (${totalCameras} Kameras × ${liftMinutesPerCamera} Min = ${liftPlatformMinutes} Min)`,
         manufacturer: 'BHE',
         esoArticleNumber: 'BHE-LIFT-SURCHARGE',
         quantity: liftPlatformHours,
-        unitPrice: 120, // 120€ per hour
+        unitPrice: laborRate,
         category: 'Dienstleistung'
       })
     }
@@ -3476,9 +3585,9 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
     totalBHEMinutes += totalIPSpeakers * 60 // Simplified: 60 min per speaker
     
     // 3.5. LIFT PLATFORM SURCHARGE
-    // If lift platform is selected, add 15 minutes per camera for additional mounting effort
+    // If lift platform is selected, add configurable minutes per camera for additional mounting effort
     if (project.liftPlatform) {
-      totalBHEMinutes += totalCameras * 15
+      totalBHEMinutes += totalCameras * (configuratorSettings.lift_platform_minutes_per_camera ?? 15)
     }
     
     // 4. SWITCHES
@@ -3526,29 +3635,32 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
     totalBHEMinutes += totalCameras * 15
     
     // Convert to hours and add to BOM
+    const laborRateForInstallation = configuratorSettings.labor_rate_eur_per_hour ?? 120
     const installationHours = Math.ceil(totalBHEMinutes / 60)
-    const installationCost = installationHours * 120
+    const installationCost = installationHours * laborRateForInstallation
     
     if (installationHours > 0) {
       bom.push({
-        articleName: `Montage & Inbetriebnahme (${totalBHEMinutes} min = ${installationHours}h à 120€)`,
+        articleName: `Montage & Inbetriebnahme (${totalBHEMinutes} min = ${installationHours}h à ${laborRateForInstallation}€)`,
         manufacturer: 'Securitas Technology',
         esoArticleNumber: 'SERVICE-INST-001',
         quantity: installationHours,
-        unitPrice: 120,
+        unitPrice: laborRateForInstallation,
         category: 'Dienstleistung'
       })
     }
     
-    // Anfahrtspauschale (135€ je 4 Kameras, aufgerundet)
-    const tripCount = Math.ceil(totalCameras / 4)
+    // Anfahrtspauschale (admin-pflegbar: Preis je Block, Kameras je Block)
+    const travelFeePerBlock = configuratorSettings.travel_fee_eur_per_block ?? 135
+    const camerasPerTravelBlock = configuratorSettings.travel_fee_cameras_per_block ?? 4
+    const tripCount = Math.ceil(totalCameras / camerasPerTravelBlock)
     if (tripCount > 0) {
       bom.push({
-        articleName: `Anfahrtspauschale (${tripCount}× à 135€)`,
+        articleName: `Anfahrtspauschale (${tripCount}× à ${travelFeePerBlock}€)`,
         manufacturer: 'Securitas Technology',
         esoArticleNumber: 'SERVICE-TRIP-001',
         quantity: tripCount,
-        unitPrice: 135,
+        unitPrice: travelFeePerBlock,
         category: 'Dienstleistung'
       })
     }
@@ -3579,13 +3691,14 @@ const Step6Summary = ({ project, configuratorProducts }: { project: Partial<Proj
       })
     }
     
-    // Dokumentationskosten (5% der Gesamtsumme aller bisherigen Positionen)
+    // Dokumentationskosten (admin-pflegbarer Prozentsatz der Gesamtsumme aller bisherigen Positionen)
+    const documentationFeePercent = configuratorSettings.documentation_fee_percent ?? 5
     const subtotalBeforeDocs = bom.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
-    const documentationCost = Math.round(subtotalBeforeDocs * 0.05)
+    const documentationCost = Math.round(subtotalBeforeDocs * (documentationFeePercent / 100))
     
     if (documentationCost > 0) {
       bom.push({
-        articleName: 'Dokumentation (5% der Gesamtsumme)',
+        articleName: `Dokumentation (${documentationFeePercent}% der Gesamtsumme)`,
         manufacturer: 'Securitas Technology',
         esoArticleNumber: 'SERVICE-DOC-001',
         quantity: 1,

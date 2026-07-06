@@ -143,14 +143,14 @@ export default function AdminDashboard() {
                 href="/admin/users"
               />
               <QuickActionCard
-                title="Tier-Defaults verwalten"
-                icon="⚙️"
-                href="/admin/tier-defaults"
-              />
-              <QuickActionCard
-                title="Konfigurator-Produkte"
+                title="Konfigurator-Komponenten"
                 icon="🎯"
                 href="/admin/configurator-products"
+              />
+              <QuickActionCard
+                title="Konfigurator-Einstellungen"
+                icon="🧮"
+                href="/admin/configurator-settings"
               />
               <QuickActionCard
                 title="Produkt-Regeln"

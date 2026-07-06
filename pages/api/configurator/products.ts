@@ -26,6 +26,8 @@ export interface ConfiguratorProduct {
   description?: string
   eso_number?: string
   tags?: string[]
+  capacity_value?: number | null
+  capacity_unit?: string | null
 }
 
 export default async function handler(
@@ -67,6 +69,8 @@ export default async function handler(
         is_default,
         bhe_time_minutes,
         required_accessories,
+        capacity_value,
+        capacity_unit,
         products (
           name,
           sku,
@@ -108,7 +112,9 @@ export default async function handler(
       is_default: cp.is_default,
       priority: cp.priority,
       description: cp.products.description,
-      tags: cp.products.tags || []
+      tags: cp.products.tags || [],
+      capacity_value: cp.capacity_value,
+      capacity_unit: cp.capacity_unit
     }))
 
     return res.status(200).json({

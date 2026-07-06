@@ -9,6 +9,7 @@ import { fetchAllRows } from '../../lib/supabasePagination'
 import Link from 'next/link'
 import RouteGuard from '../../components/RouteGuard'
 import AdminLayout from '../../components/AdminLayout'
+import { CONFIGURATOR_CATEGORY_CATALOG } from '../../lib/configuratorCatalog'
 
 interface Product {
   id: string
@@ -334,18 +335,9 @@ export default function AdminRules() {
     return true
   })
 
-  const categories = [
-    { value: 'camera_dome_fixed', label: 'Dome Fixed' },
-    { value: 'camera_dome_vario', label: 'Dome Vario' },
-    { value: 'camera_bullet_fixed', label: 'Bullet Fixed' },
-    { value: 'camera_bullet_vario', label: 'Bullet Vario' },
-    { value: 'camera_ptz', label: 'PTZ' },
-    { value: 'camera_thermal', label: 'Thermal' },
-    { value: 'speaker_ip', label: 'IP-Lautsprecher' },
-    { value: 'nvr', label: 'NVR' },
-    { value: 'switch', label: 'Switch' },
-    { value: 'monitor', label: 'Monitor' }
-  ]
+  // Voller Kategorien-Katalog (Kameras + alle Konfigurator-Komponenten), geteilt mit
+  // /admin/configurator-products, damit Regeln für JEDE Komponente angelegt werden können.
+  const categories = CONFIGURATOR_CATEGORY_CATALOG
 
   return (
     <RouteGuard requireAdmin>

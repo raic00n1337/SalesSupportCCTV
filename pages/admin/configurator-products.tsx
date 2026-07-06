@@ -1,12 +1,16 @@
 // Admin: Konfigurator-Produkte verwalten
-// Zweck: Produkte zu Tier + Kategorie zuweisen, Defaults markieren, BHE-Zeit setzen
+// Zweck: JEDE Konfigurator-Komponente (Kameras, Switches, Medienkonverter, NVR, VMS-Hardware,
+// Netzwerkschränke, Zubehör, Dienstleistungen, ...) einem Tier + einer Kategorie zuweisen,
+// Defaults markieren, BHE-Zeit setzen und - für kapazitäts-gestaffelte Kategorien - die
+// jeweilige Kapazität (Ports/Kanäle/Kameras) hinterlegen.
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '../../lib/AuthContext'
 import { supabase } from '../../lib/supabaseClient'
 import { fetchAllRows } from '../../lib/supabasePagination'
-import Link from 'next/link'
+import AdminLayout from '../../components/AdminLayout'
+import { CONFIGURATOR_CATEGORY_CATALOG } from '../../lib/configuratorCatalog'
 import type { ConfiguratorProduct } from '../api/configurator/products'
 
 interface Product {
@@ -25,6 +29,8 @@ interface ConfiguratorProductFull extends ConfiguratorProduct {
   products: Product
 }
 
+const categories = CONFIGURATOR_CATEGORY_CATALOG
+
 export default function ConfiguratorProductsPage() {
   const { user } = useAuth()
   const router = useRouter()
@@ -37,6 +43,8 @@ export default function ConfiguratorProductsPage() {
   // Filters
   const [filterTier, setFilterTier] = useState<string>('all')
   const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [filterManufacturer, setFilterManufacturer] = useState<string>('all')
+  const [productSearch, setProductSearch] = useState('')
   
   // Add/Edit Modal
   const [showModal, setShowModal] = useState(false)
@@ -48,7 +56,9 @@ export default function ConfiguratorProductsPage() {
     priority: 0,
     is_default: false,
     bhe_time_minutes: 45,
-    required_accessories: [] as string[]
+    required_accessories: [] as string[],
+    capacity_value: '' as number | '',
+    capacity_unit: ''
   })
 
   useEffect(() => {
@@ -84,6 +94,7 @@ export default function ConfiguratorProductsPage() {
         `)
         .order('tier', { ascending: true })
         .order('category', { ascending: true })
+        .order('capacity_value', { ascending: true })
         .order('priority', { ascending: false })
 
       if (fetchError) throw fetchError
@@ -125,6 +136,26 @@ export default function ConfiguratorProductsPage() {
     }
   }
 
+  const manufacturerOptions = useMemo(() => {
+    const set = new Map<string, string>()
+    allProducts.forEach((p) => {
+      if (p.manufacturers) set.set(p.manufacturers.slug, p.manufacturers.name)
+    })
+    return Array.from(set.entries()).sort((a, b) => a[1].localeCompare(b[1]))
+  }, [allProducts])
+
+  const selectedCategoryDef = categories.find((c) => c.value === formData.category)
+
+  const productOptionsForModal = useMemo(() => {
+    const search = productSearch.trim().toLowerCase()
+    if (!search) return allProducts
+    return allProducts.filter((p) =>
+      p.name.toLowerCase().includes(search) ||
+      p.sku.toLowerCase().includes(search) ||
+      p.manufacturers?.name.toLowerCase().includes(search)
+    )
+  }, [allProducts, productSearch])
+
   const handleOpenModal = (product?: ConfiguratorProductFull) => {
     if (product) {
       setEditingProduct(product)
@@ -135,7 +166,9 @@ export default function ConfiguratorProductsPage() {
         priority: product.priority,
         is_default: product.is_default,
         bhe_time_minutes: product.bhe_time_minutes,
-        required_accessories: product.required_accessories || []
+        required_accessories: product.required_accessories || [],
+        capacity_value: product.capacity_value ?? '',
+        capacity_unit: product.capacity_unit || ''
       })
     } else {
       setEditingProduct(null)
@@ -146,9 +179,12 @@ export default function ConfiguratorProductsPage() {
         priority: 0,
         is_default: false,
         bhe_time_minutes: 45,
-        required_accessories: []
+        required_accessories: [],
+        capacity_value: '',
+        capacity_unit: ''
       })
     }
+    setProductSearch('')
     setShowModal(true)
   }
 
@@ -164,34 +200,28 @@ export default function ConfiguratorProductsPage() {
         return
       }
 
+      const payload: any = {
+        tier: formData.tier,
+        category: formData.category,
+        priority: formData.priority,
+        is_default: formData.is_default,
+        bhe_time_minutes: formData.bhe_time_minutes,
+        required_accessories: formData.required_accessories,
+        capacity_value: formData.capacity_value === '' ? null : Number(formData.capacity_value),
+        capacity_unit: formData.capacity_value === '' ? null : (formData.capacity_unit || selectedCategoryDef?.capacityUnitHint || null)
+      }
+
       if (editingProduct) {
-        // Update
         const { error: updateError } = await (supabase
           .from('configurator_products') as any)
-          .update({
-            tier: formData.tier,
-            category: formData.category,
-            priority: formData.priority,
-            is_default: formData.is_default,
-            bhe_time_minutes: formData.bhe_time_minutes,
-            required_accessories: formData.required_accessories
-          })
+          .update(payload)
           .eq('id', editingProduct.id)
 
         if (updateError) throw updateError
       } else {
-        // Insert
         const { error: insertError } = await (supabase
           .from('configurator_products') as any)
-          .insert({
-            product_id: formData.product_id,
-            tier: formData.tier,
-            category: formData.category,
-            priority: formData.priority,
-            is_default: formData.is_default,
-            bhe_time_minutes: formData.bhe_time_minutes,
-            required_accessories: formData.required_accessories
-          })
+          .insert({ product_id: formData.product_id, ...payload })
 
         if (insertError) throw insertError
       }
@@ -225,186 +255,196 @@ export default function ConfiguratorProductsPage() {
   const filteredProducts = products.filter(p => {
     if (filterTier !== 'all' && p.tier !== filterTier) return false
     if (filterCategory !== 'all' && p.category !== filterCategory) return false
+    if (filterManufacturer !== 'all' && p.products?.manufacturers?.slug !== filterManufacturer) return false
     return true
   })
 
-  const categories = [
-    { value: 'camera_dome_fixed', label: 'Dome Fixed' },
-    { value: 'camera_dome_vario', label: 'Dome Vario' },
-    { value: 'camera_bullet_fixed', label: 'Bullet Fixed' },
-    { value: 'camera_bullet_vario', label: 'Bullet Vario' },
-    { value: 'camera_ptz', label: 'PTZ' },
-    { value: 'camera_thermal', label: 'Thermal' },
-    { value: 'speaker_ip', label: 'IP-Lautsprecher' },
-    { value: 'nvr', label: 'NVR' },
-    { value: 'switch', label: 'Switch' },
-    { value: 'monitor', label: 'Monitor' }
-  ]
+  const categoriesByGroup = useMemo(() => {
+    const groups: Record<string, typeof categories> = {}
+    categories.forEach((c) => {
+      if (!groups[c.group]) groups[c.group] = []
+      groups[c.group].push(c)
+    })
+    return groups
+  }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Konfigurator-Produkte
-              </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Produkte zu Tier + Kategorie zuweisen
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Link
-                href="/admin"
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
-              >
-                ← Zurück
-              </Link>
-              <button
-                onClick={() => handleOpenModal()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                + Neues Produkt
-              </button>
-            </div>
+    <AdminLayout>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Konfigurator-Komponenten
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Jede Komponente aus dem Konfigurator (Kameras, Switches, Medienkonverter, NVR/VMS,
+            Netzwerkschränke, Zubehör, Dienstleistungen) einem Tier + Kategorie zuweisen.
+            Kategorien mit &quot;nach Kapazität&quot; können mehrfach mit unterschiedlichen
+            Kapazitäts-Stufen (z.B. 8/16/24 Ports) angelegt werden - der Konfigurator wählt
+            automatisch die kleinste ausreichende Stufe.
+          </p>
+        </div>
+        <button
+          onClick={() => handleOpenModal()}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition whitespace-nowrap"
+        >
+          + Neue Zuordnung
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Tier
+            </label>
+            <select
+              value={filterTier}
+              onChange={(e) => setFilterTier(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="all">Alle</option>
+              <option value="eco">Eco</option>
+              <option value="premium">Premium</option>
+              <option value="high-risk">High-Risk</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Kategorie
+            </label>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="all">Alle</option>
+              {Object.entries(categoriesByGroup).map(([group, items]) => (
+                <optgroup key={group} label={group}>
+                  {items.map(cat => (
+                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Hersteller
+            </label>
+            <select
+              value={filterManufacturer}
+              onChange={(e) => setFilterManufacturer(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="all">Alle</option>
+              {manufacturerOptions.map(([slug, name]) => (
+                <option key={slug} value={slug}>{name}</option>
+              ))}
+            </select>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Tier
-              </label>
-              <select
-                value={filterTier}
-                onChange={(e) => setFilterTier(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                <option value="all">Alle</option>
-                <option value="eco">Eco</option>
-                <option value="premium">Premium</option>
-                <option value="high-risk">High-Risk</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Kategorie
-              </label>
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                <option value="all">Alle</option>
-                {categories.map(cat => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+      {/* Products Table */}
+      {loading ? (
+        <div className="text-center py-12">
+          <p className="text-gray-600 dark:text-gray-400">Laden...</p>
         </div>
-
-        {/* Products Table */}
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400">Laden...</p>
-          </div>
-        ) : error ? (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <p className="text-red-800 dark:text-red-200">Fehler: {error}</p>
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 text-center">
-            <p className="text-gray-600 dark:text-gray-400">
-              Keine Produkte gefunden.
-            </p>
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-900">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Tier
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Kategorie
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Produkt
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    BHE (Min)
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Priorität
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Default
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Aktionen
-                  </th>
+      ) : error ? (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-800 dark:text-red-200">Fehler: {error}</p>
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 text-center">
+          <p className="text-gray-600 dark:text-gray-400">
+            Keine Zuordnungen gefunden.
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Tier
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Kategorie
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Produkt
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Kapazität
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  BHE (Min)
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Priorität
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Default
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Aktionen
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredProducts.map((product) => (
+                <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                      product.tier === 'eco' ? 'bg-green-100 text-green-800' :
+                      product.tier === 'premium' ? 'bg-blue-100 text-blue-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {product.tier}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {categories.find(c => c.value === product.category)?.label || product.category}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                    <div>{product.name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      SKU: {product.sku} | {product.manufacturer}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {product.capacity_value != null ? `${product.capacity_value} ${product.capacity_unit || ''}`.trim() : '—'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {product.bhe_time_minutes}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {product.priority}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {product.is_default && <span className="text-yellow-500">⭐</span>}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={() => handleOpenModal(product)}
+                      className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-4"
+                    >
+                      Bearbeiten
+                    </button>
+                    <button
+                      onClick={() => handleDelete(product.id)}
+                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                    >
+                      Löschen
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded ${
-                        product.tier === 'eco' ? 'bg-green-100 text-green-800' :
-                        product.tier === 'premium' ? 'bg-blue-100 text-blue-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {product.tier}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {categories.find(c => c.value === product.category)?.label || product.category}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                      <div>{product.name}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        SKU: {product.sku} | {product.manufacturer}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {product.bhe_time_minutes}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {product.priority}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {product.is_default && <span className="text-yellow-500">⭐</span>}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleOpenModal(product)}
-                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-4"
-                      >
-                        Bearbeiten
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                      >
-                        Löschen
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </main>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
@@ -412,28 +452,67 @@ export default function ConfiguratorProductsPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                {editingProduct ? 'Produkt bearbeiten' : 'Neues Produkt hinzufügen'}
+                {editingProduct ? 'Zuordnung bearbeiten' : 'Neue Zuordnung hinzufügen'}
               </h2>
 
               <div className="space-y-4">
+                {/* Category (immer wählbar, auch beim Bearbeiten, da Kapazitäts-Hinweise davon abhängen) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Kategorie *
+                  </label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    {Object.entries(categoriesByGroup).map(([group, items]) => (
+                      <optgroup key={group} label={group}>
+                        {items.map(cat => (
+                          <option key={cat.value} value={cat.value}>{cat.label}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  {selectedCategoryDef?.banded && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      ⚡ Kapazitäts-gestaffelte Kategorie: Für unterschiedliche Ausbaustufen (z.B. 8/16/24)
+                      mehrere Zuordnungen mit jeweils passender Kapazität anlegen.
+                    </p>
+                  )}
+                </div>
+
                 {/* Product Selection */}
                 {!editingProduct && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Produkt *
                     </label>
+                    <input
+                      type="text"
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      placeholder="Produkt suchen (Name, SKU, Hersteller)..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-2"
+                    />
                     <select
                       value={formData.product_id}
                       onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      size={8}
                     >
                       <option value="">Bitte wählen...</option>
-                      {allProducts.map(p => (
+                      {productOptionsForModal.slice(0, 500).map(p => (
                         <option key={p.id} value={p.id}>
-                          {p.name} ({p.sku}) - {p.manufacturers.name}
+                          {p.name} ({p.sku}) - {p.manufacturers?.name}
                         </option>
                       ))}
                     </select>
+                    {productOptionsForModal.length > 500 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {productOptionsForModal.length} Treffer, zeige die ersten 500 - Suche eingrenzen für mehr Präzision.
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -453,20 +532,32 @@ export default function ConfiguratorProductsPage() {
                   </select>
                 </div>
 
-                {/* Category */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Kategorie *
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    {categories.map(cat => (
-                      <option key={cat.value} value={cat.value}>{cat.label}</option>
-                    ))}
-                  </select>
+                {/* Capacity (nur relevant für gestaffelte Kategorien, aber immer editierbar) */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Kapazität {selectedCategoryDef?.banded ? '*' : '(optional)'}
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.capacity_value}
+                      onChange={(e) => setFormData({ ...formData, capacity_value: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                      placeholder={selectedCategoryDef?.capacityUnitHint === 'ports' ? 'z.B. 8, 16, 24' : selectedCategoryDef?.capacityUnitHint === 'channels' ? 'z.B. 8, 16, 32' : 'z.B. 16'}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Einheit
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.capacity_unit}
+                      onChange={(e) => setFormData({ ...formData, capacity_unit: e.target.value })}
+                      placeholder={selectedCategoryDef?.capacityUnitHint || 'z.B. ports, channels, cameras'}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
                 </div>
 
                 {/* Priority */}
@@ -504,7 +595,7 @@ export default function ConfiguratorProductsPage() {
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
                   <label className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                    Als Default markieren ⭐
+                    Als Default markieren ⭐ (wird ohne passende Regel automatisch vorausgewählt)
                   </label>
                 </div>
               </div>
@@ -528,6 +619,6 @@ export default function ConfiguratorProductsPage() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   )
 }
