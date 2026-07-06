@@ -3548,47 +3548,41 @@ const Step6Summary = ({
     // Grundeinrichtung IP Netzwerkkamera: 10 min
     // Einstellung Bildausschnitt nach Kundenvorgaben: 20 min
     // Einstellung IP-Security & DSGVO je Kanal: 30 min
-    // TOTAL: 135 min per camera
-    const baseCameraTime = 135
+    // TOTAL (BHE-Vorgabe): 135 min per camera - admin-pflegbar unter Konfigurator-Einstellungen
+    const baseCameraTime = configuratorSettings.bhe_camera_base_minutes ?? 135
     totalBHEMinutes += totalCameras * baseCameraTime
     
     // 2. CAMERAS - Additional mounting time per camera type & mount
+    const mountCeilingMinutes = configuratorSettings.bhe_camera_mount_ceiling_minutes ?? 30
+    const mountWallPoleMinutes = configuratorSettings.bhe_camera_mount_wall_pole_minutes ?? 20
     project.sites.forEach(site => {
       // Dome cameras
       if (site.cameras.domeFixed.quantity > 0) {
-        const mountTime = site.cameras.domeFixed.mount === 'ceiling' ? 30 : 
-                          site.cameras.domeFixed.mount === 'wall' ? 20 : 20 // pole
+        const mountTime = site.cameras.domeFixed.mount === 'ceiling' ? mountCeilingMinutes : mountWallPoleMinutes
         totalBHEMinutes += site.cameras.domeFixed.quantity * mountTime
       }
       if (site.cameras.domeVario.quantity > 0) {
-        const mountTime = site.cameras.domeVario.mount === 'ceiling' ? 30 : 
-                          site.cameras.domeVario.mount === 'wall' ? 20 : 20
+        const mountTime = site.cameras.domeVario.mount === 'ceiling' ? mountCeilingMinutes : mountWallPoleMinutes
         totalBHEMinutes += site.cameras.domeVario.quantity * mountTime
       }
       
       // Bullet cameras (using similar times as Dome)
       if (site.cameras.bulletFixed.quantity > 0) {
-        const mountTime = site.cameras.bulletFixed.mount === 'ceiling' ? 20 : 
-                          site.cameras.bulletFixed.mount === 'wall' ? 20 : 20
-        totalBHEMinutes += site.cameras.bulletFixed.quantity * mountTime
+        totalBHEMinutes += site.cameras.bulletFixed.quantity * mountWallPoleMinutes
       }
       if (site.cameras.bulletVario.quantity > 0) {
-        const mountTime = site.cameras.bulletVario.mount === 'ceiling' ? 20 : 
-                          site.cameras.bulletVario.mount === 'wall' ? 20 : 20
-        totalBHEMinutes += site.cameras.bulletVario.quantity * mountTime
+        totalBHEMinutes += site.cameras.bulletVario.quantity * mountWallPoleMinutes
       }
       
       // PTZ cameras
       if (site.cameras.ptz.quantity > 0) {
-        const mountTime = site.cameras.ptz.mount === 'ceiling' ? 30 : 
-                          site.cameras.ptz.mount === 'wall' ? 20 : 20
+        const mountTime = site.cameras.ptz.mount === 'ceiling' ? mountCeilingMinutes : mountWallPoleMinutes
         totalBHEMinutes += site.cameras.ptz.quantity * mountTime
       }
       
       // Thermal cameras (High-Risk only)
       if (site.cameras.thermal?.quantity > 0) {
-        const mountTime = site.cameras.thermal.mount === 'ceiling' ? 30 : 
-                          site.cameras.thermal.mount === 'wall' ? 20 : 20
+        const mountTime = site.cameras.thermal.mount === 'ceiling' ? mountCeilingMinutes : mountWallPoleMinutes
         totalBHEMinutes += site.cameras.thermal.quantity * mountTime
       }
     })
@@ -3597,7 +3591,7 @@ const Step6Summary = ({
     // Treating similar to cameras but simpler installation
     const totalIPSpeakers = project.sites.reduce((sum, site) => 
       sum + (site.cameras.ipSpeakers?.quantity || 0), 0)
-    totalBHEMinutes += totalIPSpeakers * 60 // Simplified: 60 min per speaker
+    totalBHEMinutes += totalIPSpeakers * (configuratorSettings.bhe_speaker_install_minutes ?? 60)
     
     // 3.5. LIFT PLATFORM SURCHARGE
     // If lift platform is selected, add configurable minutes per camera for additional mounting effort
@@ -3607,9 +3601,10 @@ const Step6Summary = ({
     
     // 4. SWITCHES
     // Switch 4-Port: 15 min, 8-Port: 20 min, 16-Port: 25 min, 24-Port: 30 min
-    const switchTime = totalCameras <= 4 ? 15 : 
-                       totalCameras <= 8 ? 20 : 
-                       totalCameras <= 16 ? 25 : 30
+    const switchTime = totalCameras <= 4 ? (configuratorSettings.bhe_switch_time_4port_minutes ?? 15) :
+                       totalCameras <= 8 ? (configuratorSettings.bhe_switch_time_8port_minutes ?? 20) :
+                       totalCameras <= 16 ? (configuratorSettings.bhe_switch_time_16port_minutes ?? 25) :
+                       (configuratorSettings.bhe_switch_time_24port_minutes ?? 30)
     const switchCount = project.sites.filter(s => s.isStandalone).length + 
                         (project.videoManagement === 'vms' ? 1 : 0) // Core switch for VMS
     totalBHEMinutes += switchCount * switchTime
@@ -3618,9 +3613,9 @@ const Step6Summary = ({
     // Digitalrecorder einstellen / programmieren: 15 min pro Kanal
     // Kundenspezifische Programmierung NVR: 15 min pro Kanal
     // Aufschaltung je Videokanal: 10 min
-    // TOTAL: 40 min per channel
+    // TOTAL (BHE-Vorgabe): 40 min per channel
     if (project.videoManagement === 'nvr') {
-      totalBHEMinutes += totalCameras * 40
+      totalBHEMinutes += totalCameras * (configuratorSettings.bhe_nvr_minutes_per_channel ?? 40)
     }
     
     // 6. VMS
@@ -3628,10 +3623,10 @@ const Step6Summary = ({
     // Workstation Videomanagement einrichten: 90 min
     // Einrichtung Remoteservice je System: 30 min (if remote)
     if (project.videoManagement === 'vms') {
-      totalBHEMinutes += 240 // VMS Server setup
-      totalBHEMinutes += 90  // Workstation setup
+      totalBHEMinutes += configuratorSettings.bhe_vms_server_setup_minutes ?? 240
+      totalBHEMinutes += configuratorSettings.bhe_vms_workstation_setup_minutes ?? 90
       if (project.remoteCapable) {
-        totalBHEMinutes += 30 // Remote service setup
+        totalBHEMinutes += configuratorSettings.bhe_vms_remote_setup_minutes ?? 30
       }
     }
     
@@ -3639,15 +3634,15 @@ const Step6Summary = ({
     // Desktop-Monitor aufstellen / einstellen: 10 min
     // Zusätzlicher Monitor (Multibild): 15 min
     if (project.videoManagement === 'vms') {
-      totalBHEMinutes += 10 // Main monitor
+      totalBHEMinutes += configuratorSettings.bhe_monitor_main_minutes ?? 10
       if (project.vmsMultiMonitor) {
-        totalBHEMinutes += 15 // Additional monitor
+        totalBHEMinutes += configuratorSettings.bhe_monitor_additional_minutes ?? 15
       }
     }
     
     // 8. DOCUMENTATION
     // Erstellung Anlagendokumentation: 15 min pro Kanal
-    totalBHEMinutes += totalCameras * 15
+    totalBHEMinutes += totalCameras * (configuratorSettings.bhe_documentation_minutes_per_channel ?? 15)
 
     // 9. ZUBEHÖR / INFRASTRUKTUR-KOMPONENTEN (Junction Box, Medienkonverter, SFP,
     // WLAN-Bridge, Outdoor-Cabinet, PoE-Injektor, VPN-Router, USV, 9HE-Schrank)
