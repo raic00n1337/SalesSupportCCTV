@@ -10,7 +10,7 @@ import * as XLSX from 'xlsx'
 import { generateMountingAccessories, generateMountingAccessoriesIndividual, generateSpeakerMountingAccessories } from '../mountAccessories'
 import { generatePDF } from '../pdfExport'
 import type { ConfiguratorProduct } from './api/configurator/products'
-import { CONFIGURATOR_SETTINGS_FALLBACK } from './api/configurator/settings'
+import { CONFIGURATOR_SETTINGS_FALLBACK } from '../lib/configuratorSettingsFallback'
 import { resolveSimpleComponent, resolveBandedComponent } from '../lib/configuratorCatalog'
 
 // Helper: Get product for category with fallback to hardcoded values

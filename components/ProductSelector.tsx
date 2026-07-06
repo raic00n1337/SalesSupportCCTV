@@ -2,7 +2,7 @@
 // Zweck: Produkte aus DB für Konfigurator auswählen
 
 import { useState, useEffect } from 'react'
-import { ConfiguratorProduct } from '../pages/api/configurator/products'
+import type { ConfiguratorProduct } from '../pages/api/configurator/products'
 
 interface ProductSelectorProps {
   tier: string
