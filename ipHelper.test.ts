@@ -8,12 +8,15 @@ import {
   getAvailableIPsInSubnet,
   assignIPsToDevices,
   type NetworkDevice
-} from '../ipHelper'
+} from './ipHelper'
 
 describe('IP Helper Functions', () => {
   describe('parseIPv4', () => {
     it('should parse valid IPv4 addresses', () => {
-      expect(parseIPv4('192.168.1.1')).toBe((192 << 24) | (168 << 16) | (1 << 8) | 1)
+      // >>> 0 forces the expected value to unsigned 32-bit too - without it,
+      // `192 << 24` sets the sign bit and JS's bitwise `|` returns a signed
+      // (negative) int32, while parseIPv4 itself always returns unsigned.
+      expect(parseIPv4('192.168.1.1')).toBe(((192 << 24) | (168 << 16) | (1 << 8) | 1) >>> 0)
       expect(parseIPv4('10.0.0.1')).toBe((10 << 24) | 1)
       expect(parseIPv4('255.255.255.255')).toBe(0xFFFFFFFF)
       expect(parseIPv4('0.0.0.0')).toBe(0)
