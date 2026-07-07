@@ -2,6 +2,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { Project, Site, BOMItem } from './types'
 import type { NetworkDevice } from './ipHelper'
+import { BRANDING_ENABLED } from './lib/branding'
 
 interface PDFExportOptions {
   project: Project
@@ -22,22 +23,30 @@ export const generatePDF = (options: PDFExportOptions) => {
   let yPosition = 20
 
   // === LOGO & HEADER ===
-  // Securitas Technology Logo (drei rote Kreise)
-  const circleY = 15
-  doc.setFillColor(227, 30, 36) // #E31E24
-  doc.circle(15, circleY, 3, 'F')
-  doc.circle(22, circleY, 3, 'F')
-  doc.circle(29, circleY, 3, 'F')
-  
-  // Securitas Technology Text
-  doc.setFontSize(14)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(0, 61, 92) // #003D5C
-  doc.text('Securitas Technology', 35, 14)
-  
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'normal')
-  doc.text('Video-System-Konfigurator', 35, 19)
+  if (BRANDING_ENABLED) {
+    // Securitas Technology Logo (drei rote Kreise)
+    const circleY = 15
+    doc.setFillColor(227, 30, 36) // #E31E24
+    doc.circle(15, circleY, 3, 'F')
+    doc.circle(22, circleY, 3, 'F')
+    doc.circle(29, circleY, 3, 'F')
+
+    // Securitas Technology Text
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 61, 92) // #003D5C
+    doc.text('Securitas Technology', 35, 14)
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Video-System-Konfigurator', 35, 19)
+  } else {
+    // Testphase: anonymer Titel ohne Logo/Firmenname
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 61, 92) // #003D5C
+    doc.text('Video-System-Konfigurator', 15, 16)
+  }
 
   // Linie unter Header
   doc.setDrawColor(200, 200, 200)

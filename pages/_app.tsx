@@ -5,6 +5,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import Image from 'next/image'
 import { AuthProvider, useAuth } from '../lib/AuthContext'
+import { BRANDING_ENABLED } from '../lib/branding'
 
 function AppContent({ Component, pageProps, darkMode, toggleDarkMode }: any) {
   const { isAdmin } = useAuth()
@@ -14,12 +15,16 @@ function AppContent({ Component, pageProps, darkMode, toggleDarkMode }: any) {
       <header className="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <img 
-              src={darkMode ? "/logo-dark.svg" : "/logo.svg"}
-              alt="Securitas Technology Logo" 
-              className="h-16 w-auto"
-            />
-            <div className="hidden sm:block border-l border-gray-300 dark:border-slate-600 h-16"></div>
+            {BRANDING_ENABLED && (
+              <>
+                <img 
+                  src={darkMode ? "/logo-dark.svg" : "/logo.svg"}
+                  alt="Securitas Technology Logo" 
+                  className="h-16 w-auto"
+                />
+                <div className="hidden sm:block border-l border-gray-300 dark:border-slate-600 h-16"></div>
+              </>
+            )}
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
               Video-System-Konfigurator
             </h1>
@@ -86,10 +91,10 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
-        <title>Video-System-Konfigurator | Securitas Technology</title>
+        <title>{BRANDING_ENABLED ? 'Video-System-Konfigurator | Securitas Technology' : 'Video-System-Konfigurator'}</title>
         <meta name="description" content="Professioneller Konfigurator für Video-Überwachungssysteme" />
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <link rel="apple-touch-icon" href="/favicon.svg" />
+        <link rel="icon" type="image/svg+xml" href={BRANDING_ENABLED ? '/favicon.svg' : '/favicon-neutral.svg'} />
+        <link rel="apple-touch-icon" href={BRANDING_ENABLED ? '/favicon.svg' : '/favicon-neutral.svg'} />
       </Head>
       <AuthProvider>
         <AppContent 
