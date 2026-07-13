@@ -224,21 +224,29 @@ export default function AdminUsers() {
     setUpdatingUserId(userId);
 
     try {
-      if (currentStatus) {
-        // Remove admin role
-        const { error } = await (supabase
-          .from('admin_users') as any)
-          .delete()
-          .eq('user_id', userId);
+      // Get current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Keine aktive Session');
+      }
 
-        if (error) throw error;
-      } else {
-        // Add admin role
-        const { error } = await (supabase
-          .from('admin_users') as any)
-          .insert({ user_id: userId });
+      // Call API route to toggle admin status (uses admin client to bypass RLS)
+      const response = await fetch('/api/admin/toggle-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          userId,
+          makeAdmin: !currentStatus,
+        }),
+      });
 
-        if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Fehler beim Ändern des Admin-Status');
       }
 
       // Reload users
